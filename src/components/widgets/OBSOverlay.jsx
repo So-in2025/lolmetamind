@@ -12,7 +12,7 @@ const OBSOverlay = () => {
   useEffect(() => {
     // Evitar reconexiones múltiples en desarrollo
     if (!ws.current) {
-      ws.current = new WebSocket('ws://localhost:8080');
+      ws.current = new WebSocket(process.env.NEXT_PUBLIC_WEBSOCKET_URL);
       console.log('Intento de conexión WebSocket...');
 
       ws.current.onopen = () => {
