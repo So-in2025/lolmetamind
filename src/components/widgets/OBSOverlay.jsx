@@ -10,11 +10,12 @@ const OBSOverlay = () => {
   const [wsMessage, setWsMessage] = useState(null);
 
   const ws = useRef(null);
+  const token = typeof window !== 'undefined' ? localStorage.getItem('authToken') : null;
 
   useEffect(() => {
     // Conexión con el servidor WebSocket
     if (!ws.current) {
-      ws.current = new WebSocket(process.env.NEXT_PUBLIC_WEBSOCKET_URL);
+      if (!token) {       setError('No estás autenticado. Por favor, inicia sesión para usar el overlay.');       setLoading(false);       return;     }     // Adjuntamos el token como un parámetro en la URL de conexión     const wsUrl = `${process.env.NEXT_PUBLIC_WEBSOCKET_URL}?token=${token}`;     ws.current = new WebSocket(wsUrl);
       console.log('Intento de conexión WebSocket...');
 
       ws.current.onopen = () => {
