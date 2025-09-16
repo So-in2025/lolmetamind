@@ -34,6 +34,11 @@ export default function HomePage() {
               Estamos trabajando en las próximas funciones: gamificación, builds premium y más.
               ¡Sigue atento a las actualizaciones de la plataforma!
             </p>
+            <div className="mt-4">
+              <Link href="/builds" className="text-lol-blue-accent hover:text-lol-gold transition-colors duration-300 font-bold">
+                Explorar builds recomendadas »
+              </Link>
+            </div>
           </div>
           <div className="w-full max-w-lg">
             <WeeklyChallenges />
