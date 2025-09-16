@@ -22,6 +22,10 @@ const OBSOverlay = () => {
       ws.current.onmessage = (event) => {
         console.log('✉️ Mensaje del servidor:', event.data);
         setWsMessage(event.data);
+        if ('speechSynthesis' in window) {
+          const utterance = new SpeechSynthesisUtterance(event.data);
+          window.speechSynthesis.speak(utterance);
+        }
       };
 
       ws.current.onclose = () => {
@@ -51,7 +55,7 @@ const OBSOverlay = () => {
 
     fetchOverlayData();
     const interval = setInterval(fetchOverlayData, 10000);
-    
+
     return () => {
       clearInterval(interval);
       if (ws.current && ws.current.readyState === WebSocket.OPEN) {
@@ -71,7 +75,7 @@ const OBSOverlay = () => {
       <h3 className="text-xl font-bold text-cyan-400 mb-2">Consejos en Partida</h3>
       <p className="text-sm mb-2"><strong className="font-semibold">Jugador:</strong> {data.summonerName}</p>
       <p className="text-sm mb-2"><strong className="font-semibold">Campeón:</strong> {data.champion} ({data.role})</p>
-      
+
       <div className="bg-purple-800 p-3 rounded-lg mt-4 animate-pulse">
         <p className="text-lg font-bold text-yellow-300">¡Alerta Estratégica!</p>
         <p className="text-sm mt-1">{wsMessage || "Esperando consejos del coach..."}</p>

@@ -1,11 +1,10 @@
 const WebSocket = require('ws');
 
-// Usa el puerto proporcionado por el entorno (Render) o usa 8080 como fallback
 const port = process.env.PORT || 8080;
 
 const wss = new WebSocket.Server({ port });
 
-console.log('✅ Servidor WebSocket para el Coach en Tiempo Real iniciado en el puerto ' + port + '.');
+console.log(`✅ Servidor WebSocket para el Coach en Tiempo Real iniciado en el puerto ${port}.`);
 
 const coachingTips = [
   "¡Alerta! El jungla enemigo (Lee Sin) está cerca. Juega de forma más segura.",
@@ -33,7 +32,7 @@ wss.on('connection', ws => {
     console.log('💔 Cliente WebSocket desconectado.');
     clearInterval(interval);
   });
-
+  
   ws.on('message', message => {
     console.log(`✉️ Mensaje recibido del cliente: ${message}`);
   });

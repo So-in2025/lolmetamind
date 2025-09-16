@@ -1,0 +1,63 @@
+'use client';
+import React, { useState, useEffect } from 'react';
+
+const WeeklyChallenges = () => {
+  const [challenges, setChallenges] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+
+  useEffect(() => {
+    const fetchChallenges = async () => {
+      try {
+        const response = await fetch('/api/challenges/weekly');
+        if (!response.ok) {
+          throw new Error('No se pudo cargar la lista de retos.');
+        }
+        const result = await response.json();
+        setChallenges(result);
+      } catch (err) {
+        console.error('Error al obtener retos:', err);
+        setError(err.message);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchChallenges();
+  }, []);
+
+  if (loading) {
+    return <div className="bg-lol-blue-medium p-6 rounded-xl shadow-lg w-full text-center animate-pulse">Cargando retos...</div>;
+  }
+
+  if (error) {
+    return <div className="bg-lol-blue-medium text-red-400 p-6 rounded-xl shadow-lg w-full text-center">Error: {error}</div>;
+  }
+
+  return (
+    <div className="bg-lol-blue-medium p-8 rounded-xl shadow-lg w-full border-2 border-lol-gold-dark mt-12">
+      <h3 className="text-2xl font-display font-bold text-lol-gold mb-4 text-center">Retos Semanales</h3>
+      {challenges.length > 0 ? (
+        <ul className="space-y-4">
+          {challenges.map(challenge => (
+            <li key={challenge.id} className="bg-lol-blue-dark p-4 rounded-lg border border-lol-gold-dark flex flex-col md:flex-row justify-between items-start md:items-center">
+              <div>
+                <h4 className="font-display font-bold text-lol-blue-accent">{challenge.title}</h4>
+                <p className="text-sm text-lol-gold-light/80 mt-1">{challenge.description}</p>
+                <div className="mt-2 text-sm">
+                  <span className="font-semibold text-lol-gold-light">Progreso:</span> {challenge.progress}/{challenge.goal}
+                </div>
+              </div>
+              <span className="mt-3 md:mt-0 px-3 py-1 bg-purple-600 text-white text-xs font-bold rounded-full">
+                Recompensa: {challenge.reward}
+              </span>
+            </li>
+          ))}
+        </ul>
+      ) : (
+        <p className="text-center text-lol-gold-light/70">No hay retos semanales disponibles en este momento.</p>
+      )}
+    </div>
+  );
+};
+
+export default WeeklyChallenges;
