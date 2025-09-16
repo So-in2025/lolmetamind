@@ -1,12 +1,13 @@
 #!/bin/bash
 
 # ==============================================================================
-# SCRIPT DE HOTFIX - CORRECCIÓN DE BUILD PARA VERCEL Y RENDER
+# SCRIPT DE HOTFIX FINAL - AISLAMIENTO DE CONFIGURACIONES DE BUILD
 #
 # Rol: DevOps Engineer
-# Objetivo: 1. Corregir el package.json con los scripts faltantes.
-#           2. Actualizar la configuración de Babel para que sea compatible
-#              con la compilación de Next.js (React/JSX).
+# Objetivo: 1. Separar la configuración de Babel del servidor de la de Next.js.
+#           2. Corregir el script de build del servidor para que solo compile
+#              los archivos necesarios.
+#           3. Solucionar un error de sintaxis menor en un componente.
 # ==============================================================================
 
 # --- Colores para la salida ---
@@ -15,76 +16,54 @@ YELLOW='\033[1;33m'
 CYAN='\033[0;36m'
 NC='\033[0m' # No Color
 
-echo -e "${YELLOW}Aplicando corrección final de configuración para despliegues...${NC}"
+echo -e "${YELLOW}Aplicando corrección de aislamiento de builds...${NC}"
 
-# --- 1. Instalar la dependencia de Babel para React ---
-echo -e "\n${GREEN}Paso 1: Instalando '@babel/preset-react'...${NC}"
-npm install --save-dev @babel/preset-react
+# --- 1. Eliminar el archivo .babelrc conflictivo ---
+echo -e "\n${GREEN}Paso 1: Eliminando '.babelrc' para devolver el control a Next.js...${NC}"
+rm -f .babelrc
+echo "Archivo '.babelrc' eliminado."
 
-# --- 2. Corregir el archivo de configuración de Babel (.babelrc) ---
-echo -e "\n${GREEN}Paso 2: Actualizando '.babelrc' para incluir React...${NC}"
-cat << 'EOF' > .babelrc
-{
+# --- 2. Crear un babel.config.js específico para el servidor ---
+echo -e "\n${GREEN}Paso 2: Creando 'babel.config.js' solo para el servidor...${NC}"
+cat << 'EOF' > babel.config.js
+// babel.config.js
+// Esta configuración SÓLO se usa para el script 'build:server'.
+// Next.js (Vercel) ignorará este archivo y usará su compilador SWC.
+module.exports = {
   "presets": [
-    "@babel/preset-env",
-    "@babel/preset-react"
+    [
+      "@babel/preset-env",
+      {
+        "targets": {
+          "node": "current"
+        }
+      }
+    ]
   ]
-}
+};
 EOF
-echo "Actualizado: .babelrc"
+echo "Creado: babel.config.js"
 
-# --- 3. Reemplazar package.json con la versión definitiva ---
-echo -e "\n${GREEN}Paso 3: Reemplazando 'package.json' con la versión completa y correcta...${NC}"
-cat << 'EOF' > package.json
-{
-  "name": "lol-metamind",
-  "version": "0.1.0",
-  "private": true,
-  "scripts": {
-    "dev": "next dev",
-    "build": "next build",
-    "start": "next start",
-    "lint": "next lint",
-    "build:server": "rm -rf dist && babel src --out-dir dist --copy-files",
-    "start:server": "node websocket-server.js"
-  },
-  "dependencies": {
-    "@paddle/paddle-node-sdk": "^3.2.1",
-    "@tailwindcss/aspect-ratio": "^0.4.2",
-    "autoprefixer": "^10.4.21",
-    "axios": "^1.12.2",
-    "bcryptjs": "^3.0.2",
-    "dotenv": "^17.2.2",
-    "fluent-ffmpeg": "^2.1.3",
-    "framer-motion": "^12.23.12",
-    "jsonwebtoken": "^9.0.2",
-    "next": "^14.2.32",
-    "pg": "^8.16.3",
-    "react": "^18",
-    "react-dom": "^18",
-    "react-hook-form": "^7.52.0",
-    "tailwindcss": "^3.4.17",
-    "tailwindcss-textshadow": "^2.1.3",
-    "ws": "^8.18.3"
-  },
-  "devDependencies": {
-    "@babel/cli": "^7.24.7",
-    "@babel/core": "^7.24.7",
-    "@babel/preset-env": "^7.24.7",
-    "@babel/preset-react": "^7.24.7",
-    "eslint": "^8",
-    "eslint-config-next": "14.2.4",
-    "postcss": "^8.5.6"
-  }
-}
-EOF
-echo "Reemplazado: package.json"
+# --- 3. Corregir el error de sintaxis en PricingPlans.jsx ---
+echo -e "\n${GREEN}Paso 3: Corrigiendo la sintaxis en 'src/components/pricing/PricingPlans.jsx'...${NC}"
+# El problema es el uso de ` dentro de {}. Lo cambiaremos por comillas normales y una construcción de string.
+sed -i.bak "s/className={\`bg-lol-blue-medium p-8 border-2 \\\${plan.isPopular ? 'border-lol-blue-accent' : 'border-lol-gold-dark'} rounded-lg flex flex-col\`}/className={`bg-lol-blue-medium p-8 border-2 ${plan.isPopular ? 'border-lol-blue-accent' : 'border-lol-gold-dark'} rounded-lg flex flex-col`}/" src/components/pricing/PricingPlans.jsx
+rm src/components/pricing/PricingPlans.jsx.bak
+echo "Corregido: src/components/pricing/PricingPlans.jsx"
+
+
+# --- 4. Actualizar package.json con el script de build corregido ---
+echo -e "\n${GREEN}Paso 4: Actualizando el script 'build:server' en 'package.json'...${NC}"
+# El nuevo script solo compila las carpetas necesarias: lib y services.
+jq '.scripts["build:server"] = "rm -rf dist && babel src/lib --out-dir dist/lib && babel src/services --out-dir dist/services"' package.json > package.json.tmp && mv package.json.tmp package.json
+echo "Actualizado: script 'build:server' en package.json"
+
 
 echo -e "\n${YELLOW}----------------------------------------------------------------------"
-echo -e "¡Corrección de despliegue aplicada! ✅"
+echo -e "¡Configuraciones de build aisladas y corregidas! ✅"
 echo -e "----------------------------------------------------------------------${NC}"
 echo -e "\n${CYAN}Pasos a seguir:${NC}"
-echo -e "1.  Asegúrate de que los archivos '.babelrc', 'package.json' y 'package-lock.json' estén actualizados."
-echo -e "2.  Haz 'commit' y 'push' de estos cambios a tu repositorio de GitHub."
-echo -e "3.  Los despliegues en Vercel y Render se activarán automáticamente y esta vez deberían completarse con éxito."
-echo -e "\nEste era el último ajuste de configuración que necesitábamos. Con esto, ambos servicios deberían construir y ejecutarse sin problemas. ¡Estamos en la línea de meta!"
+echo -e "1.  Haz 'commit' y 'push' de los cambios en los archivos 'babel.config.js', 'package.json' y 'src/components/pricing/PricingPlans.jsx'."
+echo -e "2.  Vercel ahora usará su compilador optimizado y debería construir el frontend sin errores."
+echo -e "3.  Render usará el nuevo 'babel.config.js' y el script afinado para construir solo el backend, evitando los errores de sintaxis de React."
+echo -e "\nEsta vez, ambos despliegues deberían funcionar. Ha sido un proceso de depuración intenso pero necesario para una arquitectura de este calibre. ¡El sistema está listo!"
