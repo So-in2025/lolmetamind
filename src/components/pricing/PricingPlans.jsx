@@ -1,7 +1,7 @@
 'use client';
 import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { useAuth } from '@/context/AuthContext'; // Importar el hook de autenticación
+import { useAuth } from '@/context/AuthContext';
 
 const plans = [
   {
@@ -20,7 +20,7 @@ const plans = [
   {
     name: 'Plan Premium',
     price: '6.99',
-    priceId: 'price_1PQfEHFp5L5d2dZ3e6Y4L0T8', // Price ID de Stripe/Paddle
+    priceId: 'price_1PQfEHFp5L5d2dZ3e6Y4L0T8',
     features: [
       'Todo lo del Plan Gratuito',
       'Builds Adaptativas',
@@ -38,20 +38,18 @@ const plans = [
 export default function PricingPlans() {
   const [isLoading, setIsLoading] = useState(false);
   const router = useRouter();
-  const { isAuthenticated } = useAuth(); // Obtener el estado de autenticación
+  const auth = useAuth();
+  const isAuthenticated = auth ? auth.isAuthenticated : false;
 
   const handlePlanClick = (plan) => {
     if (!isAuthenticated) {
-      // Si el usuario no está autenticado, lo enviamos a registrarse primero.
       router.push('/register');
       return;
     }
-
     if (plan.priceId) {
       setIsLoading(true);
       handleCheckout(plan.priceId);
     } else {
-      // Si ya está autenticado, lo enviamos directamente al dashboard.
       router.push('/dashboard');
     }
   };
@@ -63,7 +61,6 @@ export default function PricingPlans() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ priceId }),
       });
-
       const { checkoutUrl } = await response.json();
       if (checkoutUrl) {
         window.location.href = checkoutUrl;

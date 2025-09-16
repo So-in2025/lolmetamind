@@ -7,20 +7,26 @@ import Link from 'next/link';
 import { useState, useEffect } from 'react';
 
 export default function DashboardPage() {
-  const { user, login } = useAuth();
-  // Estado local para forzar re-renderizado cuando el perfil se actualiza
-  const [currentUser, setCurrentUser] = useState(user);
+  const auth = useAuth();
+  const [currentUser, setCurrentUser] = useState(auth ? auth.user : null);
 
   useEffect(() => {
-    setCurrentUser(user);
-  }, [user]);
+    if (auth) {
+      setCurrentUser(auth.user);
+    }
+  }, [auth]);
 
   const handleProfileUpdate = (updatedUser) => {
-    // Actualizamos el estado local y también el AuthContext global
-    setCurrentUser(updatedUser);
-    const token = localStorage.getItem('authToken');
-    login(updatedUser, token);
+    if (auth) {
+      const token = localStorage.getItem('authToken');
+      auth.login(updatedUser, token); // Actualiza el contexto global
+    }
   };
+
+  // Si el contexto aún no carga, no renderizamos nada para evitar el error
+  if (!currentUser) {
+    return null; // O un spinner de carga
+  }
 
   const hasSummonerProfile = currentUser && currentUser.summoner_name;
 
