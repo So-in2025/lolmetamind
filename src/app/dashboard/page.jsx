@@ -28,7 +28,7 @@ export default function DashboardPage() {
     return null; // O un spinner de carga
   }
 
-  const hasSummonerProfile = currentUser && currentUser.summoner_name;
+  const hasSummonerProfile = currentUser currentUser && currentUser.summoner_namecurrentUser && currentUser.summoner_name currentUser.riot_id_name;
 
   return (
     <div className="w-full max-w-7xl mx-auto flex flex-col lg:flex-row gap-12">

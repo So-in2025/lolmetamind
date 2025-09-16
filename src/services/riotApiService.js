@@ -2,67 +2,65 @@
 import axios from 'axios';
 import { RIOT_API_KEY } from './apiConfig';
 
-// Mapeo de regiones de la app a las plataformas de la API de Riot
-const regionToPlatformMap = {
-  LAN: 'la1',
-  LAS: 'la2',
-  NA: 'na1',
-  EUW: 'euw1',
-  EUNE: 'eun1',
-  KR: 'kr',
-  JP: 'jp1',
-  // Agrega otras regiones según sea necesario
+const REGIONAL_ROUTES = {
+    americas: ['NA', 'BR', 'LAN', 'LAS'],
+    asia: ['KR', 'JP'],
+    europe: ['EUNE', 'EUW', 'TR', 'RU'],
 };
 
-const getRiotApi = (region) => {
-  const platformId = regionToPlatformMap[region.toUpperCase()];
-  if (!platformId) {
-    throw new Error(`Región no válida: ${region}`);
-  }
-  
-  const baseURL = `https://${platformId}.api.riotgames.com`;
-  
-  return axios.create({
+const getRegionalRoute = (region) => {
+    for (const route in REGIONAL_ROUTES) {
+        if (REGIONAL_ROUTES[route].includes(region.toUpperCase())) {
+            return route;
+        }
+    }
+    throw new Error(`Región no válida para ruta regional: ${region}`);
+};
+
+const getPlatformRoute = (region) => {
+    const platformRoutes = { LAN: 'la1', LAS: 'la2', NA: 'na1', EUW: 'euw1', EUNE: 'eun1', KR: 'kr', JP: 'jp1' };
+    return platformRoutes[region.toUpperCase()];
+};
+
+const createApi = (baseURL) => axios.create({
     baseURL,
-    headers: {
-      "X-Riot-Token": RIOT_API_KEY
+    headers: { "X-Riot-Token": RIOT_API_KEY }
+});
+
+export const getAccountByRiotId = async (gameName, tagLine) => {
+    // La API de Cuentas es regional, no por plataforma
+    const regionalRoute = getRegionalRoute('LAS'); // Asumimos una región para encontrar la ruta, se puede mejorar
+    const api = createApi(`https://${regionalRoute}.api.riotgames.com`);
+    try {
+        const response = await api.get(`/riot/account/v1/accounts/by-riot-id/${gameName}/${tagLine}`);
+        return response.data;
+    } catch (error) {
+        console.error('Error fetching account by Riot ID:', error.response?.data || error.message);
+        throw error;
     }
-  });
 };
 
-/**
- * Obtiene los datos de un invocador por su nombre y región.
- * @param {string} summonerName - El nombre del invocador.
- * @param {string} region - La región del invocador (ej: 'LAS', 'NA').
- * @returns {Promise<object>} - Los datos del invocador.
- */
-export const getSummonerByName = async (summonerName, region) => {
-  try {
-    const riotApi = getRiotApi(region);
-    const response = await riotApi.get(`/lol/summoner/v4/summoners/by-name/${summonerName}`);
-    return response.data;
-  } catch (error) {
-    console.error('Error fetching summoner data:', error.response ? error.response.data : error.message);
-    throw error;
-  }
+export const getSummonerByPuuid = async (puuid, region) => {
+    const platformRoute = getPlatformRoute(region);
+    const api = createApi(`https://${platformRoute}.api.riotgames.com`);
+    try {
+        const response = await api.get(`/lol/summoner/v4/summoners/by-puuid/${puuid}`);
+        return response.data;
+    } catch (error) {
+        console.error('Error fetching summoner by PUUID:', error.response?.data || error.message);
+        throw error;
+    }
 };
 
-/**
- * Obtiene la partida en vivo de un invocador por su ID.
- * @param {string} summonerId - El ID encriptado del invocador.
- * @param {string} region - La región del invocador.
- * @returns {Promise<object>} - Los datos de la partida en vivo.
- */
 export const getLiveGameBySummonerId = async (summonerId, region) => {
-  try {
-    const riotApi = getRiotApi(region);
-    const response = await riotApi.get(`/lol/spectator/v4/active-games/by-summoner/${summonerId}`);
-    return response.data;
-  } catch (error) {
-    if (error.response && error.response.status === 404) {
-      return null; // Es normal no encontrar partida, no lo tratamos como un error fatal.
+    const platformRoute = getPlatformRoute(region);
+    const api = createApi(`https://${platformRoute}.api.riotgames.com`);
+    try {
+        const response = await api.get(`/lol/spectator/v4/active-games/by-summoner/${summonerId}`);
+        return response.data;
+    } catch (error) {
+        if (error.response?.status === 404) return null;
+        console.error('Error fetching live game data:', error.response?.data || error.message);
+        throw error;
     }
-    console.error('Error fetching live game data:', error.response ? error.response.data : error.message);
-    throw error;
-  }
 };
