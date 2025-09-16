@@ -1,4 +1,5 @@
 import PricingPlans from '@/components/pricing/PricingPlans'
+import Link from 'next/link';
 
 export default function HomePage() {
   return (
@@ -16,13 +17,12 @@ export default function HomePage() {
 
       <div className="mt-8 text-center">
         <p className="text-lol-gold-light/70">
-          ¿Ya tienes una cuenta?{\ } 
+          ¿Ya tienes una cuenta?{' '}
           <Link href="/login" className="text-lol-blue-accent font-bold hover:underline">
             Inicia sesión aquí
           </Link>
         </p>
       </div>
-
     </main>
   );
 }
