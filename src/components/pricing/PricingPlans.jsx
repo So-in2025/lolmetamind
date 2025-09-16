@@ -1,6 +1,7 @@
 'use client';
 import React, { useState } from 'react';
-import { useRouter } from 'next/navigation'; // Importamos el router de Next.js
+import { useRouter } from 'next/navigation';
+import { useAuth } from '@/context/AuthContext'; // Importar el hook de autenticación
 
 const plans = [
   {
@@ -19,7 +20,7 @@ const plans = [
   {
     name: 'Plan Premium',
     price: '6.99',
-    priceId: 'pri_01k59kbft7tnw1vyw7ty453nrr', // Este es tu Price ID real de Paddle
+    priceId: 'price_1PQfEHFp5L5d2dZ3e6Y4L0T8', // Price ID de Stripe/Paddle
     features: [
       'Todo lo del Plan Gratuito',
       'Builds Adaptativas',
@@ -36,16 +37,21 @@ const plans = [
 
 export default function PricingPlans() {
   const [isLoading, setIsLoading] = useState(false);
-  const router = useRouter(); // Inicializamos el router
+  const router = useRouter();
+  const { isAuthenticated } = useAuth(); // Obtener el estado de autenticación
 
   const handlePlanClick = (plan) => {
-    // Si el plan tiene un priceId, vamos al checkout
+    if (!isAuthenticated) {
+      // Si el usuario no está autenticado, lo enviamos a registrarse primero.
+      router.push('/register');
+      return;
+    }
+
     if (plan.priceId) {
       setIsLoading(true);
       handleCheckout(plan.priceId);
     } else {
-      // Si no, es el plan gratuito y navegamos al dashboard
-      // ASUMO que la ruta principal de tu app es '/dashboard'. Cámbiala si es otra.
+      // Si ya está autenticado, lo enviamos directamente al dashboard.
       router.push('/dashboard');
     }
   };
@@ -75,11 +81,11 @@ export default function PricingPlans() {
       <h2 className="text-4xl font-display font-bold text-center text-lol-gold mb-12">Elige Tu Arsenal</h2>
       <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
         {plans.map((plan) => (
-          <div key={plan.name} className={`bg-lol-blue-medium p-8 border-2 ${plan.isPopular ? 'border-lol-blue-accent' : 'border-lol-gold-dark'} rounded-lg flex flex-col`}>
+          <div key={plan.name} className={\`bg-lol-blue-medium p-8 border-2 \${plan.isPopular ? 'border-lol-blue-accent' : 'border-lol-gold-dark'} rounded-lg flex flex-col\`}>
             {plan.isPopular && <span className="text-center bg-lol-blue-accent text-lol-blue-dark font-bold py-1 px-4 rounded-full self-center -mt-12 mb-4">Más Popular</span>}
             <h3 className="text-3xl font-display font-bold text-center mb-4">{plan.name}</h3>
             <div className="text-center mb-6">
-              <span className="text-5xl font-bold">${plan.price}</span>
+              <span className="text-5xl font-bold">\${plan.price}</span>
               <span className="text-lol-gold-light/70">{plan.price !== '0' ? '/mes' : ''}</span>
             </div>
             <ul className="space-y-3 mb-8 flex-grow">
@@ -93,7 +99,7 @@ export default function PricingPlans() {
             <button
               onClick={() => handlePlanClick(plan)}
               disabled={isLoading && plan.priceId}
-              className={`w-full py-3 font-display font-bold rounded-lg transition-colors ${plan.isPopular ? 'bg-lol-blue-accent text-lol-blue-dark hover:bg-cyan-500' : 'bg-lol-gold text-lol-blue-dark hover:bg-yellow-600'} disabled:opacity-50`}
+              className={\`w-full py-3 font-display font-bold rounded-lg transition-colors \${plan.isPopular ? 'bg-lol-blue-accent text-lol-blue-dark hover:bg-cyan-500' : 'bg-lol-gold text-lol-blue-dark hover:bg-yellow-600'} disabled:opacity-50\`}
             >
               {isLoading && plan.priceId ? 'Cargando...' : plan.cta}
             </button>

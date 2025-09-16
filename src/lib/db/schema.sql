@@ -8,6 +8,12 @@ CREATE TABLE users (
     email VARCHAR(255) UNIQUE NOT NULL,
     password_hash VARCHAR(255) NOT NULL,
     summoner_name VARCHAR(255),
+    region VARCHAR(10),
+    summoner_id VARCHAR(255),
+    puuid VARCHAR(255),
+    region VARCHAR(10),
+    summoner_id VARCHAR(255),
+    puuid VARCHAR(255),
     zodiac_sign VARCHAR(50),
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
