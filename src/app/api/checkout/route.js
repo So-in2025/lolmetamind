@@ -1,36 +1,29 @@
 import { NextResponse } from 'next/server';
-import crypto from 'crypto';
+import { paddle } from '@/lib/paddle';
 
 export async function POST(request) {
-  const { amount, referenceCode, description } = await request.json();
+  const { priceId } = await request.json();
 
-  const apiKey = process.env.PAYU_API_KEY;
-  const merchantId = process.env.NEXT_PUBLIC_PAYU_MERCHANT_ID;
-  const accountId = process.env.PAYU_ACCOUNT_ID;
-  const currency = 'ARS'; // O la moneda que corresponda
-
-  if (!apiKey || !merchantId || !accountId) {
-    return NextResponse.json({ error: 'Variables de entorno de PayU no configuradas' }, { status: 500 });
+  if (!priceId) {
+    return NextResponse.json({ error: 'Price ID es requerido' }, { status: 400 });
   }
 
-  // Creación de la firma de seguridad (muy importante para PayU)
-  const signatureString = `${apiKey}~${merchantId}~${referenceCode}~${amount}~${currency}`;
-  const signature = crypto.createHash('md5').update(signatureString).digest('hex');
+  try {
+    // Crear un link de pago para una suscripción
+    const transaction = await paddle.transactions.create({
+      items: [{ priceId: priceId, quantity: 1 }],
+      // Opcional: puedes asociar el checkout a un cliente si ya está registrado
+      // customer_id: 'cus_xxxxxxxx',
+      customData: {
+        // Aquí puedes pasar datos adicionales que necesites
+        userId: 'usr_12345', // Ejemplo
+      }
+    });
 
-  const formData = {
-    merchantId,
-    accountId,
-    description,
-    referenceCode,
-    amount,
-    tax: 0,
-    taxReturnBase: 0,
-    currency,
-    signature,
-    test: process.env.NODE_ENV === 'development' ? '1' : '0', // 1 para pruebas, 0 para producción
-    responseUrl: `${process.env.NEXT_PUBLIC_APP_URL}/dashboard`,
-    confirmationUrl: `${process.env.NEXT_PUBLIC_APP_URL}/api/payments/confirmation`,
-  };
+    return NextResponse.json({ checkoutUrl: transaction.checkout.url });
 
-  return NextResponse.json(formData);
+  } catch (error) {
+    console.error('Error creando transacción de Paddle:', error);
+    return NextResponse.json({ error: 'Error interno del servidor' }, { status: 500 });
+  }
 }
