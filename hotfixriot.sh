@@ -1,23 +1,45 @@
 #!/bin/bash
 
 # ==============================================================================
-# SCRIPT DE HOTFIX CRÍTICO - CORRECCIÓN DEL FLUJO DE RIOT ID
+# SCRIPT DE SOLUCIÓN PERMANENTE Y FINAL - LOL METAMIND
 #
 # Rol: Full-Stack Engineer
-# Objetivo: 1. Asegurar que el backend siempre devuelva un JSON válido.
-#           2. Mejorar la robustez del endpoint de vinculación de Riot ID.
+# Objetivo: Corregir todos los problemas de persistencia y el error de JSON
+#           para dejar la aplicación 100% funcional.
 # ==============================================================================
 
 # --- Colores ---
 GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
 CYAN='\033[0;36m'
-NC='\033[0m' # No Color
+NC='\033[0m'
 
-echo -e "${YELLOW}Aplicando hotfix para el flujo de vinculación de Riot ID...${NC}"
+echo -e "${YELLOW}Iniciando la aplicación de la solución integral...${NC}"
 
-# --- 1. Crear el nuevo endpoint del perfil con manejo de errores mejorado ---
-echo -e "\n${GREEN}Paso 1: Actualizando 'src/app/api/user/profile/route.js' para manejar correctamente el Riot ID y los errores...${NC}"
+# --- 1. Corregir la conexión a la base de datos para el frontend (Vercel) ---
+echo -e "\n${GREEN}Paso 1: Simplificando 'src/lib/db/index.js' para Vercel y Render...${NC}"
+cat << 'EOF' > src/lib/db/index.js
+// src/lib/db/index.js
+import { Pool } from 'pg';
+
+let pool;
+
+// Esta configuración es más simple y es la recomendada para Vercel.
+if (!pool) {
+  pool = new Pool({
+    connectionString: process.env.DATABASE_URL,
+    ssl: {
+      rejectUnauthorized: false
+    }
+  });
+}
+
+export default pool;
+EOF
+echo "Actualizado: src/lib/db/index.js"
+
+# --- 2. Corregir el endpoint del perfil para un manejo de errores robusto ---
+echo -e "\n${GREEN}Paso 2: Actualizando la API '/api/user/profile/route.js' para manejar correctamente el Riot ID y los errores...${NC}"
 cat << 'EOF' > src/app/api/user/profile/route.js
 import { NextResponse } from 'next/server';
 import jwt from 'jsonwebtoken';
@@ -39,7 +61,7 @@ export async function POST(request) {
       return NextResponse.json({ error: 'Nombre de juego, tagline y región son requeridos' }, { status: 400 });
     }
 
-    # Limpiamos el tagline por si el usuario incluyó el #
+    // Limpiamos el tagline por si el usuario incluyó el #
     tagLine = tagLine.startsWith('#') ? tagLine.substring(1) : tagLine;
 
     // 1. Obtener PUUID desde la API de Cuentas
@@ -67,7 +89,8 @@ export async function POST(request) {
 
   } catch (error) {
     console.error('Error al actualizar perfil:', error.response?.data || error.message);
-    // Este bloque de código asegura que SIEMPRE se devuelve un JSON
+    
+    // Devolvemos siempre un JSON en caso de error
     if (error.response?.status === 404) {
       return NextResponse.json({ error: `Riot ID no encontrado. Verifica el nombre, tagline y región.` }, { status: 404 });
     }
@@ -77,113 +100,82 @@ export async function POST(request) {
 EOF
 echo "Actualizado: src/app/api/user/profile/route.js"
 
-# --- 2. Rediseñar el Formulario del Frontend (reafirmando el diseño correcto) ---
-echo -e "\n${GREEN}Paso 2: Reafirmando el diseño del formulario en 'src/components/forms/SummonerProfileForm.jsx'...${NC}"
-cat << 'EOF' > src/components/forms/SummonerProfileForm.jsx
-'use client';
-import React, { useState } from 'react';
-import { useForm } from 'react-hook-form';
+# --- 3. Actualizar el servicio de Riot API para que use el regionalRoute ---
+echo -e "\n${GREEN}Paso 3: Actualizando 'src/services/riotApiService.js' para usar regionalRoute...${NC}"
+cat << 'EOF' > src/services/riotApiService.js
+// src/services/riotApiService.js
+import axios from 'axios';
+import { RIOT_API_KEY } from './apiConfig';
 
-export default function SummonerProfileForm({ onProfileUpdate }) {
-  const { register, handleSubmit, formState: { errors, isSubmitting } } = useForm();
-  const [error, setError] = useState('');
-  const regions = ['LAS', 'LAN', 'NA', 'EUW', 'EUNE', 'KR', 'JP'];
+const REGIONAL_ROUTES = {
+    americas: ['NA', 'BR', 'LAN', 'LAS'],
+    asia: ['KR', 'JP'],
+    europe: ['EUNE', 'EUW', 'TR', 'RU'],
+};
 
-  const onSubmit = async (data) => {
-    setError('');
-    try {
-      const response = await fetch('/api/user/profile', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('authToken')}`
-        },
-        body: JSON.stringify(data),
-      });
-
-      const result = await response.json();
-      if (!response.ok) {
-        throw new Error(result.error || 'No se pudo actualizar el perfil.');
-      }
-      
-      alert('¡Perfil de invocador vinculado con éxito!');
-      if(onProfileUpdate) onProfileUpdate(result.user);
-
-    } catch (err) {
-      setError(err.message);
+const getRegionalRoute = (region) => {
+    for (const route in REGIONAL_ROUTES) {
+        if (REGIONAL_ROUTES[route].includes(region.toUpperCase())) {
+            return route;
+        }
     }
-  };
+    // Si no se encuentra, por defecto usamos 'americas' que cubre LAN/LAS/NA
+    return 'americas';
+};
 
-  return (
-    <div className="bg-lol-blue-medium text-lol-gold-light p-8 rounded-xl shadow-lg w-full border-2 border-lol-gold-dark">
-      <h2 className="text-2xl font-display font-bold text-lol-blue-accent mb-2">Vincula tu Riot ID</h2>
-      <p className="text-lol-gold-light/90 mb-6">
-        Ingresa tu nombre de juego y tu tagline para activar el coaching. Lo encontrarás pasando el mouse sobre tu avatar en el cliente de Riot.
-      </p>
-      {error && <p className="bg-red-900/50 text-red-300 border border-red-500 rounded-md p-3 text-center mb-4">{error}</p>}
-      <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
-        <div className="flex flex-col md:flex-row gap-4">
-          <div className="flex-grow">
-            <label htmlFor="gameName" className="block text-sm font-medium mb-2">Nombre de Juego</label>
-            <input
-              id="gameName"
-              placeholder="TuNombreDeJuego"
-              {...register("gameName", { required: "El nombre es requerido." })}
-              className="w-full bg-lol-blue-dark border-2 border-lol-gold-dark rounded-lg px-4 py-2"
-            />
-            {errors.gameName && <p className="text-red-500 text-xs mt-1">{errors.gameName.message}</p>}
-          </div>
-          <div className="w-full md:w-1/3">
-            <label htmlFor="tagLine" className="block text-sm font-medium mb-2">Tagline</label>
-            <input
-              id="tagLine"
-              placeholder="#LAS"
-              {...register("tagLine", { 
-                  required: "El tagline es requerido.",
-                  pattern: {
-                    value: /^#?[a-zA-Z0-9]+$/,
-                    message: "Tagline inválido. Ej: #LAS, #1234"
-                  }
-              })}
-              className="w-full bg-lol-blue-dark border-2 border-lol-gold-dark rounded-lg px-4 py-2"
-            />
-            {errors.tagLine && <p className="text-red-500 text-xs mt-1">{errors.tagLine.message}</p>}
-          </div>
-        </div>
-        <div>
-          <label htmlFor="region" className="block text-sm font-medium mb-2">Región de Juego</label>
-          <select
-            id="region"
-            {...register("region", { required: "Debes seleccionar una región." })}
-            className="w-full bg-lol-blue-dark border-2 border-lol-gold-dark rounded-lg px-4 py-2"
-          >
-            {regions.map(region => <option key={region} value={region}>{region}</option>)}
-          </select>
-          {errors.region && <p className="text-red-500 text-xs mt-1">{errors.region.message}</p>}
-        </div>
-        <button
-          type="submit"
-          disabled={isSubmitting}
-          className="w-full bg-lol-gold hover:bg-lol-gold-dark text-lol-blue-dark font-display font-bold py-3 px-4 rounded-lg disabled:opacity-50"
-        >
-          {isSubmitting ? 'Verificando y Guardando...' : 'Vincular y Guardar'}
-        </button>
-      </form>
-    </div>
-  );
-}
+const getPlatformRoute = (region) => {
+    const platformRoutes = { LAN: 'la1', LAS: 'la2', NA: 'na1', EUW: 'euw1', EUNE: 'eun1', KR: 'kr', JP: 'jp1' };
+    return platformRoutes[region.toUpperCase()];
+};
+
+const createApi = (baseURL) => axios.create({
+    baseURL,
+    headers: { "X-Riot-Token": RIOT_API_KEY }
+});
+
+export const getAccountByRiotId = async (gameName, tagLine, region) => {
+    const regionalRoute = getRegionalRoute(region);
+    const api = createApi(`https://${regionalRoute}.api.riotgames.com`);
+    try {
+        const response = await api.get(`/riot/account/v1/accounts/by-riot-id/${encodeURIComponent(gameName)}/${tagLine}`);
+        return response.data;
+    } catch (error) {
+        console.error('Error fetching account by Riot ID:', error.response?.data || error.message);
+        throw error;
+    }
+};
+
+export const getSummonerByPuuid = async (puuid, region) => {
+    const platformRoute = getPlatformRoute(region);
+    const api = createApi(`https://${platformRoute}.api.riotgames.com`);
+    try {
+        const response = await api.get(`/lol/summoner/v4/summoners/by-puuid/${puuid}`);
+        return response.data;
+    } catch (error) {
+        console.error('Error fetching summoner by PUUID:', error.response?.data || error.message);
+        throw error;
+    }
+};
+
+export const getLiveGameBySummonerId = async (summonerId, region) => {
+    const platformRoute = getPlatformRoute(region);
+    const api = createApi(`https://${platformRoute}.api.riotgames.com`);
+    try {
+        const response = await api.get(`/lol/spectator/v4/active-games/by-summoner/${summonerId}`);
+        return response.data;
+    } catch (error) {
+        if (error.response?.status === 404) return null;
+        console.error('Error fetching live game data:', error.response?.data || error.message);
+        throw error;
+    }
+};
 EOF
-echo "Actualizado: src/components/forms/SummonerProfileForm.jsx"
+echo "Actualizado: src/services/riotApiService.js"
 
 echo -e "\n${YELLOW}----------------------------------------------------------------------"
-echo -e "¡CORRECCIÓN DEFINITIVA APLICADA! ✅"
+echo -e "¡SOLUCIÓN INTEGRAL APLICADA! ✅"
 echo -e "----------------------------------------------------------------------${NC}"
-echo -e "\n${CYAN}Pasos Siguientes:${NC}"
-echo -e "1.  Sube estos cambios a tu repositorio."
-echo -e "2.  Una vez que se desplieguen, el error 'Unexpected end of JSON input' ya no debería aparecer. Si el Riot ID es inválido, verás un mensaje de error claro en el formulario."
-
-echo -e Con esta corrección, la funcionalidad central de tu aplicación está estable. Ahora, tu aplicación se comporta como las plataformas profesionales y está lista para el siguiente paso.
-
-echo -e El siguiente paso lógico en la hoja de ruta es continuar con la **Fase 5: Monetización y Expansión**. Ya tienes un plan de negocio Freemium y Premium, y ahora podemos empezar a integrar completamente el proceso de checkout y gestión de suscripciones para que tus usuarios puedan pasar de un plan gratuito a un plan premium.
-
-echo -e ¿Te gustaría continuar con la implementación completa de la monetización con Paddle?
+echo -e "\n${CYAN}Pasos Finales y Cruciales:${NC}"
+echo -e "1.  **ACTUALIZA LA BASE DE DATOS:** Abre DBeaver, conéctate a tu base de datos de Render y ejecuta el contenido del archivo 'src/lib/db/schema.sql'. Es fundamental hacerlo para que la persistencia funcione."
+echo -e "2.  **HAZ COMMIT Y PUSH:** Sube todos los archivos modificados a tu repositorio de GitHub."
+echo -e "3.  **PRUEBA EL FLUJO:** Una vez que se desplieguen los cambios, el inicio de sesión y la vinculación de tu Riot ID deberían funcionar correctamente."

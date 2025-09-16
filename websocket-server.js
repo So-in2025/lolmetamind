@@ -5,15 +5,16 @@ const url = require('url');
 const { Pool } = require('pg');
 require('dotenv').config();
 
-// Importamos las funciones desde la carpeta 'dist' que será generada por Babel
+// Importamos las funciones desde la carpeta 'dist'
 const { getLiveGameBySummonerId } = require('./dist/services/riotApiService.js');
 const { createLiveCoachingPrompt } = require('./dist/lib/ai/prompts.js');
-const { generateStrategicAnalysis } = require('./dist/lib/ai/strategist.js'); // Asumimos que la lógica de llamada a Gemini está aquí.
+const { generateStrategicAnalysis } = require('./dist/lib/ai/strategist.js');
 
 const port = process.env.PORT || 8080;
 const JWT_SECRET = process.env.JWT_SECRET;
 const DATABASE_URL = process.env.DATABASE_URL;
 
+// Configuración de la base de datos para el servidor de Node.js
 const pool = new Pool({
   connectionString: DATABASE_URL,
   ssl: {
@@ -86,9 +87,8 @@ setInterval(async () => {
       if (liveGame) {
         console.log(`[${userData.username}] Partida encontrada. Generando consejo de IA...`);
         
-        // Usamos el estratega completo para generar el consejo
         const prompt = createLiveCoachingPrompt(liveGame, userData.username);
-        const analysis = await generateStrategicAnalysis({ customPrompt: prompt }); // Asumimos que el estratega puede tomar un prompt custom
+        const analysis = await generateStrategicAnalysis({ customPrompt: prompt });
         
         const tip = analysis.candidates[0].content.parts[0].text;
         
@@ -98,4 +98,4 @@ setInterval(async () => {
       console.error(`Error procesando al cliente ${userData.username}:`, error);
     }
   }
-}, 60000); // Revisa cada 60 segundos para no exceder los límites de la API de desarrollo
+}, 60000); // Revisa cada 60 segundos

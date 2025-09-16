@@ -2,7 +2,7 @@
 -- Esquema de base de datos para PostgreSQL en producción.
 
 -- Se eliminan las tablas existentes para asegurar un esquema limpio.
-DROP TABLE IF EXISTS users;
+DROP TABLE IF EXISTS users CASCADE;
 
 -- Tabla de Usuarios actualizada para Riot ID y Paddle
 CREATE TABLE users (
