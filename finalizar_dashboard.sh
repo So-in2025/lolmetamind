@@ -16,9 +16,35 @@ NC='\033[0m' # No Color
 
 echo -e "${YELLOW}Iniciando la restauración del contenido principal en el Dashboard...${NC}"
 
-# --- 1. Definir el contenido correcto para el Dashboard ---
-echo -e "\n${GREEN}Paso 1: Escribiendo el contenido completo en src/app/dashboard/page.jsx...${NC}"
+# --- 1. Creación de la Estructura de Archivos del Dashboard si no existe ---
+echo -e "\n${GREEN}Paso 1: Asegurando la estructura de directorios para /dashboard...${NC}"
+mkdir -p src/app/dashboard
 
+# --- 2. Creación del Layout y la Página del Dashboard ---
+echo -e "\n${GREEN}Paso 2: Creando los archivos layout.jsx y page.jsx del dashboard...${NC}"
+
+# Crear el Layout principal para la sección del dashboard
+cat << 'EOF' > src/app/dashboard/layout.jsx
+// src/app/dashboard/layout.jsx
+
+export default function DashboardLayout({ children }) {
+  return (
+    <section className="min-h-screen w-full bg-lol-blue-dark text-lol-gold-light font-body">
+      <header className="bg-lol-blue-medium p-4 border-b-2 border-lol-gold-dark">
+        <h1 className="text-2xl font-display text-lol-gold text-center">
+          LoL MetaMind Dashboard
+        </h1>
+      </header>
+      <main className="p-4 sm:p-8">
+        {children}
+      </main>
+    </section>
+  );
+}
+EOF
+echo "Creado: src/app/dashboard/layout.jsx"
+
+# Crear la Página principal del Dashboard con todo el contenido original
 cat << 'EOF' > src/app/dashboard/page.jsx
 import ProfileForm from '@/components/forms/ProfileForm'
 import WeeklyChallenges from '@/components/WeeklyChallenges'
@@ -60,39 +86,14 @@ export default function DashboardPage() {
   );
 }
 EOF
-echo "src/app/dashboard/page.jsx ha sido actualizado con el contenido principal de la aplicación."
+echo "src/app/dashboard/page.jsx ha sido creado con el contenido principal de la aplicación."
 
-# --- 2. Asegurar que la página principal (/) solo muestre los planes ---
-echo -e "\n${GREEN}Paso 2: Confirmando que la página de inicio (/) sea la de precios...${NC}"
-
-cat << 'EOF' > src/app/page.jsx
-import PricingPlans from '@/components/pricing/PricingPlans'
-
-export default function HomePage() {
-  return (
-    <main className="min-h-screen flex flex-col justify-start items-center p-8 bg-lol-blue-dark text-lol-gold-light font-body">
-      <div className="w-full max-w-lg mb-8 text-center">
-        <h1 className="text-5xl md:text-6xl font-display font-bold text-lol-blue-accent mb-4 text-shadow-lg">
-          LoL MetaMind
-        </h1>
-        <p className="text-lg md:text-xl text-lol-gold-light/90 mb-6">
-          La plataforma de coaching de League of Legends con IA que te da una ventaja estratégica.
-        </p>
-      </div>
-      
-      <PricingPlans />
-
-    </main>
-  );
-}
-EOF
-echo "src/app/page.jsx confirmado como página de precios."
 
 echo -e "\n${YELLOW}----------------------------------------------------------------------"
 echo -e "¡La estructura del proyecto ha sido corregida y finalizada! ✅"
 echo -e "----------------------------------------------------------------------${NC}"
 echo -e "\n${CYAN}Resumen de la estructura actual:${NC}"
-echo -e "1.  La página de inicio (${GREEN}/${NC}) ahora es tu landing page con los planes de precios."
-echo -e "2.  El botón 'Empezar Gratis' te lleva correctamente a ${GREEN}/dashboard${NC}."
+echo -e "1.  La página de inicio (${GREEN}/${NC}) es tu landing page con los planes de precios."
+echo -e "2.  El botón 'Empezar Gratis' ahora te llevará a ${GREEN}/dashboard${NC}."
 echo -e "3.  La página ${GREEN}/dashboard${NC} ahora contiene el corazón de tu aplicación: el formulario, los retos y todo lo que tenías antes."
 echo -e "\nSube estos cambios a GitHub y todo funcionará como esperas."
