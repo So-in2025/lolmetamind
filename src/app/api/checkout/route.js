@@ -1,30 +1,36 @@
 import { NextResponse } from 'next/server';
-import { stripe } from '@/lib/stripe';
+import crypto from 'crypto';
 
 export async function POST(request) {
-  const { priceId } = await request.json();
+  const { amount, referenceCode, description } = await request.json();
 
-  if (!priceId) {
-    return NextResponse.json({ error: 'Price ID es requerido' }, { status: 400 });
+  const apiKey = process.env.PAYU_API_KEY;
+  const merchantId = process.env.NEXT_PUBLIC_PAYU_MERCHANT_ID;
+  const accountId = process.env.PAYU_ACCOUNT_ID;
+  const currency = 'ARS'; // O la moneda que corresponda
+
+  if (!apiKey || !merchantId || !accountId) {
+    return NextResponse.json({ error: 'Variables de entorno de PayU no configuradas' }, { status: 500 });
   }
 
-  const YOUR_DOMAIN = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
+  // Creación de la firma de seguridad (muy importante para PayU)
+  const signatureString = `${apiKey}~${merchantId}~${referenceCode}~${amount}~${currency}`;
+  const signature = crypto.createHash('md5').update(signatureString).digest('hex');
 
-  try {
-    const session = await stripe.checkout.sessions.create({
-      payment_method_types: ['card'],
-      line_items: [{
-        price: priceId,
-        quantity: 1,
-      }],
-      mode: 'subscription',
-      success_url: `${YOUR_DOMAIN}/dashboard?session_id={CHECKOUT_SESSION_ID}`,
-      cancel_url: `${YOUR_DOMAIN}/`,
-    });
+  const formData = {
+    merchantId,
+    accountId,
+    description,
+    referenceCode,
+    amount,
+    tax: 0,
+    taxReturnBase: 0,
+    currency,
+    signature,
+    test: process.env.NODE_ENV === 'development' ? '1' : '0', // 1 para pruebas, 0 para producción
+    responseUrl: `${process.env.NEXT_PUBLIC_APP_URL}/dashboard`,
+    confirmationUrl: `${process.env.NEXT_PUBLIC_APP_URL}/api/payments/confirmation`,
+  };
 
-    return NextResponse.json({ sessionId: session.id });
-  } catch (error) {
-    console.error('Error creando sesión de Stripe:', error);
-    return NextResponse.json({ error: 'Error interno del servidor' }, { status: 500 });
-  }
+  return NextResponse.json(formData);
 }
