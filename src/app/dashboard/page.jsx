@@ -19,7 +19,9 @@ export default function DashboardPage() {
   const handleProfileUpdate = (updatedUser) => {
     if (auth) {
       const token = localStorage.getItem('authToken');
-      auth.login(updatedUser, token); // Actualiza el contexto global
+      // Actualiza el contexto global y el estado local
+      auth.login(updatedUser, token); 
+      setCurrentUser(updatedUser);
     }
   };
 
@@ -28,7 +30,8 @@ export default function DashboardPage() {
     return null; // O un spinner de carga
   }
 
-  const hasSummonerProfile = currentUser currentUser && currentUser.summoner_namecurrentUser && currentUser.summoner_name currentUser.riot_id_name;
+  // CORRECCIÓN: La variable hasSummonerProfile se define correctamente.
+  const hasSummonerProfile = currentUser && currentUser.riot_id_name;
 
   return (
     <div className="w-full max-w-7xl mx-auto flex flex-col lg:flex-row gap-12">
