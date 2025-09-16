@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { getStrategicAnalysis } from '../../../lib/ai/strategist';
+import { generateStrategicAnalysis as getStrategicAnalysis } from '../../../lib/ai/strategist';
 
 export async function POST(request) {
   try {
