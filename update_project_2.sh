@@ -1,3 +1,11 @@
+#!/bin/bash
+
+echo "Iniciando la actualización para la fase de narración y unificación..."
+
+# --- Paso 1: Actualizar el Overlay del Coach para la narración en tiempo real ---
+
+echo "Actualizando el archivo OBSOverlay.jsx..."
+cat << 'EOF' > src/components/widgets/OBSOverlay.jsx
 'use client';
 import React, { useState, useEffect, useRef } from 'react';
 
@@ -93,3 +101,7 @@ const OBSOverlay = () => {
   );
 };
 export default OBSOverlay;
+EOF
+
+echo "¡Script completado! Se ha actualizado la lógica del overlay."
+echo "Ahora puedes hacer 'git commit' y 'git push' para subir los cambios y ver la narración en vivo."
