@@ -5,7 +5,7 @@ import { useForm } from 'react-hook-form';
 export default function SummonerProfileForm({ onProfileUpdate }) {
   const { register, handleSubmit, formState: { errors, isSubmitting } } = useForm();
   const [error, setError] = useState('');
-  const regions = ['LAN', 'LAS', 'NA', 'EUW', 'EUNE', 'KR', 'JP'];
+  const regions = ['LAS', 'LAN', 'NA', 'EUW', 'EUNE', 'KR', 'JP'];
 
   const onSubmit = async (data) => {
     setError('');
@@ -45,7 +45,7 @@ export default function SummonerProfileForm({ onProfileUpdate }) {
             <label htmlFor="gameName" className="block text-sm font-medium mb-2">Nombre de Juego</label>
             <input
               id="gameName"
-              placeholder="Ej: Faker"
+              placeholder="TuNombreDeJuego"
               {...register("gameName", { required: "El nombre es requerido." })}
               className="w-full bg-lol-blue-dark border-2 border-lol-gold-dark rounded-lg px-4 py-2"
             />
@@ -56,7 +56,13 @@ export default function SummonerProfileForm({ onProfileUpdate }) {
             <input
               id="tagLine"
               placeholder="#LAS"
-              {...register("tagLine", { required: "El tagline es requerido." })}
+              {...register("tagLine", { 
+                  required: "El tagline es requerido.",
+                  pattern: {
+                    value: /^#?[a-zA-Z0-9]+$/,
+                    message: "Tagline inválido. Ej: #LAS, #1234"
+                  }
+              })}
               className="w-full bg-lol-blue-dark border-2 border-lol-gold-dark rounded-lg px-4 py-2"
             />
             {errors.tagLine && <p className="text-red-500 text-xs mt-1">{errors.tagLine.message}</p>}

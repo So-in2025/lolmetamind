@@ -14,7 +14,8 @@ const getRegionalRoute = (region) => {
             return route;
         }
     }
-    throw new Error(`Región no válida para ruta regional: ${region}`);
+    // Si no se encuentra, por defecto usamos 'americas' que cubre LAN/LAS/NA
+    return 'americas';
 };
 
 const getPlatformRoute = (region) => {
@@ -27,12 +28,11 @@ const createApi = (baseURL) => axios.create({
     headers: { "X-Riot-Token": RIOT_API_KEY }
 });
 
-export const getAccountByRiotId = async (gameName, tagLine) => {
-    // La API de Cuentas es regional, no por plataforma
-    const regionalRoute = getRegionalRoute('LAS'); // Asumimos una región para encontrar la ruta, se puede mejorar
+export const getAccountByRiotId = async (gameName, tagLine, region) => {
+    const regionalRoute = getRegionalRoute(region);
     const api = createApi(`https://${regionalRoute}.api.riotgames.com`);
     try {
-        const response = await api.get(`/riot/account/v1/accounts/by-riot-id/${gameName}/${tagLine}`);
+        const response = await api.get(`/riot/account/v1/accounts/by-riot-id/${encodeURIComponent(gameName)}/${tagLine}`);
         return response.data;
     } catch (error) {
         console.error('Error fetching account by Riot ID:', error.response?.data || error.message);

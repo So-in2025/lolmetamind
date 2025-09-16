@@ -1,7 +1,10 @@
 -- src/lib/db/schema.sql
 -- Esquema de base de datos para PostgreSQL en producción.
 
--- Tabla de Usuarios
+-- Se eliminan las tablas existentes para asegurar un esquema limpio.
+DROP TABLE IF EXISTS users;
+
+-- Tabla de Usuarios actualizada para Riot ID y Paddle
 CREATE TABLE users (
     id SERIAL PRIMARY KEY,
     username VARCHAR(255) UNIQUE NOT NULL,
@@ -13,11 +16,13 @@ CREATE TABLE users (
     riot_id_name VARCHAR(255),
     riot_id_tagline VARCHAR(10),
     region VARCHAR(10),
-    puuid VARCHAR(255),
-    summoner_id VARCHAR(255),
+    puuid VARCHAR(255) UNIQUE,
+    summoner_id VARCHAR(255) UNIQUE,
+
+    -- Campos para monetización con Paddle
+    plan_status VARCHAR(50) DEFAULT 'free',
+    paddle_customer_id VARCHAR(255) UNIQUE,
 
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
-
--- Se pueden añadir más tablas aquí, como las de gamificación.
