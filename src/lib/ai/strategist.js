@@ -9,16 +9,16 @@ const API_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-
  * @param {object} playerData - Datos del jugador (summonerName, region, zodiacSign).
  * @returns {Promise<object>} - El análisis JSON generado por la IA.
  */
-export const generateStrategicAnalysis = async (playerData) => {
+export const generateStrategicAnalysis = async (playerData, customPrompt = null) => {
   console.log("Iniciando análisis de IA con datos reales:", playerData);
 
   // TODO: En el futuro, estos datos vendrán de la API de Riot. Por ahora, los simulamos.
+  const prompt = customPrompt || createInitialAnalysisPrompt(playerData, simulatedTeamData);
   const simulatedTeamData = {
     allies: [{ champion: "Malphite", role: "TOP" }, { champion: "Amumu", role: "JUNGLE" }],
     enemies: [{ champion: "Ezreal", role: "ADC" }, { champion: "Lux", role: "SUPPORT" }],
   };
 
-  const prompt = createInitialAnalysisPrompt(playerData, simulatedTeamData);
 
   try {
     const response = await fetch(API_URL, {
