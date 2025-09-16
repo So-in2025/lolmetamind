@@ -1,5 +1,6 @@
 'use client';
 import React, { useState } from 'react';
+import { useRouter } from 'next/navigation'; // Importamos el router de Next.js
 
 const plans = [
   {
@@ -17,7 +18,7 @@ const plans = [
   },
   {
     name: 'Plan Premium',
-    price: '9.99',
+    price: '6.99',
     priceId: 'pri_01k59kbft7tnw1vyw7ty453nrr', // Este es tu Price ID real de Paddle
     features: [
       'Todo lo del Plan Gratuito',
@@ -35,9 +36,21 @@ const plans = [
 
 export default function PricingPlans() {
   const [isLoading, setIsLoading] = useState(false);
+  const router = useRouter(); // Inicializamos el router
+
+  const handlePlanClick = (plan) => {
+    // Si el plan tiene un priceId, vamos al checkout
+    if (plan.priceId) {
+      setIsLoading(true);
+      handleCheckout(plan.priceId);
+    } else {
+      // Si no, es el plan gratuito y navegamos al dashboard
+      // ASUMO que la ruta principal de tu app es '/dashboard'. Cámbiala si es otra.
+      router.push('/dashboard');
+    }
+  };
 
   const handleCheckout = async (priceId) => {
-    setIsLoading(true);
     try {
       const response = await fetch('/api/checkout', {
         method: 'POST',
@@ -47,7 +60,6 @@ export default function PricingPlans() {
 
       const { checkoutUrl } = await response.json();
       if (checkoutUrl) {
-        // Redirigir al usuario al checkout de Paddle
         window.location.href = checkoutUrl;
       } else {
         throw new Error('No se recibió la URL de checkout');
@@ -79,9 +91,9 @@ export default function PricingPlans() {
               ))}
             </ul>
             <button
-              onClick={() => plan.priceId && handleCheckout(plan.priceId)}
-              disabled={isLoading || !plan.priceId}
-              className={`w-full py-3 font-display font-bold rounded-lg transition-colors ${plan.isPopular ? 'bg-lol-blue-accent text-lol-blue-dark hover:bg-cyan-500' : 'bg-lol-gold text-lol-blue-dark hover:bg-yellow-600'} disabled:opacity-50 disabled:cursor-not-allowed`}
+              onClick={() => handlePlanClick(plan)}
+              disabled={isLoading && plan.priceId}
+              className={`w-full py-3 font-display font-bold rounded-lg transition-colors ${plan.isPopular ? 'bg-lol-blue-accent text-lol-blue-dark hover:bg-cyan-500' : 'bg-lol-gold text-lol-blue-dark hover:bg-yellow-600'} disabled:opacity-50`}
             >
               {isLoading && plan.priceId ? 'Cargando...' : plan.cta}
             </button>
