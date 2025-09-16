@@ -1,10 +1,10 @@
 #!/bin/bash
 
 # ==============================================================================
-# SCRIPT DE CORRECCIÓN PARA EL ERROR DE BUILD EN VERCEL
+# SCRIPT DE CORRECCIÓN PARA EL ERROR DE SINTAXIS JSX EN VERCEL/RENDER
 #
 # Rol: Arquitecto de Software
-# Objetivo: Corregir el error de importación que impide el despliegue.
+# Objetivo: Corregir los caracteres de escape incorrectos en el componente PricingPlans.
 # ==============================================================================
 
 # --- Colores para la salida ---
@@ -13,24 +13,29 @@ YELLOW='\033[1;33m'
 CYAN='\033[0;36m'
 NC='\033[0m' # No Color
 
-echo -e "${YELLOW}Iniciando script para corregir el error de build...${NC}"
+echo -e "${YELLOW}Iniciando script para corregir el error de sintaxis JSX...${NC}"
 
-# --- Definir la ruta del archivo a corregir ---
-FILE_TO_FIX="src/app/api/recommendation/route.js"
+FILE_TO_FIX="src/components/pricing/PricingPlans.jsx"
 
-# --- Verificar si el archivo existe ---
 if [ ! -f "$FILE_TO_FIX" ]; then
     echo -e "${RED}Error: El archivo ${FILE_TO_FIX} no se encontró.${NC}"
     exit 1
 fi
 
-# --- Reemplazar la línea incorrecta por la correcta ---
-echo -e "\n${CYAN}Corrigiendo la importación en ${FILE_TO_FIX}...${NC}"
+echo -e "\n${CYAN}Reparando ${FILE_TO_FIX}...${NC}"
 
-# Usamos sed para reemplazar la línea de importación incorrecta
-sed -i "s/import { getStrategicAnalysis } from '..\/..\/..\/lib\/ai\/strategist';/import { generateStrategicAnalysis as getStrategicAnalysis } from '..\/..\/..\/lib\/ai\/strategist';/" "$FILE_TO_FIX"
+# Usamos sed para buscar las líneas exactas con los caracteres sobrantes y reemplazarlas.
+# Usamos un delimitador diferente (#) para evitar conflictos con las barras.
+sed -i.bak "s#className={\\\`bg-lol-blue-medium p-8 border-2 \\\${plan.isPopular ? 'border-lol-blue-accent' : 'border-lol-gold-dark'} rounded-lg flex flex-col\\\`}#className={\`bg-lol-blue-medium p-8 border-2 \${plan.isPopular ? 'border-lol-blue-accent' : 'border-lol-gold-dark'} rounded-lg flex flex-col\` }#" "$FILE_TO_FIX"
+sed -i.bak "s#className={\\\`w-full py-3 font-display font-bold rounded-lg transition-colors \\\${plan.isPopular ? 'bg-lol-blue-accent text-lol-blue-dark hover:bg-cyan-500' : 'bg-lol-gold text-lol-blue-dark hover:bg-yellow-600'} disabled:opacity-50\\\`}#className={\`w-full py-3 font-display font-bold rounded-lg transition-colors \${plan.isPopular ? 'bg-lol-blue-accent text-lol-blue-dark hover:bg-cyan-500' : 'bg-lol-gold text-lol-blue-dark hover:bg-yellow-600'} disabled:opacity-50\` }#" "$FILE_TO_FIX"
 
-echo -e "\n${GREEN}¡Archivo corregido con éxito!${NC}"
+# Limpiar el archivo de backup creado por sed
+rm -f "${FILE_TO_FIX}.bak"
+
+echo -e "\n${GREEN}¡Archivo corregido!${NC}"
 echo -e "${YELLOW}----------------------------------------------------------------------${NC}"
-echo -e "Ahora, haz 'git add .', 'git commit -m \"Fix: Corrige importación de strategist\"' y 'git push'."
-echo -e "Vercel debería desplegar la nueva versión sin el error de compilación."
+echo -e "Ahora, sube los cambios a GitHub:"
+echo -e "${CYAN}git add .${NC}"
+echo -e "${CYAN}git commit -m \"Fix: Corrige error de sintaxis en PricingPlans\"${NC}"
+echo -e "${CYAN}git push${NC}"
+echo -e "\nRender/Vercel detectará el cambio y el nuevo despliegue debería funcionar sin errores."
