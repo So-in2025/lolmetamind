@@ -1,8 +1,10 @@
 'use client';
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef } from 'react-g';
 
 const OBSOverlay = () => {
   const [data, setData] = useState(null);
+  const [builds, setBuilds] = useState(null);
+  const [recommendation, setRecommendation] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [wsMessage, setWsMessage] = useState(null);
@@ -10,7 +12,7 @@ const OBSOverlay = () => {
   const ws = useRef(null);
 
   useEffect(() => {
-    // Evitar reconexiones múltiples en desarrollo
+    // Conexión con el servidor WebSocket
     if (!ws.current) {
       ws.current = new WebSocket(process.env.NEXT_PUBLIC_WEBSOCKET_URL);
       console.log('Intento de conexión WebSocket...');
@@ -38,15 +40,27 @@ const OBSOverlay = () => {
       };
     }
 
-    // Lógica para obtener datos iniciales de la API
-    const fetchOverlayData = async () => {
+    // Lógica para obtener TODOS los datos iniciales de las APIs simuladas
+    const fetchAllData = async () => {
       try {
-        const response = await fetch('/api/overlay');
-        if (!response.ok) {
-          throw new Error('No se pudo cargar la data del overlay.');
+        const [overlayRes, buildsRes, recRes] = await Promise.all([
+          fetch('/api/overlay'),
+          fetch('/api/builds', { method: 'POST', body: JSON.stringify({ matchData: {} }), headers: { 'Content-Type': 'application/json' } }),
+          fetch('/api/recommendation', { method: 'POST', body: JSON.stringify({ playerData: {} }), headers: { 'Content-Type': 'application/json' } })
+        ]);
+
+        if (!overlayRes.ok || !buildsRes.ok || !recRes.ok) {
+          throw new Error('No se pudo cargar la data del overlay o las recomendaciones.');
         }
-        const result = await response.json();
-        setData(result);
+
+        const overlayResult = await overlayRes.json();
+        const buildsResult = await buildsRes.json();
+        const recResult = await recRes.json();
+
+        setData(overlayResult);
+        setBuilds(buildsResult);
+        setRecommendation(recResult);
+
       } catch (err) {
         setError(err.message);
       } finally {
@@ -54,8 +68,8 @@ const OBSOverlay = () => {
       }
     };
 
-    fetchOverlayData();
-    const interval = setInterval(fetchOverlayData, 10000);
+    fetchAllData();
+    const interval = setInterval(fetchAllData, 30000); // Refrescar los datos de la partida cada 30s
     
     return () => {
       clearInterval(interval);
@@ -66,29 +80,34 @@ const OBSOverlay = () => {
   }, []);
 
   if (loading) {
-    return <div className="bg-gray-900 bg-opacity-70 text-white p-4 rounded-lg shadow-lg max-w-sm mx-auto">Cargando datos...</div>;
+    return <div className="bg-lol-blue-dark bg-opacity-90 text-lol-gold-light p-6 rounded-xl shadow-lg w-full text-center animate-pulse max-w-sm mx-auto border-2 border-lol-gold-dark">Cargando datos...</div>;
   }
   if (error) {
-    return <div className="bg-gray-900 bg-opacity-70 text-red-500 p-4 rounded-lg shadow-lg max-w-sm mx-auto">Error: {error}</div>;
+    return <div className="bg-lol-blue-dark bg-opacity-90 text-red-500 p-6 rounded-xl shadow-lg w-full text-center max-w-sm mx-auto border-2 border-lol-gold-dark">Error: {error}</div>;
   }
   return (
-    <div className="bg-gray-900 bg-opacity-70 text-white p-4 rounded-lg shadow-lg max-w-sm mx-auto">
-      <h3 className="text-xl font-bold text-cyan-400 mb-2">Consejos en Partida</h3>
-      <p className="text-sm mb-2"><strong className="font-semibold">Jugador:</strong> {data.summonerName}</p>
-      <p className="text-sm mb-2"><strong className="font-semibold">Campeón:</strong> {data.champion} ({data.role})</p>
-      
-      <div className="bg-purple-800 p-3 rounded-lg mt-4 animate-pulse">
+    <div className="bg-lol-blue-dark bg-opacity-90 text-lol-gold-light p-6 rounded-xl shadow-lg w-full border-2 border-lol-gold-dark max-w-lg mx-auto">
+      <h3 className="text-xl font-display font-bold text-lol-blue-accent mb-4 text-center">Panel del Coach</h3>
+
+      <div className="bg-lol-blue-medium p-4 rounded-lg mb-4">
+        <p className="text-sm mb-2"><strong className="font-semibold text-lol-gold">Jugador:</strong> {data.summonerName}</p>
+        <p className="text-sm mb-2"><strong className="font-semibold text-lol-gold">Campeón:</strong> {data.champion} ({data.role})</p>
+        <p className="text-sm"><strong className="font-semibold text-lol-gold">Arquetipo:</strong> <span className="text-purple-400">{recommendation.archetype}</span></p>
+      </div>
+
+      <div className="bg-purple-800 p-3 rounded-lg animate-pulse mb-4">
         <p className="text-lg font-bold text-yellow-300">¡Alerta Estratégica!</p>
         <p className="text-sm mt-1">{wsMessage || "Esperando consejos del coach..."}</p>
       </div>
-
-      <ul className="mt-4 space-y-2 text-sm">
-        {data.tips.map(tip => (
-          <li key={tip.id} className="bg-gray-800 p-2 rounded-md">
-            {tip.content}
-          </li>
-        ))}
-      </ul>
+      
+      {builds && (
+        <div className="bg-lol-blue-medium p-4 rounded-lg">
+          <h4 className="text-md font-display font-bold text-lol-gold mb-2">Build Recomendada</h4>
+          <ul className="list-disc list-inside space-y-1 text-sm text-lol-gold-light/80">
+            {builds.items.map((item, index) => <li key={index}>{item.name}</li>)}
+          </ul>
+        </div>
+      )}
     </div>
   );
 };
