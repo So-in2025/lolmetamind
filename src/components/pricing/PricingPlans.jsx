@@ -5,7 +5,7 @@ const plans = [
   // ... tu plan gratuito
   {
     name: 'Plan Premium',
-    price: '9.99',
+    price: '9.999',
     priceId: 'pri_01k59kbft7tnw1vyw7ty453nrr', // REEMPLAZAR con tu Price ID de Paddle
     features: [
       'Todo lo del Plan Gratuito',
@@ -51,11 +51,11 @@ export default function PricingPlans() {
         {/* Aquí puedes mapear tu plan gratuito si lo deseas */}
         {plans.map((plan) => (
           plan.priceId && (
-            <div key={plan.name} className={\`bg-lol-blue-medium p-8 border-2 \${plan.isPopular ? 'border-lol-blue-accent' : 'border-lol-gold-dark'} rounded-lg flex flex-col\`}>
+            <div key={plan.name} className={`bg-lol-blue-medium p-8 border-2 ${plan.isPopular ? 'border-lol-blue-accent' : 'border-lol-gold-dark'} rounded-lg flex flex-col`}>
               {plan.isPopular && <span className="text-center bg-lol-blue-accent text-lol-blue-dark font-bold py-1 px-4 rounded-full self-center -mt-12 mb-4">Más Popular</span>}
               <h3 className="text-3xl font-display font-bold text-center mb-4">{plan.name}</h3>
               <div className="text-center mb-6">
-                <span className="text-5xl font-bold">\${plan.price}</span>
+                <span className="text-5xl font-bold">${plan.price}</span>
                 <span className="text-lol-gold-light/70">/mes</span>
               </div>
               <ul className="space-y-3 mb-8 flex-grow">
@@ -69,7 +69,7 @@ export default function PricingPlans() {
               <button
                 onClick={() => handleCheckout(plan.priceId)}
                 disabled={isLoading}
-                className={\`w-full py-3 font-display font-bold rounded-lg transition-colors \${plan.isPopular ? 'bg-lol-blue-accent text-lol-blue-dark hover:bg-cyan-500' : 'bg-lol-gold text-lol-blue-dark hover:bg-yellow-600'} disabled:opacity-50\`}
+                className={`w-full py-3 font-display font-bold rounded-lg transition-colors ${plan.isPopular ? 'bg-lol-blue-accent text-lol-blue-dark hover:bg-cyan-500' : 'bg-lol-gold text-lol-blue-dark hover:bg-yellow-600'} disabled:opacity-50`}
               >
                 {isLoading ? 'Cargando...' : plan.cta}
               </button>
