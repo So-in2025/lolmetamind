@@ -1,5 +1,5 @@
 'use client';
-import React, { useState, useEffect, useRef } from 'react-g';
+import React, { useState, useEffect, useRef } from 'react';
 
 const OBSOverlay = () => {
   const [data, setData] = useState(null);
@@ -24,7 +24,7 @@ const OBSOverlay = () => {
       ws.current.onmessage = (event) => {
         console.log('✉️ Mensaje del servidor:', event.data);
         setWsMessage(event.data);
-        // **NUEVA FUNCIONALIDAD: NARRACIÓN EN TIEMPO REAL**
+        // **FUNCIONALIDAD: NARRACIÓN EN TIEMPO REAL**
         if ('speechSynthesis' in window) {
           const utterance = new SpeechSynthesisUtterance(event.data);
           window.speechSynthesis.speak(utterance);
@@ -69,7 +69,7 @@ const OBSOverlay = () => {
     };
 
     fetchAllData();
-    const interval = setInterval(fetchAllData, 30000); // Refrescar los datos de la partida cada 30s
+    const interval = setInterval(fetchAllData, 30000);
     
     return () => {
       clearInterval(interval);
@@ -104,7 +104,11 @@ const OBSOverlay = () => {
         <div className="bg-lol-blue-medium p-4 rounded-lg">
           <h4 className="text-md font-display font-bold text-lol-gold mb-2">Build Recomendada</h4>
           <ul className="list-disc list-inside space-y-1 text-sm text-lol-gold-light/80">
-            {builds.items.map((item, index) => <li key={index}>{item.name}</li>)}
+            {builds.items.map((item, index) => <li key={index}>{item.name} - {item.reason}</li>)}
+          </ul>
+          <h4 className="text-md font-display font-bold text-lol-gold mt-4 mb-2">Runas</h4>
+          <ul className="list-disc list-inside space-y-1 text-sm text-lol-gold-light/80">
+            {builds.runes.map((rune, index) => <li key={index}>{rune.name} - {rune.reason}</li>)}
           </ul>
         </div>
       )}

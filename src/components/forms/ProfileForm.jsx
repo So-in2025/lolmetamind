@@ -2,6 +2,7 @@
 import React, { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import Link from 'next/link';
+import { motion } from 'framer-motion';
 
 export default function ProfileForm() {
   const [status, setStatus] = useState('idle');
@@ -101,10 +102,14 @@ export default function ProfileForm() {
 
   if (status === 'loading') {
     return (
-      <div className="bg-lol-blue-medium text-lol-gold-light p-8 rounded-xl shadow-lg w-full text-center animate-pulse border-2 border-lol-gold-dark">
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="bg-lol-blue-medium text-lol-gold-light p-8 rounded-xl shadow-lg w-full text-center animate-pulse border-2 border-lol-gold-dark"
+      >
         <h2 className="text-2xl font-display font-bold text-lol-blue-accent mb-4">Analizando tu Perfil Cósmico...</h2>
         <p className="text-lol-gold-light/90">Consultando a los astros y los servidores de Riot para encontrar tu campeón ideal.</p>
-      </div>
+      </motion.div>
     );
   }
   if (status === 'success' && recommendation) {
