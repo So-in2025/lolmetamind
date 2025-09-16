@@ -7,7 +7,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
-    "build:server": "rm -rf dist && babel src --out-dir dist --copy-files",
+    "build:server": "rm -rf dist && babel --config-file ./babel.config.server.js src/lib --out-dir dist/lib && babel --config-file ./babel.config.server.js src/services --out-dir dist/services",
     "start:server": "node websocket-server.js"
   },
   "dependencies": {
