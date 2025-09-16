@@ -14,6 +14,15 @@ export default function HomePage() {
       
       <PricingPlans />
 
+      <div className="mt-8 text-center">
+        <p className="text-lol-gold-light/70">
+          ¿Ya tienes una cuenta?{\ } 
+          <Link href="/login" className="text-lol-blue-accent font-bold hover:underline">
+            Inicia sesión aquí
+          </Link>
+        </p>
+      </div>
+
     </main>
   );
 }
