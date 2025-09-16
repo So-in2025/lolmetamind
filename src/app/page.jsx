@@ -1,6 +1,4 @@
-import ProfileForm from '@/components/forms/ProfileForm'
 import PricingPlans from '@/components/pricing/PricingPlans'
-import Link from 'next/link';
 
 export default function HomePage() {
   return (
@@ -13,8 +11,6 @@ export default function HomePage() {
           La plataforma de coaching de League of Legends con IA que te da una ventaja estratégica.
         </p>
       </div>
-      
-      {/* Aquí puedes poner el formulario de registro/login que creamos en la Fase 4 */}
       
       <PricingPlans />
 
