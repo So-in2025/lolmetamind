@@ -2,10 +2,6 @@
 
 # ==============================================================================
 # SCRIPT DE REEMPLAZO COMPLETO - SISTEMA DE AUTENTICACIÓN
-#
-# Rol: Full-Stack Engineer
-# Objetivo: Reemplazar el sistema de registro/login actual con uno que
-#           utilice Google OAuth de forma exclusiva.
 # ==============================================================================
 
 # --- Colores ---
