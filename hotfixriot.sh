@@ -1,11 +1,11 @@
 #!/bin/bash
 
 # ==============================================================================
-# SCRIPT DE CORRECCIÓN FINAL - FLUJO DE USUARIO
+# SCRIPT DE CORRECCIÓN FINAL - FLUJO GOOGLE AUTH
 #
 # Rol: Frontend Developer
-# Objetivo: Asegurar que el botón "Empezar Gratis" redirija a la página principal
-#           para iniciar el flujo de autenticación de Google.
+# Objetivo: 1. Conectar el botón "Empezar Gratis" directamente a Google Auth.
+#           2. Eliminar el botón de Twitch para un sistema de login exclusivo de Google.
 # ==============================================================================
 
 # --- Colores ---
@@ -14,9 +14,9 @@ YELLOW='\033[1;33m'
 CYAN='\033[0;36m'
 NC='\033[0m'
 
-echo -e "${YELLOW}Corrigiendo el flujo del botón 'Empezar Gratis'...${NC}"
+echo -e "${YELLOW}Iniciando la corrección del flujo de Google Auth...${NC}"
 
-# --- 1. Modificar el componente PricingPlans.jsx ---
+# --- 1. Corregir el flujo del botón en PricingPlans ---
 echo -e "\n${GREEN}Paso 1: Modificando 'src/components/pricing/PricingPlans.jsx'...${NC}"
 cat << 'EOF' > src/components/pricing/PricingPlans.jsx
 'use client';
@@ -63,8 +63,14 @@ export default function PricingPlans() {
   const isAuthenticated = auth ? auth.isAuthenticated : false;
 
   const handlePlanClick = (plan) => {
+    if (!isAuthenticated && plan.name === 'Plan Gratuito') {
+      window.location.href = '/api/auth/google';
+      return;
+    }
     if (!isAuthenticated) {
-      router.push('/');
+      // Para planes de pago, si no está autenticado, podría redirigir a una página de registro/login
+      // o a la página principal con el botón. Por ahora, lo dejamos así.
+      alert("Por favor, inicia sesión para acceder al plan premium.");
       return;
     }
     if (plan.priceId) {
@@ -128,7 +134,33 @@ export default function PricingPlans() {
   );
 }
 EOF
-echo "Actualizado: src/components/pricing/PricingPlans.jsx. ✅"
+echo "Corregido: src/components/pricing/PricingPlans.jsx. ✅"
+
+# --- 2. Modificar el LoginButtons para que solo muestre Google ---
+echo -e "\n${GREEN}Paso 2: Modificando 'src/components/auth/LoginButtons.jsx'...${NC}"
+cat << 'EOF' > src/components/auth/LoginButtons.jsx
+'use client';
+
+import React from 'react';
+
+export default function LoginButtons() {
+  const handleGoogleLogin = () => {
+    window.location.href = '/api/auth/google';
+  };
+
+  return (
+    <div className="flex flex-col space-y-4">
+      <button
+        onClick={handleGoogleLogin}
+        className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-4 rounded-lg transition-colors duration-300 shadow-lg"
+      >
+        Login con Google
+      </button>
+    </div>
+  );
+}
+EOF
+echo "Corregido: src/components/auth/LoginButtons.jsx. ✅"
 
 echo -e "\n${YELLOW}----------------------------------------------------------------------"
 echo -e "¡CORRECCIÓN APLICADA! ✅"

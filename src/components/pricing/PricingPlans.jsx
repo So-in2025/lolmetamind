@@ -42,8 +42,14 @@ export default function PricingPlans() {
   const isAuthenticated = auth ? auth.isAuthenticated : false;
 
   const handlePlanClick = (plan) => {
+    if (!isAuthenticated && plan.name === 'Plan Gratuito') {
+      window.location.href = '/api/auth/google';
+      return;
+    }
     if (!isAuthenticated) {
-      router.push('/');
+      // Para planes de pago, si no está autenticado, podría redirigir a una página de registro/login
+      // o a la página principal con el botón. Por ahora, lo dejamos así.
+      alert("Por favor, inicia sesión para acceder al plan premium.");
       return;
     }
     if (plan.priceId) {
