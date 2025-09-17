@@ -4,13 +4,13 @@ import pool from '@/lib/db';
 import { comparePassword, createToken } from '@/lib/auth/utils';
 
 export async function POST(request) {
-  const { email, password } = await request.json();
-
-  if (!email || !password) {
-    return NextResponse.json({ error: 'Email y contraseña son requeridos' }, { status: 400 });
-  }
-
   try {
+    const { email, password } = await request.json();
+
+    if (!email || !password) {
+      return NextResponse.json({ error: 'Email y contraseña son requeridos' }, { status: 400 });
+    }
+
     const result = await pool.query('SELECT * FROM users WHERE email = $1', [email]);
     const user = result.rows[0];
 

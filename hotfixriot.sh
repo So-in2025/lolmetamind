@@ -1,11 +1,11 @@
 #!/bin/bash
 
 # ==============================================================================
-# SCRIPT DE SOLUCIÓN PERMANENTE Y FINAL - LOL METAMIND
+# SCRIPT DE SOLUCIÓN PERMANENTE Y VERIFICADA - LOL METAMIND
 #
-# Rol: Full-Stack Engineer
-# Objetivo: Corregir todos los problemas de persistencia y el error de JSON
-#           para dejar la aplicación 100% funcional.
+# Rol: Arquitecto de Software
+# Objetivo: Reconstruir las rutas de la API para resolver el error 405 y
+#           garantizar que el manejo de errores devuelva JSON válido.
 # ==============================================================================
 
 # --- Colores ---
@@ -24,7 +24,6 @@ import { Pool } from 'pg';
 
 let pool;
 
-// Esta configuración es más simple y es la recomendada para Vercel.
 if (!pool) {
   pool = new Pool({
     connectionString: process.env.DATABASE_URL,
@@ -38,8 +37,51 @@ export default pool;
 EOF
 echo "Actualizado: src/lib/db/index.js"
 
-# --- 2. Corregir el endpoint del perfil para un manejo de errores robusto ---
-echo -e "\n${GREEN}Paso 2: Actualizando la API '/api/user/profile/route.js' para manejar correctamente el Riot ID y los errores...${NC}"
+# --- 2. Reconstruir el endpoint de login ---
+echo -e "\n${GREEN}Paso 2: Creando el endpoint POST para /api/auth/login...${NC}"
+mkdir -p src/app/api/auth/login
+cat << 'EOF' > src/app/api/auth/login/route.js
+// src/app/api/auth/login/route.js
+import { NextResponse } from 'next/server';
+import pool from '@/lib/db';
+import { comparePassword, createToken } from '@/lib/auth/utils';
+
+export async function POST(request) {
+  try {
+    const { email, password } = await request.json();
+
+    if (!email || !password) {
+      return NextResponse.json({ error: 'Email y contraseña son requeridos' }, { status: 400 });
+    }
+
+    const result = await pool.query('SELECT * FROM users WHERE email = $1', [email]);
+    const user = result.rows[0];
+
+    if (!user) {
+      return NextResponse.json({ error: 'Credenciales inválidas' }, { status: 401 });
+    }
+
+    const isPasswordValid = await comparePassword(password, user.password_hash);
+
+    if (!isPasswordValid) {
+      return NextResponse.json({ error: 'Credenciales inválidas' }, { status: 401 });
+    }
+
+    const { password_hash, ...userToSign } = user;
+    const token = createToken(userToSign);
+
+    return NextResponse.json({ token, user: userToSign });
+  } catch (error) {
+    console.error('Error en el login:', error);
+    return NextResponse.json({ error: 'Error interno del servidor' }, { status: 500 });
+  }
+}
+EOF
+echo "Reconstruido: src/app/api/auth/login/route.js"
+
+# --- 3. Reconstruir el endpoint de vinculación de perfil ---
+echo -e "\n${GREEN}Paso 3: Creando el endpoint POST para /api/user/profile...${NC}"
+mkdir -p src/app/api/user/profile
 cat << 'EOF' > src/app/api/user/profile/route.js
 import { NextResponse } from 'next/server';
 import jwt from 'jsonwebtoken';
@@ -61,18 +103,14 @@ export async function POST(request) {
       return NextResponse.json({ error: 'Nombre de juego, tagline y región son requeridos' }, { status: 400 });
     }
 
-    // Limpiamos el tagline por si el usuario incluyó el #
     tagLine = tagLine.startsWith('#') ? tagLine.substring(1) : tagLine;
 
-    // 1. Obtener PUUID desde la API de Cuentas
     const accountData = await getAccountByRiotId(gameName, tagLine, region);
     const { puuid } = accountData;
 
-    // 2. Obtener datos del Invocador (incluyendo summonerId) usando el PUUID
     const summonerData = await getSummonerByPuuid(puuid, region);
     const { id: summoner_id } = summonerData;
 
-    // 3. Actualizar nuestra base de datos
     const result = await pool.query(
       `UPDATE users 
        SET riot_id_name = $1, riot_id_tagline = $2, region = $3, puuid = $4, summoner_id = $5, updated_at = NOW() 
@@ -90,7 +128,6 @@ export async function POST(request) {
   } catch (error) {
     console.error('Error al actualizar perfil:', error.response?.data || error.message);
     
-    // Devolvemos siempre un JSON en caso de error
     if (error.response?.status === 404) {
       return NextResponse.json({ error: `Riot ID no encontrado. Verifica el nombre, tagline y región.` }, { status: 404 });
     }
@@ -98,10 +135,10 @@ export async function POST(request) {
   }
 }
 EOF
-echo "Actualizado: src/app/api/user/profile/route.js"
+echo "Reconstruido: src/app/api/user/profile/route.js"
 
-# --- 3. Actualizar el servicio de Riot API para que use el regionalRoute ---
-echo -e "\n${GREEN}Paso 3: Actualizando 'src/services/riotApiService.js' para usar regionalRoute...${NC}"
+# --- 4. Actualizar el servicio de Riot API para que use el regionalRoute ---
+echo -e "\n${GREEN}Paso 4: Actualizando 'src/services/riotApiService.js' para usar regionalRoute...${NC}"
 cat << 'EOF' > src/services/riotApiService.js
 // src/services/riotApiService.js
 import axios from 'axios';
@@ -119,7 +156,6 @@ const getRegionalRoute = (region) => {
             return route;
         }
     }
-    // Si no se encuentra, por defecto usamos 'americas' que cubre LAN/LAS/NA
     return 'americas';
 };
 
@@ -175,7 +211,3 @@ echo "Actualizado: src/services/riotApiService.js"
 echo -e "\n${YELLOW}----------------------------------------------------------------------"
 echo -e "¡SOLUCIÓN INTEGRAL APLICADA! ✅"
 echo -e "----------------------------------------------------------------------${NC}"
-echo -e "\n${CYAN}Pasos Finales y Cruciales:${NC}"
-echo -e "1.  **ACTUALIZA LA BASE DE DATOS:** Abre DBeaver, conéctate a tu base de datos de Render y ejecuta el contenido del archivo 'src/lib/db/schema.sql'. Es fundamental hacerlo para que la persistencia funcione."
-echo -e "2.  **HAZ COMMIT Y PUSH:** Sube todos los archivos modificados a tu repositorio de GitHub."
-echo -e "3.  **PRUEBA EL FLUJO:** Una vez que se desplieguen los cambios, el inicio de sesión y la vinculación de tu Riot ID deberían funcionar correctamente."

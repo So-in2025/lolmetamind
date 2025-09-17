@@ -14,7 +14,6 @@ const getRegionalRoute = (region) => {
             return route;
         }
     }
-    // Si no se encuentra, por defecto usamos 'americas' que cubre LAN/LAS/NA
     return 'americas';
 };
 
