@@ -7,10 +7,10 @@ DROP TABLE IF EXISTS users CASCADE;
 -- Tabla de Usuarios actualizada para Riot ID y Paddle
 CREATE TABLE users (
     id SERIAL PRIMARY KEY,
-    username VARCHAR(255) UNIQUE NOT NULL,
-    email VARCHAR(255) UNIQUE NOT NULL,
-    password_hash VARCHAR(255) NOT NULL,
-    zodiac_sign VARCHAR(50),
+    username VARCHAR(255) UNIQUE,
+    email VARCHAR(255) UNIQUE,
+    password_hash VARCHAR(255),
+    google_id VARCHAR(255) UNIQUE, -- Nuevo campo para el ID de Google
     
     -- Campos para el Riot ID y datos de League
     riot_id_name VARCHAR(255),

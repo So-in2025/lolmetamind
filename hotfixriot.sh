@@ -1,11 +1,11 @@
 #!/bin/bash
 
 # ==============================================================================
-# SCRIPT DE CORRECCIÓN - FLUJO DE BOTONES
+# SCRIPT DE REEMPLAZO COMPLETO - SISTEMA DE AUTENTICACIÓN
 #
-# Rol: Frontend Developer
-# Objetivo: Corregir la redirección del botón "Empezar Gratis" para que
-#           no genere un error 404.
+# Rol: Full-Stack Engineer
+# Objetivo: Reemplazar el sistema de registro/login actual con uno que
+#           utilice Google Auth de forma exclusiva.
 # ==============================================================================
 
 # --- Colores ---
@@ -14,10 +14,85 @@ YELLOW='\033[1;33m'
 CYAN='\033[0;36m'
 NC='\033[0m'
 
-echo -e "${YELLOW}Iniciando la corrección del componente 'PricingPlans.jsx'...${NC}"
+echo -e "${YELLOW}Iniciando la eliminación y el reemplazo del sistema de autenticación...${NC}"
 
-# --- 1. Modificar el componente PricingPlans.jsx ---
-echo -e "\n${GREEN}Paso 1: Modificando 'src/components/pricing/PricingPlans.jsx'...${NC}"
+# --- 1. Eliminar archivos antiguos de registro y login ---
+echo -e "\n${GREEN}Paso 1: Eliminando páginas y rutas de API antiguas...${NC}"
+rm -f "src/app/(auth)/login/page.jsx"
+rm -f "src/app/(auth)/register/page.jsx"
+rm -f "src/app/api/auth/login/route.js"
+rm -f "src/app/api/auth/register/route.js"
+rm -rf "src/app/api/auth/login"
+rm -rf "src/app/api/auth/register"
+echo "Archivos de autenticación antiguos eliminados. ✅"
+
+
+# --- 2. Reconstruir el esquema de la base de datos ---
+echo -e "\n${GREEN}Paso 2: Reconstruyendo 'src/lib/db/schema.sql' para el nuevo sistema...${NC}"
+cat << 'EOF' > src/lib/db/schema.sql
+-- src/lib/db/schema.sql
+-- Esquema de base de datos para PostgreSQL en producción.
+
+-- Se eliminan las tablas existentes para asegurar un esquema limpio.
+DROP TABLE IF EXISTS users CASCADE;
+
+-- Tabla de Usuarios actualizada para Riot ID y Paddle
+CREATE TABLE users (
+    id SERIAL PRIMARY KEY,
+    username VARCHAR(255) UNIQUE,
+    email VARCHAR(255) UNIQUE,
+    password_hash VARCHAR(255),
+    google_id VARCHAR(255) UNIQUE, -- Nuevo campo para el ID de Google
+    
+    -- Campos para el Riot ID y datos de League
+    riot_id_name VARCHAR(255),
+    riot_id_tagline VARCHAR(10),
+    region VARCHAR(10),
+    puuid VARCHAR(255) UNIQUE,
+    summoner_id VARCHAR(255) UNIQUE,
+
+    -- Campos para monetización con Paddle
+    plan_status VARCHAR(50) DEFAULT 'free',
+    paddle_customer_id VARCHAR(255) UNIQUE,
+
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+EOF
+echo -e "Esquema de base de datos reconstruido con el formato correcto. ✅"
+
+
+# --- 3. Actualizar la página principal con los nuevos botones de login ---
+echo -e "\n${GREEN}Paso 3: Modificando 'src/app/page.jsx' para usar el nuevo botón de login...${NC}"
+cat << 'EOF' > src/app/page.jsx
+import PricingPlans from '@/components/pricing/PricingPlans'
+import LoginButtons from '@/components/auth/LoginButtons'
+
+export default function HomePage() {
+  return (
+    <main className="min-h-screen flex flex-col justify-start items-center p-8 bg-lol-blue-dark text-lol-gold-light font-body">
+      <div className="w-full max-w-lg mb-8 text-center">
+        <h1 className="text-5xl md:text-6xl font-display font-bold text-lol-blue-accent mb-4 text-shadow-lg">
+          LoL MetaMind
+        </h1>
+        <p className="text-lg md:text-xl text-lol-gold-light/90 mb-6">
+          La plataforma de coaching de League of Legends con IA que te da una ventaja estratégica.
+        </p>
+      </div>
+      
+      <PricingPlans />
+
+      <div className="mt-8">
+        <LoginButtons />
+      </div>
+    </main>
+  );
+}
+EOF
+echo "Actualizado: src/app/page.jsx con el nuevo botón de login. ✅"
+
+# --- 4. Corregir el flujo de los botones de precio ---
+echo -e "\n${GREEN}Paso 4: Corrigiendo la redirección en 'src/components/pricing/PricingPlans.jsx'...${NC}"
 cat << 'EOF' > src/components/pricing/PricingPlans.jsx
 'use client';
 import React, { useState } from 'react';
@@ -64,7 +139,7 @@ export default function PricingPlans() {
 
   const handlePlanClick = (plan) => {
     if (!isAuthenticated) {
-      router.push('/login');
+      router.push('/');
       return;
     }
     if (plan.priceId) {
@@ -128,8 +203,130 @@ export default function PricingPlans() {
   );
 }
 EOF
-echo "Actualizado: src/components/pricing/PricingPlans.jsx. ✅"
+echo "Corregido: src/components/pricing/PricingPlans.jsx. ✅"
+
+# --- 5. Crear el nuevo componente de botones de login ---
+echo -e "\n${GREEN}Paso 5: Creando el nuevo componente 'src/components/auth/LoginButtons.jsx'...${NC}"
+mkdir -p src/components/auth
+cat << 'EOF' > src/components/auth/LoginButtons.jsx
+'use client';
+
+import React from 'react';
+import { useRouter } from 'next/navigation';
+
+export default function LoginButtons() {
+  const router = useRouter();
+  const handleGoogleLogin = () => {
+    window.location.href = '/api/auth/google';
+  };
+  const handleTwitchLogin = () => {
+    // Si bien no estamos implementando Twitch Auth en este momento,
+    // se mantiene el botón para futuras fases.
+    alert('Función de Twitch aún no implementada.');
+  };
+
+  return (
+    <div className="flex flex-col space-y-4">
+      <button
+        onClick={handleGoogleLogin}
+        className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-4 rounded-lg transition-colors duration-300 shadow-lg"
+      >
+        Login con Google
+      </button>
+      <button
+        onClick={handleTwitchLogin}
+        className="w-full bg-purple-600 hover:bg-purple-700 text-white font-bold py-3 px-4 rounded-lg transition-colors duration-300 shadow-lg"
+      >
+        Login con Twitch
+      </button>
+    </div>
+  );
+}
+EOF
+echo "Creado: src/components/auth/LoginButtons.jsx. ✅"
+
+# --- 6. Crear el nuevo endpoint de API para Google OAuth ---
+echo -e "\n${GREEN}Paso 6: Creando el nuevo endpoint de API para Google OAuth...${NC}"
+mkdir -p src/app/api/auth/google
+cat << 'EOF' > src/app/api/auth/google/route.js
+import { NextResponse } from 'next/server';
+import { google } from 'googleapis';
+import pool from '@/lib/db';
+import { createToken } from '@/lib/auth/utils';
+
+const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID;
+const GOOGLE_CLIENT_SECRET = process.env.GOOGLE_CLIENT_SECRET;
+const GOOGLE_REDIRECT_URI = process.env.GOOGLE_REDIRECT_URI;
+const JWT_SECRET = process.env.JWT_SECRET;
+
+const oauth2Client = new google.auth.OAuth2(
+  GOOGLE_CLIENT_ID,
+  GOOGLE_CLIENT_SECRET,
+  GOOGLE_REDIRECT_URI
+);
+
+export async function GET(request) {
+  const url = new URL(request.url);
+  const code = url.searchParams.get('code');
+
+  // Si no hay 'code', es el inicio del flujo. Redirigimos a Google.
+  if (!code) {
+    const authUrl = oauth2Client.generateAuthUrl({
+      access_type: 'offline',
+      scope: ['https://www.googleapis.com/auth/userinfo.email', 'https://www.googleapis.com/auth/userinfo.profile'],
+      prompt: 'consent'
+    });
+    return NextResponse.redirect(authUrl);
+  }
+
+  // Si hay 'code', es el regreso de Google. Intercambiamos el token.
+  try {
+    const { tokens } = await oauth2Client.getToken(code);
+    oauth2Client.setCredentials(tokens);
+
+    const oauth2 = google.oauth2({
+      auth: oauth2Client,
+      version: 'v2'
+    });
+    const userInfo = await oauth2.userinfo.get();
+
+    let user = null;
+    const existingUser = await pool.query('SELECT * FROM users WHERE email = $1', [userInfo.data.email]);
+    
+    // Si el usuario ya existe, lo actualizamos.
+    if (existingUser.rows.length > 0) {
+      user = existingUser.rows[0];
+    } else {
+    // Si es un usuario nuevo, lo registramos.
+      const newUserResult = await pool.query(
+        'INSERT INTO users (username, email, google_id) VALUES ($1, $2, $3) RETURNING *',
+        [userInfo.data.name, userInfo.data.email, userInfo.data.id]
+      );
+      user = newUserResult.rows[0];
+    }
+
+    // Creamos el token de sesión
+    const token = createToken({ userId: user.id, username: user.username });
+    
+    // Redirigimos al dashboard con el token
+    const redirectUrl = new URL('/dashboard', url.origin);
+    redirectUrl.searchParams.set('token', token);
+    return NextResponse.redirect(redirectUrl);
+
+  } catch (error) {
+    console.error('Error al procesar el login de Google:', error);
+    return NextResponse.json({ error: 'Hubo un error con la autenticación de Google.' }, { status: 500 });
+  }
+}
+EOF
+echo "Creado: src/app/api/auth/google/route.js. ✅"
+
 
 echo -e "\n${YELLOW}----------------------------------------------------------------------"
-echo -e "¡CORRECCIÓN APLICADA! ✅"
+echo -e "¡SISTEMA DE AUTENTICACIÓN REEMPLAZADO! ✅"
 echo -e "----------------------------------------------------------------------${NC}"
+
+echo -e "\n${CYAN}Pasos Siguientes:${NC}"
+echo "1.  Sube todos los cambios a tu repositorio de GitHub."
+echo "2.  Configura Google OAuth en tu consola de Google y añade las variables de entorno necesarias (GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET, GOOGLE_REDIRECT_URI)."
+echo "3.  Ejecuta de nuevo el script SQL en DBeaver para que la base de datos se actualice con la nueva estructura."
