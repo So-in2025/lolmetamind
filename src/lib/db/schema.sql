@@ -1,10 +1,10 @@
 -- src/lib/db/schema.sql
 -- Esquema de base de datos para PostgreSQL en producción.
 
--- Elimina la tabla de usuarios si ya existe para evitar errores.
+-- Se eliminan las tablas existentes para asegurar un esquema limpio.
 DROP TABLE IF EXISTS users CASCADE;
 
--- Crea la nueva tabla 'users' con los campos correctos.
+-- Tabla de Usuarios actualizada para Riot ID y Paddle
 CREATE TABLE users (
     id SERIAL PRIMARY KEY,
     username VARCHAR(255) UNIQUE NOT NULL,

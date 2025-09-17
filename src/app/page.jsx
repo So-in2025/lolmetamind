@@ -1,5 +1,5 @@
 import PricingPlans from '@/components/pricing/PricingPlans'
-import Link from 'next/link';
+import LoginButtons from '@/components/auth/LoginButtons'
 
 export default function HomePage() {
   return (
@@ -15,13 +15,8 @@ export default function HomePage() {
       
       <PricingPlans />
 
-      <div className="mt-8 text-center">
-        <p className="text-lol-gold-light/70">
-          ¿Ya tienes una cuenta?{' '}
-          <Link href="/login" className="text-lol-blue-accent font-bold hover:underline">
-            Inicia sesión aquí
-          </Link>
-        </p>
+      <div className="mt-8">
+        <LoginButtons />
       </div>
     </main>
   );
