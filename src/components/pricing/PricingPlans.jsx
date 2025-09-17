@@ -43,7 +43,7 @@ export default function PricingPlans() {
 
   const handlePlanClick = (plan) => {
     if (!isAuthenticated) {
-      router.push('/register');
+      router.push('/login');
       return;
     }
     if (plan.priceId) {
