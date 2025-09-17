@@ -1,3 +1,20 @@
+#!/bin/bash
+
+# ==============================================================================
+# SCRIPT DE CORRECCIÓN - ERROR DE AUTENTICACIÓN DE GOOGLE
+# ==============================================================================
+
+# --- Colores ---
+GREEN='\033[0;32m'
+YELLOW='\033[1;33m'
+CYAN='\033[0;36m'
+NC='\033[0m'
+
+echo -e "${YELLOW}Aplicando corrección para la API de autenticación de Google...${NC}"
+
+# --- 1. Reescribiendo 'src/app/api/auth/google/route.js' con lógica mejorada ---
+echo -e "\n${GREEN}Paso 1: Reescribiendo 'src/app/api/auth/google/route.js' con lógica mejorada...${NC}"
+cat << 'EOF' > src/app/api/auth/google/route.js
 import { NextResponse } from 'next/server';
 import { google } from 'googleapis';
 import pool from '@/lib/db';
@@ -60,3 +77,9 @@ export async function GET(request) {
     return NextResponse.json({ error: 'Hubo un error con la autenticación de Google.' }, { status: 500 });
   }
 }
+EOF
+echo -e "${GREEN}Actualizado: src/app/api/auth/google/route.js. ✅${NC}"
+
+echo -e "\n${CYAN}----------------------------------------------------------------------"
+echo -e "¡Script finalizado! ✅"
+echo -e "----------------------------------------------------------------------${NC}"
