@@ -1,11 +1,11 @@
 #!/bin/bash
 
 # ==============================================================================
-# SCRIPT DE CORRECCIÓN FINAL - FLUJO GOOGLE AUTH
+# SCRIPT DE CORRECCIÓN FINAL - FLUJO DE AUTENTICACIÓN GOOGLE AUTH
 #
 # Rol: Frontend Developer
-# Objetivo: 1. Conectar el botón "Empezar Gratis" directamente a Google Auth.
-#           2. Eliminar el botón de Twitch para un sistema de login exclusivo de Google.
+# Objetivo: Integrar la lógica de Google Auth directamente en los botones de precio
+#           y eliminar el botón de login suelto.
 # ==============================================================================
 
 # --- Colores ---
@@ -14,10 +14,39 @@ YELLOW='\033[1;33m'
 CYAN='\033[0;36m'
 NC='\033[0m'
 
-echo -e "${YELLOW}Iniciando la corrección del flujo de Google Auth...${NC}"
+echo -e "${YELLOW}Iniciando la corrección final del flujo de autenticación...${NC}"
 
-# --- 1. Corregir el flujo del botón en PricingPlans ---
-echo -e "\n${GREEN}Paso 1: Modificando 'src/components/pricing/PricingPlans.jsx'...${NC}"
+# --- 1. Eliminar el componente de LoginButtons ---
+echo -e "\n${GREEN}Paso 1: Eliminando el componente 'src/components/auth/LoginButtons.jsx'...${NC}"
+rm "src/components/auth/LoginButtons.jsx"
+echo "Componente LoginButtons eliminado. ✅"
+
+# --- 2. Modificar la página principal para eliminar la referencia al botón ---
+echo -e "\n${GREEN}Paso 2: Modificando 'src/app/page.jsx'...${NC}"
+cat << 'EOF' > src/app/page.jsx
+import PricingPlans from '@/components/pricing/PricingPlans'
+
+export default function HomePage() {
+  return (
+    <main className="min-h-screen flex flex-col justify-start items-center p-8 bg-lol-blue-dark text-lol-gold-light font-body">
+      <div className="w-full max-w-lg mb-8 text-center">
+        <h1 className="text-5xl md:text-6xl font-display font-bold text-lol-blue-accent mb-4 text-shadow-lg">
+          LoL MetaMind
+        </h1>
+        <p className="text-lg md:text-xl text-lol-gold-light/90 mb-6">
+          La plataforma de coaching de League of Legends con IA que te da una ventaja estratégica.
+        </p>
+      </div>
+      
+      <PricingPlans />
+    </main>
+  );
+}
+EOF
+echo "Actualizado: src/app/page.jsx para eliminar el componente de login. ✅"
+
+# --- 3. Modificar la lógica de los botones en PricingPlans.jsx ---
+echo -e "\n${GREEN}Paso 3: Modificando 'src/components/pricing/PricingPlans.jsx' para integrar el login...${NC}"
 cat << 'EOF' > src/components/pricing/PricingPlans.jsx
 'use client';
 import React, { useState } from 'react';
@@ -63,14 +92,8 @@ export default function PricingPlans() {
   const isAuthenticated = auth ? auth.isAuthenticated : false;
 
   const handlePlanClick = (plan) => {
-    if (!isAuthenticated && plan.name === 'Plan Gratuito') {
-      window.location.href = '/api/auth/google';
-      return;
-    }
     if (!isAuthenticated) {
-      // Para planes de pago, si no está autenticado, podría redirigir a una página de registro/login
-      // o a la página principal con el botón. Por ahora, lo dejamos así.
-      alert("Por favor, inicia sesión para acceder al plan premium.");
+      window.location.href = '/api/auth/google';
       return;
     }
     if (plan.priceId) {
@@ -136,31 +159,6 @@ export default function PricingPlans() {
 EOF
 echo "Corregido: src/components/pricing/PricingPlans.jsx. ✅"
 
-# --- 2. Modificar el LoginButtons para que solo muestre Google ---
-echo -e "\n${GREEN}Paso 2: Modificando 'src/components/auth/LoginButtons.jsx'...${NC}"
-cat << 'EOF' > src/components/auth/LoginButtons.jsx
-'use client';
-
-import React from 'react';
-
-export default function LoginButtons() {
-  const handleGoogleLogin = () => {
-    window.location.href = '/api/auth/google';
-  };
-
-  return (
-    <div className="flex flex-col space-y-4">
-      <button
-        onClick={handleGoogleLogin}
-        className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-4 rounded-lg transition-colors duration-300 shadow-lg"
-      >
-        Login con Google
-      </button>
-    </div>
-  );
-}
-EOF
-echo "Corregido: src/components/auth/LoginButtons.jsx. ✅"
 
 echo -e "\n${YELLOW}----------------------------------------------------------------------"
 echo -e "¡CORRECCIÓN APLICADA! ✅"

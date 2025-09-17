@@ -1,5 +1,4 @@
 import PricingPlans from '@/components/pricing/PricingPlans'
-import LoginButtons from '@/components/auth/LoginButtons'
 
 export default function HomePage() {
   return (
@@ -14,10 +13,6 @@ export default function HomePage() {
       </div>
       
       <PricingPlans />
-
-      <div className="mt-8">
-        <LoginButtons />
-      </div>
     </main>
   );
 }
