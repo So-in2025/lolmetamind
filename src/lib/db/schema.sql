@@ -9,8 +9,7 @@ CREATE TABLE users (
     id SERIAL PRIMARY KEY,
     username VARCHAR(255) UNIQUE,
     email VARCHAR(255) UNIQUE,
-    password_hash VARCHAR(255),
-    google_id VARCHAR(255) UNIQUE, -- Nuevo campo para el ID de Google
+    google_id VARCHAR(255) UNIQUE,
     
     -- Campos para el Riot ID y datos de League
     riot_id_name VARCHAR(255),

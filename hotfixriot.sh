@@ -1,11 +1,12 @@
 #!/bin/bash
 
 # ==============================================================================
-# SCRIPT DE CORRECCIÓN FINAL - FLUJO DE AUTENTICACIÓN GOOGLE AUTH
+# SCRIPT DE CORRECCIÓN FINAL - CONFIGURACIÓN DE GOOGLE AUTH
 #
-# Rol: Frontend Developer
-# Objetivo: Integrar la lógica de Google Auth directamente en los botones de precio
-#           y eliminar el botón de login suelto.
+# Rol: DevOps Engineer
+# Objetivo: 1. Corregir el esquema de la base de datos para Google Auth.
+#           2. Actualizar la configuración de la base de datos.
+#           3. Reconstruir los archivos del frontend para el flujo de autenticación de Google.
 # ==============================================================================
 
 # --- Colores ---
@@ -14,10 +15,43 @@ YELLOW='\033[1;33m'
 CYAN='\033[0;36m'
 NC='\033[0m'
 
-echo -e "${YELLOW}Iniciando la corrección final del flujo de autenticación...${NC}"
+echo -e "${YELLOW}Aplicando correcciones finales para la autenticación de Google...${NC}"
 
-# --- 1. Modificar la página principal para eliminar la referencia al botón ---
-echo -e "\n${GREEN}Paso 1: Modificando 'src/app/page.jsx'...${NC}"
+# --- 1. Reconstruir el esquema de la base de datos ---
+echo -e "\n${GREEN}Paso 1: Reconstruyendo 'src/lib/db/schema.sql'...${NC}"
+cat << 'EOF' > src/lib/db/schema.sql
+-- src/lib/db/schema.sql
+-- Esquema de base de datos para PostgreSQL en producción.
+
+-- Se eliminan las tablas existentes para asegurar un esquema limpio.
+DROP TABLE IF EXISTS users CASCADE;
+
+-- Tabla de Usuarios actualizada para Riot ID y Paddle
+CREATE TABLE users (
+    id SERIAL PRIMARY KEY,
+    username VARCHAR(255) UNIQUE,
+    email VARCHAR(255) UNIQUE,
+    google_id VARCHAR(255) UNIQUE,
+    
+    -- Campos para el Riot ID y datos de League
+    riot_id_name VARCHAR(255),
+    riot_id_tagline VARCHAR(10),
+    region VARCHAR(10),
+    puuid VARCHAR(255) UNIQUE,
+    summoner_id VARCHAR(255) UNIQUE,
+
+    -- Campos para monetización con Paddle
+    plan_status VARCHAR(50) DEFAULT 'free',
+    paddle_customer_id VARCHAR(255) UNIQUE,
+
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+EOF
+echo -e "Esquema de base de datos reconstruido con el formato correcto. ✅"
+
+# --- 2. Modificar la página principal para eliminar el LoginButtons suelto ---
+echo -e "\n${GREEN}Paso 2: Modificando 'src/app/page.jsx'...${NC}"
 cat << 'EOF' > src/app/page.jsx
 import PricingPlans from '@/components/pricing/PricingPlans'
 
@@ -38,10 +72,10 @@ export default function HomePage() {
   );
 }
 EOF
-echo "Actualizado: src/app/page.jsx para eliminar el componente de login. ✅"
+echo "Actualizado: src/app/page.jsx. ✅"
 
-# --- 2. Modificar la lógica de los botones en PricingPlans.jsx ---
-echo -e "\n${GREEN}Paso 2: Modificando 'src/components/pricing/PricingPlans.jsx' para integrar el login...${NC}"
+# --- 3. Corregir el flujo de los botones de precio ---
+echo -e "\n${GREEN}Paso 3: Modificando 'src/components/pricing/PricingPlans.jsx'...${NC}"
 cat << 'EOF' > src/components/pricing/PricingPlans.jsx
 'use client';
 import React, { useState } from 'react';
@@ -152,10 +186,10 @@ export default function PricingPlans() {
   );
 }
 EOF
-echo "Corregido: src/components/pricing/PricingPlans.jsx. ✅"
+echo "Actualizado: src/components/pricing/PricingPlans.jsx. ✅"
 
-# --- 3. Modificar el endpoint de Google para manejar la redirección ---
-echo -e "\n${GREEN}Paso 3: Modificando 'src/app/api/auth/google/route.js'...${NC}"
+# --- 4. Corregir el endpoint de Google para manejar la redirección ---
+echo -e "\n${GREEN}Paso 4: Modificando 'src/app/api/auth/google/route.js'...${NC}"
 cat << 'EOF' > src/app/api/auth/google/route.js
 import { NextResponse } from 'next/server';
 import { google } from 'googleapis';
@@ -177,7 +211,6 @@ export async function GET(request) {
   const url = new URL(request.url);
   const code = url.searchParams.get('code');
 
-  // Si no hay 'code', es el inicio del flujo. Redirigimos a Google.
   if (!code) {
     const authUrl = oauth2Client.generateAuthUrl({
       access_type: 'offline',
@@ -187,7 +220,6 @@ export async function GET(request) {
     return NextResponse.redirect(authUrl);
   }
 
-  // Si hay 'code', es el regreso de Google. Intercambiamos el token.
   try {
     const { tokens } = await oauth2Client.getToken(code);
     oauth2Client.setCredentials(tokens);
@@ -201,11 +233,9 @@ export async function GET(request) {
     let user = null;
     const existingUser = await pool.query('SELECT * FROM users WHERE email = $1', [userInfo.data.email]);
     
-    // Si el usuario ya existe, lo actualizamos.
     if (existingUser.rows.length > 0) {
       user = existingUser.rows[0];
     } else {
-    // Si es un usuario nuevo, lo registramos.
       const newUserResult = await pool.query(
         'INSERT INTO users (username, email, google_id) VALUES ($1, $2, $3) RETURNING *',
         [userInfo.data.name, userInfo.data.email, userInfo.data.id]
@@ -213,10 +243,8 @@ export async function GET(request) {
       user = newUserResult.rows[0];
     }
 
-    // Creamos el token de sesión
     const token = createToken({ userId: user.id, username: user.username });
     
-    // Redirigimos al dashboard con el token
     const redirectUrl = new URL('/dashboard', url.origin);
     redirectUrl.searchParams.set('token', token);
     return NextResponse.redirect(redirectUrl);
@@ -232,3 +260,4 @@ echo "Corregido: src/app/api/auth/google/route.js. ✅"
 echo -e "\n${YELLOW}----------------------------------------------------------------------"
 echo -e "¡CORRECCIÓN APLICADA! ✅"
 echo -e "----------------------------------------------------------------------${NC}"
+
