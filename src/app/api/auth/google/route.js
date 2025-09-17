@@ -1,30 +1,21 @@
 import { NextResponse } from 'next/server';
 import { google } from 'googleapis';
-import pool from '@/lib/db';
-import { createToken } from '@/lib/auth/utils';
+import { db } from '@/lib/db';
+import { getUserByEmail, createUser } from '@/lib/auth/utils';
 
-const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID;
-const GOOGLE_CLIENT_SECRET = process.env.GOOGLE_CLIENT_SECRET;
-const GOOGLE_REDIRECT_URI = process.env.GOOGLE_REDIRECT_URI;
-const JWT_SECRET = process.env.JWT_SECRET;
-
+// Importa las variables de entorno para Google
 const oauth2Client = new google.auth.OAuth2(
-  GOOGLE_CLIENT_ID,
-  GOOGLE_CLIENT_SECRET,
-  GOOGLE_REDIRECT_URI
+  process.env.GOOGLE_CLIENT_ID,
+  process.env.GOOGLE_CLIENT_SECRET,
+  process.env.GOOGLE_REDIRECT_URI
 );
 
 export async function GET(request) {
-  const url = new URL(request.url);
-  const code = url.searchParams.get('code');
+  const { searchParams } = new URL(request.url);
+  const code = searchParams.get('code');
 
   if (!code) {
-    const authUrl = oauth2Client.generateAuthUrl({
-      access_type: 'offline',
-      scope: ['https://www.googleapis.com/auth/userinfo.email', 'https://www.googleapis.com/auth/userinfo.profile'],
-      prompt: 'consent'
-    });
-    return NextResponse.redirect(authUrl);
+    return NextResponse.json({ error: 'No se proporcionó un código de autenticación.' }, { status: 400 });
   }
 
   try {
@@ -33,31 +24,31 @@ export async function GET(request) {
 
     const oauth2 = google.oauth2({
       auth: oauth2Client,
-      version: 'v2'
+      version: 'v2',
     });
-    const userInfo = await oauth2.userinfo.get();
 
-    let user = null;
-    const existingUser = await pool.query('SELECT * FROM users WHERE email = $1', [userInfo.data.email]);
-    
-    if (existingUser.rows.length > 0) {
-      user = existingUser.rows[0];
-    } else {
-      const newUserResult = await pool.query(
-        'INSERT INTO users (username, email, google_id) VALUES ($1, $2, $3) RETURNING *',
-        [userInfo.data.name, userInfo.data.email, userInfo.data.id]
-      );
-      user = newUserResult.rows[0];
+    // Captura errores específicos aquí
+    try {
+      const { data } = await oauth2.userinfo.get();
+      const user = await getUserByEmail(data.email);
+
+      if (!user) {
+        await createUser({
+          name: data.name,
+          email: data.email,
+          image: data.picture,
+          googleId: data.id,
+        });
+      }
+
+      const redirectUrl = `http://localhost:3000/dashboard?token=${tokens.access_token}`;
+      return NextResponse.redirect(redirectUrl);
+    } catch (apiError) {
+      console.error('Error al obtener la información del usuario desde Google:', apiError);
+      return NextResponse.json({ error: 'Hubo un error al obtener tu información de Google.' }, { status: 500 });
     }
-
-    const token = createToken({ userId: user.id, username: user.username });
-    
-    const redirectUrl = new URL('/dashboard', url.origin);
-    redirectUrl.searchParams.set('token', token);
-    return NextResponse.redirect(redirectUrl);
-
-  } catch (error) {
-    console.error('Error al procesar el login de Google:', error);
-    return NextResponse.json({ error: 'Hubo un error con la autenticación de Google.' }, { status: 500 });
+  } catch (authError) {
+    console.error('Error durante la autenticación de Google:', authError);
+    return NextResponse.json({ error: `Hubo un error con la autenticación de Google: ${authError.message}` }, { status: 500 });
   }
 }
