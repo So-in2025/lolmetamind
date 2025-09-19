@@ -1,4 +1,3 @@
-// src/app/dashboard/layout.jsx
 'use client';
 import { useAuth } from '@/context/AuthContext';
 import { useRouter } from 'next/navigation';
@@ -9,10 +8,8 @@ function UserProfile() {
     const router = useRouter();
 
     const handleLogout = () => {
-        if (auth) {
-            auth.logout();
-            router.push('/login');
-        }
+        auth.logout();
+        router.push('/login');
     };
 
     if (!auth || !auth.user) return null;
@@ -35,34 +32,37 @@ export default function DashboardLayout({ children }) {
   const router = useRouter();
 
   useEffect(() => {
-    // Si el AuthContext ya terminó de cargar, podemos tomar una decisión.
-    if (!auth.loading) {
+    const processLogin = async () => {
       const urlParams = new URLSearchParams(window.location.search);
       const tokenFromUrl = urlParams.get('token');
 
-      // Si hay un token en la URL y aún no estamos autenticados, lo procesamos.
       if (tokenFromUrl && !auth.isAuthenticated) {
-        // En un escenario real, aquí se llamaría a una API para validar el token y obtener los datos del usuario.
-        // Simulamos esta llamada para usar el token.
-        console.log('Token encontrado en la URL. Procesando inicio de sesión...');
-        
-        // Asumimos que tienes una API que devuelve el usuario a partir del token.
-        // Si no, necesitarías implementarla.
-        const mockUserData = { id: 1, username: 'Usuario Google', email: 'user@gmail.com' };
-        auth.login(mockUserData, tokenFromUrl);
-        
-        // Limpiamos la URL para evitar problemas
-        router.replace('/dashboard', undefined, { shallow: true });
-
+        console.log('Token encontrado en la URL. Obteniendo datos reales del usuario...');
+        try {
+          const response = await fetch('/api/user/me', {
+            headers: { 'Authorization': `Bearer ${tokenFromUrl}` }
+          });
+          if (!response.ok) throw new Error('No se pudo verificar el token');
+          
+          const userData = await response.json();
+          auth.login(userData, tokenFromUrl);
+          router.replace('/dashboard', undefined, { shallow: true });
+        } catch (error) {
+          console.error("Error al iniciar sesión con token:", error);
+          auth.logout();
+          router.push('/login');
+        }
       } else if (!auth.isAuthenticated) {
-        // Si no hay token en la URL y no está autenticado, redirigimos
         router.push('/login');
       }
+    };
+
+    if (!auth.loading) {
+      processLogin();
     }
   }, [auth, router]);
 
-  // Mientras el estado se está cargando o autenticando, mostramos un spinner
-  if (auth.loading) {
+  if (auth.loading || !auth.isAuthenticated) {
     return (
       <div className="min-h-screen w-full bg-lol-blue-dark text-lol-gold-light flex items-center justify-center">
         <p className="animate-pulse">Verificando sesión...</p>
@@ -70,13 +70,6 @@ export default function DashboardLayout({ children }) {
     );
   }
 
-  // Después de la carga, si no hay autenticación, simplemente no renderizamos nada,
-  // el useEffect se encargará de la redirección.
-  if (!auth.isAuthenticated) {
-    return null;
-  }
-
-  // Si la carga terminó y el usuario está autenticado, renderizamos el contenido
   return (
     <section className="min-h-screen w-full bg-lol-blue-dark text-lol-gold-light font-body">
       <header className="bg-lol-blue-medium p-4 border-b-2 border-lol-gold-dark flex justify-between items-center">

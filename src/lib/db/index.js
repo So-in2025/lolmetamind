@@ -3,13 +3,13 @@ import { Pool } from 'pg';
 
 let pool;
 
-if (!pool) {
-  pool = new Pool({
+// Esta configuración es la recomendada para Vercel.
+// Vercel maneja el SSL automáticamente a través de la connection string.
+if (!global._pool) {
+  global._pool = new Pool({
     connectionString: process.env.DATABASE_URL,
-    ssl: {
-      rejectUnauthorized: false
-    }
   });
 }
+pool = global._pool;
 
 export default pool;
