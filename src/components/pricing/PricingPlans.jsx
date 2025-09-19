@@ -43,7 +43,7 @@ export default function PricingPlans() {
 
   const handlePlanClick = (plan) => {
     if (!isAuthenticated) {
-      window.location.href = '/api/auth/google';
+      window.location.href = 'https://couchmetamind.vercel.app/api/auth/google';
       return;
     }
     if (plan.priceId) {
