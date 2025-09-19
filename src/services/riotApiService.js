@@ -64,16 +64,3 @@ export const getLiveGameBySummonerId = async (summonerId, region) => {
         throw error;
     }
 };
-
-// Nueva función simulada para la búsqueda parcial de nombres de invocador
-export const searchAccountsByGameName = async (name) => {
-    // Nota: La API de Riot no tiene un endpoint para esto.
-    // Esto es un mock para demostrar el concepto de autocompletado.
-    console.log(`(MOCK) Buscando nombres que coincidan con: ${name}`);
-    const mockData = [
-        { gameName: 'Faker', tagLine: 'KR1' },
-        { gameName: 'Faker Senpai', tagLine: 'NA1' },
-        { gameName: 'Fakerthebest', tagLine: 'LAS' }
-    ];
-    return mockData.filter(account => account.gameName.toLowerCase().startsWith(name.toLowerCase()));
-};
