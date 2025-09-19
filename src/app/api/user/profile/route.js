@@ -13,23 +13,27 @@ export async function POST(request) {
     const decoded = jwt.verify(token, JWT_SECRET);
     const userId = decoded.userId;
 
-    let { gameName, tagLine, region } = await request.json();
+    const { gameName, tagLine, region } = await request.json();
     if (!gameName || !tagLine || !region) {
       return NextResponse.json({ error: 'Nombre de juego, tagline y región son requeridos' }, { status: 400 });
     }
-
-    // Limpiamos el tagline por si el usuario incluyó el #
-    tagLine = tagLine.startsWith('#') ? tagLine.substring(1) : tagLine;
 
     // 1. Obtener PUUID desde la API de Cuentas
     const accountData = await getAccountByRiotId(gameName, tagLine, region);
     const { puuid } = accountData;
 
-    // 2. Obtener datos del Invocador (incluyendo summonerId) usando el PUUID
+    // 2. Obtener datos del Invocador usando el PUUID
     const summonerData = await getSummonerByPuuid(puuid, region);
     const { id: summoner_id } = summonerData;
 
-    // 3. Actualizar nuestra base de datos
+    // 3. *** NUEVA VALIDACIÓN ***
+    // Verificar si este PUUID ya está vinculado a OTRA cuenta.
+    const existingLink = await pool.query('SELECT id FROM users WHERE puuid = $1 AND id != $2', [puuid, userId]);
+    if (existingLink.rows.length > 0) {
+      return NextResponse.json({ error: 'Este Riot ID ya está vinculado a otra cuenta de LoL MetaMind.' }, { status: 409 }); // 409 Conflict
+    }
+
+    // 4. Actualizar nuestra base de datos
     const result = await pool.query(
       `UPDATE users 
        SET riot_id_name = $1, riot_id_tagline = $2, region = $3, puuid = $4, summoner_id = $5, updated_at = NOW() 
@@ -45,7 +49,10 @@ export async function POST(request) {
     return NextResponse.json({ message: 'Perfil actualizado con éxito', user: result.rows[0] });
 
   } catch (error) {
-    console.error('Error al actualizar perfil:', error.response?.data || error.message);
+    console.error('Error al actualizar perfil:', error);
+    if (error.code === '23505') { // Código de error de PostgreSQL para violación de unicidad
+      return NextResponse.json({ error: 'Este Riot ID ya está vinculado a otra cuenta.' }, { status: 409 });
+    }
     if (error.response?.status === 404) {
       return NextResponse.json({ error: `Riot ID no encontrado. Verifica el nombre, tagline y región.` }, { status: 404 });
     }
