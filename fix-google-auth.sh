@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # ==============================================================================
-# SCRIPT DE CORRECCIÓN - URL ABSOLUTA PARA AUTENTICACIÓN
+# SCRIPT DE CORRECCIÓN DEFINITIVA - AUTENTICACIÓN DE GOOGLE
 # ==============================================================================
 
 # --- Colores ---
@@ -10,10 +10,10 @@ YELLOW='\033[1;33m'
 CYAN='\033[0;36m'
 NC='\033[0m'
 
-echo -e "${YELLOW}Aplicando corrección para el flujo de autenticación de Google...${NC}"
+echo -e "${YELLOW}Aplicando la corrección final para el flujo de autenticación de Google...${NC}"
 
-# --- 1. Restaurando el archivo de la API de autenticación ---
-echo -e "\n${GREEN}Paso 1: Restaurando 'src/app/api/auth/google/route.js' a su estado original...${NC}"
+# --- 1. Restaurando 'src/app/api/auth/google/route.js' a su estado original ---
+echo -e "\n${GREEN}Paso 1: Restaurando 'src/app/api/auth/google/route.js'...${NC}"
 cat << 'EOF' > src/app/api/auth/google/route.js
 import { NextResponse } from 'next/server';
 import { google } from 'googleapis';
@@ -85,7 +85,6 @@ echo -e "${GREEN}Restaurado: src/app/api/auth/google/route.js. ✅${NC}"
 echo -e "\n${GREEN}Paso 2: Reemplazando la URL relativa por la absoluta...${NC}"
 sed -i.bak "s|window.location.href = '/api/auth/google';|window.location.href = 'https://couchmetamind.vercel.app/api/auth/google';|g" src/components/pricing/PricingPlans.jsx
 rm src/components/pricing/PricingPlans.jsx.bak
-
 echo -e "${GREEN}Corregido: src/components/pricing/PricingPlans.jsx. ✅${NC}"
 
 echo -e "\n${CYAN}----------------------------------------------------------------------"
