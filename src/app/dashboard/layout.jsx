@@ -34,13 +34,13 @@ export default function DashboardLayout({ children }) {
   const router = useRouter();
 
   useEffect(() => {
-    // Solo redirigimos si la carga ha terminado Y el usuario no está autenticado
+    // Si la carga ha terminado y no estás autenticado, redirigimos
     if (auth && !auth.loading && !auth.isAuthenticated) {
       router.push('/login');
     }
   }, [auth, router]);
 
-  // Mostrar un estado de carga mientras se verifica la sesión
+  // Si el contexto está en estado de carga (loading es true), mostramos un spinner
   if (!auth || auth.loading) {
     return (
         <div className="min-h-screen w-full bg-lol-blue-dark text-lol-gold-light flex items-center justify-center">
@@ -49,15 +49,12 @@ export default function DashboardLayout({ children }) {
     );
   }
   
-  // Si no está autenticado después de la carga, mostramos el mensaje de error del componente de login
+  // Después de la carga, si no está autenticado, no renderizamos nada (el useEffect hará la redirección)
   if (!auth.isAuthenticated) {
-    return (
-      <div className="min-h-screen w-full bg-lol-blue-dark text-lol-gold-light flex items-center justify-center">
-        <p className="text-red-500">Error: No estás autenticado. Por favor, inicia sesión.</p>
-      </div>
-    );
+    return null;
   }
 
+  // Si la carga terminó y está autenticado, renderizamos el contenido
   return (
     <section className="min-h-screen w-full bg-lol-blue-dark text-lol-gold-light font-body">
       <header className="bg-lol-blue-medium p-4 border-b-2 border-lol-gold-dark flex justify-between items-center">
