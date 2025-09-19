@@ -1,11 +1,9 @@
-// src/app/dashboard/layout.jsx
 'use client';
 import { useAuth } from '@/context/AuthContext';
 import { useRouter } from 'next/navigation';
 import { useEffect } from 'react';
 
 function UserProfile() {
-    // El hook useAuth ahora puede devolver null inicialmente
     const auth = useAuth();
     const router = useRouter();
 
@@ -16,7 +14,6 @@ function UserProfile() {
         }
     };
 
-    // Si auth o auth.user no existen, no renderizamos nada
     if (!auth || !auth.user) return null;
 
     return (
@@ -36,19 +33,28 @@ export default function DashboardLayout({ children }) {
   const auth = useAuth();
   const router = useRouter();
 
-  // El useEffect solo se ejecuta en el cliente, por lo que auth ya estará definido
   useEffect(() => {
+    // Solo redirigimos si la carga ha terminado Y el usuario no está autenticado
     if (auth && !auth.loading && !auth.isAuthenticated) {
       router.push('/login');
     }
   }, [auth, router]);
 
-  // Durante el build o la carga inicial, auth puede ser null o estar cargando
-  if (!auth || auth.loading || !auth.isAuthenticated) {
+  // Mostrar un estado de carga mientras se verifica la sesión
+  if (!auth || auth.loading) {
     return (
         <div className="min-h-screen w-full bg-lol-blue-dark text-lol-gold-light flex items-center justify-center">
             <p className="animate-pulse">Verificando sesión...</p>
         </div>
+    );
+  }
+  
+  // Si no está autenticado después de la carga, mostramos el mensaje de error del componente de login
+  if (!auth.isAuthenticated) {
+    return (
+      <div className="min-h-screen w-full bg-lol-blue-dark text-lol-gold-light flex items-center justify-center">
+        <p className="text-red-500">Error: No estás autenticado. Por favor, inicia sesión.</p>
+      </div>
     );
   }
 
