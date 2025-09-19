@@ -1,27 +1,32 @@
-// src/app/api/analysis/post-match/route.js
-import { getSummonerByName } from '../../../../services/riotApiService';
+import { NextResponse } from 'next/server';
+import { getAccountByRiotId, getSummonerByPuuid } from '../../../../services/riotApiService';
 import { generateStrategicAnalysis } from '../../../../lib/ai/strategist';
 
 export async function POST(request) {
-  const { summonerName } = await request.json();
+  const { gameName, tagLine, region } = await request.json();
 
-  if (!summonerName) {
-    return new Response(JSON.stringify({ error: 'summonerName es requerido' }), { status: 400 });
+  if (!gameName || !tagLine || !region) {
+    return NextResponse.json({ error: 'Nombre de juego, tagline y región son requeridos' }, { status: 400 });
   }
 
   try {
-    // TODO: Reemplazar con una lógica más robusta.
-    // 1. Obtener datos del invocador.
-    const summonerData = await getSummonerByName(summonerName);
-    // 2. Obtener historial de partidas (a implementar en riotApiService.js).
-    // const matchHistory = await getMatchHistory(summonerData.puuid);
-    // 3. Enviar los datos de la última partida a la IA.
-    const analysis = await generateStrategicAnalysis({ summonerData /*, matchHistory */ });
+    const accountData = await getAccountByRiotId(gameName, tagLine, region);
+    const { puuid } = accountData;
+    const summonerData = await getSummonerByPuuid(puuid, region);
+    const { id: summonerId } = summonerData;
+    
+    // Lógica para obtener el historial de partidas y generar el análisis con la IA
+    // Esta es una simulación ya que la API de historial de partidas no está implementada
+    const mockMatchHistory = {};
+    const analysis = await generateStrategicAnalysis({ summonerData, matchHistory: mockMatchHistory });
 
-    return new Response(JSON.stringify({ analysis }), {
-      headers: { 'Content-Type': 'application/json' },
-    });
+    if (analysis.error) {
+      return NextResponse.json({ error: analysis.message }, { status: 503 });
+    }
+
+    return NextResponse.json(analysis);
   } catch (error) {
-    return new Response(JSON.stringify({ error: 'Error al procesar el análisis' }), { status: 500 });
+    console.error('Error al procesar el análisis post-partida:', error.response?.data || error.message);
+    return NextResponse.json({ error: 'Error interno del servidor al procesar la solicitud.' }, { status: 500 });
   }
 }
