@@ -6,7 +6,6 @@ import { createToken } from '@/lib/auth/utils';
 const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID;
 const GOOGLE_CLIENT_SECRET = process.env.GOOGLE_CLIENT_SECRET;
 const GOOGLE_REDIRECT_URI = process.env.GOOGLE_REDIRECT_URI;
-const JWT_SECRET = process.env.JWT_SECRET;
 
 const oauth2Client = new google.auth.OAuth2(
   GOOGLE_CLIENT_ID,
@@ -50,7 +49,7 @@ export async function GET(request) {
       user = newUserResult.rows[0];
     }
 
-    const token = createToken({ userId: user.id, username: user.username });
+    const token = createToken(user);
     
     const redirectUrl = new URL('/dashboard', url.origin);
     redirectUrl.searchParams.set('token', token);
