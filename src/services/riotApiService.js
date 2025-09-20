@@ -1,9 +1,12 @@
 import axios from 'axios';
 import { RIOT_API_KEY } from './apiConfig';
 
-// --- Funciones auxiliares robustas ---
+const REGIONAL_ROUTES = {
+    americas: ['NA', 'BR', 'LAN', 'LAS'],
+    asia: ['KR', 'JP'],
+    europe: ['EUNE', 'EUW', 'TR', 'RU'],
+};
 const getRegionalRoute = (region) => {
-    const REGIONAL_ROUTES = { americas: ['NA', 'BR', 'LAN', 'LAS'], asia: ['KR', 'JP'], europe: ['EUNE', 'EUW', 'TR', 'RU'] };
     for (const route in REGIONAL_ROUTES) {
         if (REGIONAL_ROUTES[route].includes(region?.toUpperCase())) return route;
     }
@@ -14,8 +17,6 @@ const getPlatformRoute = (region) => {
     return platformRoutes[region?.toUpperCase()];
 };
 const createApi = (baseURL) => axios.create({ baseURL, headers: { "X-Riot-Token": RIOT_API_KEY } });
-
-// --- Endpoints de la API ---
 
 export const getAccountByRiotId = async (gameName, tagLine, region) => {
     const api = createApi(`https://${getRegionalRoute(region)}.api.riotgames.com`);
@@ -45,6 +46,10 @@ export const getChampionMastery = async (puuid, region) => {
     }
 };
 
+/**
+ * **FUNCIÓN A PRUEBA DE FALLOS DEFINITIVA**
+ * SIEMPRE devolverá un array.
+ */
 export const getMatchHistoryIds = async (puuid, region) => {
     if (!puuid || !region) return [];
     const api = createApi(`https://${getRegionalRoute(region)}.api.riotgames.com`);

@@ -31,10 +31,8 @@ export async function POST(request) {
     }
     const userData = userResult.rows[0];
 
-    // 1. OBTENER DATOS (La función ahora es 100% segura y siempre devuelve un array)
     const championMasteryData = await getChampionMastery(userData.puuid, userData.region);
 
-    // 2. TRADUCIR (Esta operación es segura porque championMasteryData SIEMPRE es un array)
     const championMasteryWithNames = await Promise.all(
       championMasteryData.map(async (mastery) => ({
         name: await getChampionNameById(mastery.championId),
@@ -52,14 +50,12 @@ export async function POST(request) {
       dailyAstrologicalForecast: dailyAstrologicalForecast
     };
 
-    // 3. LLAMAR A LA IA
     const prompt = createInitialAnalysisPrompt(analysisData);
     const analysisResult = await generateStrategicAnalysis({ customPrompt: prompt });
 
     return NextResponse.json(analysisResult);
 
   } catch (error) {
-    // Si el error llega hasta aquí, es un problema grave y no relacionado con 'map'
     console.error("Error CRÍTICO E INESPERADO en /api/recommendation:", error);
     return NextResponse.json({ error: 'Un error fatal ocurrió en el servidor.' }, { status: 500 });
   }
