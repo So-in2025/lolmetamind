@@ -65,7 +65,7 @@ export const createInitialAnalysisPrompt = (analysisData) => {
 export const createChallengeGenerationPrompt = (playerData) => {
   const { summonerName, recentMatchesPerformance } = playerData;
 
-  return \`
+  return `
     Eres "MetaMind", un coach de élite de League of Legends. Tu tarea es analizar el rendimiento reciente de un jugador y crear 3 desafíos de mejora personalizados (1 diario, 2 semanales) en formato JSON.
 
     **DATOS DEL JUGADOR:**
@@ -105,5 +105,5 @@ export const createChallengeGenerationPrompt = (playerData) => {
         "goal": 5
       }
     ]
-  \`;
+  `;
 };
