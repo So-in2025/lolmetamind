@@ -9,7 +9,8 @@ export const createInitialAnalysisPrompt = (analysisData) => {
   // Simplificamos el formato de la maestría para que la IA lo entienda mejor.
   const masterySummary = championMastery.map(champ => `ID: ${champ.championId}, Puntos: ${champ.championPoints}`);
 
-  return \`
+  // CORRECCIÓN: Se eliminó la barra invertida (\) antes del primer backtick (`).
+  return `
     Eres "MetaMind", un coach experto de League of Legends con un conocimiento único de la "psicología zodiacal" aplicada al juego.
     Tu tono es analítico, proactivo y ligeramente místico.
 
@@ -45,5 +46,5 @@ export const createInitialAnalysisPrompt = (analysisData) => {
         }
       ]
     }
-  \`;
+  `;
 };
