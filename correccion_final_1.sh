@@ -1,11 +1,12 @@
 #!/bin/bash
 
 # ==============================================================================
-# SCRIPT DE HOTFIX FINAL - AUTORIZACIÓN DE API PARA IA
+# SCRIPT DE MEJORA DE IA - PERSONALIDAD Y TONO DE EXPERTO
 #
-# Objetivo: 1. Solucionar el error 401 No Autorizado en la ruta /api/recommendation.
-#           2. Añadir la cabecera de autorización (Bearer Token) a la llamada
-#              fetch en el componente ProfileForm.
+# Objetivo: 1. Modificar el prompt para que la IA se dirija al usuario en
+#              segunda persona ("tú", "tu").
+#           2. Elevar el tono y la profundidad de los consejos para que suenen
+#              como los de un coach profesional de alto nivel.
 # ==============================================================================
 
 # --- Colores ---
@@ -14,137 +15,86 @@ YELLOW='\033[1;33m'
 CYAN='\033[0;36m'
 NC='\033[0m'
 
-echo -e "${YELLOW}Corrigiendo el error de autorización 401 en ProfileForm.jsx...${NC}"
+echo -e "${YELLOW}Inyectando nueva personalidad y tono de experto a la IA...${NC}"
 
-# --- Reescribir el ProfileForm para que envíe el token de autenticación ---
-cat << 'EOF' > src/components/forms/ProfileForm.jsx
-'use client';
-import React, { useState } from 'react';
-import { useForm } from 'react-hook-form';
-import { motion } from 'framer-motion';
-import { useAuth } from '@/context/AuthContext'; // Importamos useAuth
+# --- Reescribir el prompt para un análisis y tono superiores ---
+echo -e "\n${GREEN}Paso 1: Actualizando 'src/lib/ai/prompts.js' con la personalidad de coach 2.0...${NC}"
+cat << 'EOF' > src/lib/ai/prompts.js
+/**
+ * Genera el prompt para el análisis ASTRO-TÁCTICO avanzado.
+ * @param {object} analysisData - Datos completos del jugador.
+ * @returns {string} - El prompt completo para la IA.
+ */
+export const createInitialAnalysisPrompt = (analysisData) => {
+  const { summonerName, zodiacSign, championMastery, dailyAstrologicalForecast } = analysisData;
 
-export default function ProfileForm({ currentUser }) {
-  const [status, setStatus] = useState('idle');
-  const [recommendation, setRecommendation] = useState(null);
-  const { register, handleSubmit, formState: { errors, isSubmitting } } = useForm();
-  const { token } = useAuth(); // Obtenemos el token del contexto de autenticación
+  const masterySummary = championMastery.map(champ => ({
+    championId: champ.championId,
+    championPoints: champ.championPoints
+  }));
 
-  const zodiacSigns = [
-    'Aries', 'Tauro', 'Géminis', 'Cáncer', 'Leo', 'Virgo',
-    'Libra', 'Escorpio', 'Sagitario', 'Capricornio', 'Acuario', 'Piscis'
-  ];
+  // CORRECCIÓN DE TONO: El prompt ahora se dirige directamente al usuario (TÚ/TU)
+  // y exige un nivel de análisis de experto.
+  return \`
+    Eres "MetaMind", un Astro-Táctico y coach de élite de League of Legends. Te diriges directamente a tu cliente, ${summonerName}, en segunda persona (tú, tu, tus). Tu tono es sabio, autoritario y revelador. Fusionas el análisis profundo de datos de Riot con la psicología zodiacal para crear estrategias hiper-personalizadas.
 
-  const onSubmit = async (data) => {
-    setStatus('loading');
-    setRecommendation(null);
-    
-    try {
-      const response = await fetch('/api/recommendation', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          // *** LA LÍNEA MÁGICA QUE FALTABA ***
-          'Authorization': `Bearer ${token}` 
+    **MISIÓN:**
+    Realiza un análisis exhaustivo para ${summonerName} y entrégale su plan de acción diario en un formato JSON claro y profesional.
+
+    **DATOS DE TU JUGADOR:**
+    1.  **Invocador:** ${summonerName}
+    2.  **Perfil Zodiacal:** ${zodiacSign} (Esto revela tu temperamento innato y arquetipo como jugador).
+    3.  **Arsenal Principal (Top 5 de Maestría):** ${JSON.stringify(masterySummary)} (Estos son los campeones que dominas. Analiza sus arquetipos para entender tu zona de confort táctica).
+    4.  **Directiva Astral del Día:** "${dailyAstrologicalForecast}" (Este es el flujo cósmico de hoy. Debe influir directamente en CADA consejo que des).
+
+    **PROCESO DE ANÁLISIS (ESTRICTO):**
+    1.  **Diagnóstico de Estilo de Juego:** Basado en tu arsenal principal, define tu estilo de juego. Ve más allá de lo obvio (ej: "Eres un 'Duelista de Alto Riesgo' que prefiere escaramuzas cortas a peleas de equipo extendidas", "Tu perfil es de 'Mago de Asedio', buscas controlar el tempo y desgastar al enemigo desde la distancia").
+    2.  **Sinergia Astro-Táctica:** Explica cómo tu signo ${zodiacSign} impacta tu estilo de juego, y cómo la Directiva Astral de hoy ("${dailyAstrologicalForecast}") debe modular tu enfoque. (Ej: "Como Aries, tu impulso es iniciar, pero la directiva de hoy, centrada en la paciencia, exige que uses esa agresividad para contra-iniciar, no para forzar jugadas").
+    3.  **Coaching de Arsenal:** Elige 1 o 2 campeones de tu arsenal principal. Ofrécele una táctica específica y de alto nivel para aplicar HOY, que un coach promedio pasaría por alto. Debe estar directamente ligada a la Directiva Astral.
+    4.  **Expansión de Arsenal:** Recomienda DOS nuevos campeones para expandir tus horizontes:
+        -   **Campeón de Sinergia:** Uno que se alinee perfectamente con tu núcleo de fortalezas (estilo + signo).
+        -   **Campeón de Desarrollo:** Uno que te obligue a confrontar una debilidad inherente a tu arquetipo para convertirte en un jugador más completo.
+
+    **FORMATO DE SALIDA (JSON ESTRICTO):**
+    {
+      "playstyleAnalysis": {
+        "title": "Diagnóstico de tu Estilo de Juego",
+        "style": "Tu arquetipo como jugador (ej: Duelista de Flanco)",
+        "description": "Un análisis profesional de cómo abordas el juego, tus fortalezas y posibles puntos ciegos."
+      },
+      "astroTacticSynergy": {
+        "title": "Tu Directiva Táctica del Día",
+        "description": "Cómo tu temperamento de ${zodiacSign} debe adaptarse al flujo cósmico de hoy para maximizar tu rendimiento."
+      },
+      "masteryCoaching": {
+        "title": "Instrucciones para tu Arsenal Principal",
+        "tips": [
+          {
+            "championId": "ID del campeón",
+            "advice": "Una táctica avanzada y específica para este campeón, aplicable a la directiva de hoy."
+          }
+        ]
+      },
+      "newChampionRecommendations": {
+        "title": "Expansión de Arsenal",
+        "synergy": {
+          "champion": "Nombre del Campeón de Sinergia",
+          "reason": "Por qué este campeón capitaliza tus fortalezas naturales y es tu siguiente paso lógico."
         },
-        // El backend ya sabe quién eres por el token, solo necesita el signo.
-        body: JSON.stringify({ zodiacSign: data.zodiacSign }),
-      });
-
-      if (!response.ok) {
-        const err = await response.json();
-        throw new Error(err.error || 'La respuesta de la IA no fue exitosa');
+        "development": {
+          "champion": "Nombre del Campeón de Desarrollo",
+          "reason": "Por qué dominar a este campeón te forzará a superar tus límites y te hará un jugador impredecible."
+        }
       }
-
-      const result = await response.json();
-      setRecommendation(result);
-      setStatus('success');
-    } catch (error) {
-      console.error('Error al enviar el formulario:', error);
-      setStatus('error'); // Manejo de errores para mostrar al usuario (opcional)
     }
-  };
-
-  if (status === 'loading') {
-    return (
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="bg-lol-blue-medium text-lol-gold-light p-8 rounded-xl shadow-lg w-full text-center animate-pulse border-2 border-lol-gold-dark"
-      >
-        <h2 className="text-2xl font-display font-bold text-lol-blue-accent mb-4">Analizando tu Perfil Cósmico...</h2>
-        <p className="text-lol-gold-light/90">La IA está consultando los astros y tu perfil de Riot para encontrar tu campeón ideal.</p>
-      </motion.div>
-    );
-  }
-
-  if (status === 'success' && recommendation) {
-    return (
-      <motion.div
-        initial={{ opacity: 0, scale: 0.9 }}
-        animate={{ opacity: 1, scale: 1 }}
-        className="bg-lol-blue-medium text-lol-gold-light p-8 rounded-xl shadow-lg w-full border-2 border-lol-gold-dark"
-      >
-        <h2 className="text-2xl font-display font-bold text-lol-blue-accent mb-4 text-center">¡Análisis de IA Completo!</h2>
-        <div className="space-y-4 mt-6">
-          <div className="bg-lol-blue-dark p-4 rounded-lg border border-lol-gold-dark">
-            <h3 className="text-xl font-display font-bold text-lol-gold mb-2">Recomendación para {currentUser.riot_id_name}</h3>
-            <p><strong className="font-semibold text-lol-gold-light">Campeón Sugerido:</strong> <span className="text-lol-blue-accent font-bold">{recommendation.champion}</span></p>
-            <p><strong className="font-semibold text-lol-gold-light">Rol:</strong> <span className="text-green-400">{recommendation.role}</span></p>
-            <p><strong className="font-semibold text-lol-gold-light">Arquetipo:</strong> <span className="text-purple-400">{recommendation.archetype}</span></p>
-            <p className="mt-2"><strong className="font-semibold text-lol-gold-light">Razonamiento de la IA:</strong> {recommendation.reasoning}</p>
-          </div>
-          <div className="bg-lol-blue-dark p-4 rounded-lg border border-lol-gold-dark">
-            <strong className="text-xl font-display font-bold text-lol-gold block mb-2">Consejos Estratégicos:</strong>
-            <ul className="list-disc list-inside space-y-2 text-lol-gold-light/80">
-              {recommendation.strategicAdvice.map((advice, index) => <li key={index}><strong>{advice.type}:</strong> {advice.content}</li>)}
-            </ul>
-          </div>
-        </div>
-        <button
-          onClick={() => setStatus('idle')}
-          className="w-full mt-8 bg-lol-gold hover:bg-lol-gold-dark text-lol-blue-dark font-display font-bold py-3 px-4 rounded-lg"
-        >
-          Realizar otro Análisis
-        </button>
-      </motion.div>
-    );
-  }
-
-  return (
-    <div className="bg-lol-blue-medium text-lol-gold-light p-8 rounded-xl shadow-lg w-full border-2 border-lol-gold-dark">
-      <h2 className="text-2xl font-display font-bold text-lol-blue-accent mb-1">Análisis de IA</h2>
-      <p className="text-lol-gold-light/90 mb-6">Tu Riot ID <strong className="text-lol-blue-accent">{currentUser.riot_id_name}#{currentUser.riot_id_tagline}</strong> está listo. Solo falta un detalle.</p>
-      <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
-        <div>
-          <label htmlFor="zodiacSign" className="block text-sm font-medium text-lol-gold-light mb-2">Signo Zodiacal</label>
-          <select
-            id="zodiacSign"
-            {...register("zodiacSign", { required: "Tu signo zodiacal es necesario para el análisis." })}
-            className="w-full bg-lol-blue-dark border-2 border-lol-gold-dark rounded-lg px-4 py-2"
-          >
-            <option value="">-- Selecciona tu signo --</option>
-            {zodiacSigns.map(sign => <option key={sign} value={sign}>{sign}</option>)}
-          </select>
-          {errors.zodiacSign && <p className="text-red-500 text-xs mt-1">{errors.zodiacSign.message}</p>}
-        </div>
-        <button
-          type="submit"
-          disabled={isSubmitting}
-          className="w-full bg-lol-gold hover:bg-lol-gold-dark text-lol-blue-dark font-display font-bold py-3 px-4 rounded-lg"
-        >
-          {isSubmitting ? 'La IA está trabajando...' : 'Obtener Recomendación'}
-        </button>
-      </form>
-    </div>
-  );
-}
+  \`;
+};
 EOF
+echo "Actualizado: src/lib/ai/prompts.js. ✅"
 
-echo -e "${GREEN}El archivo 'src/components/forms/ProfileForm.jsx' ha sido corregido. ✅${NC}"
 echo -e "\n${YELLOW}----------------------------------------------------------------------"
-echo -e "¡SISTEMA COMPLETADO! ✅"
+echo -e "¡LA PERSONALIDAD DEL COACH HA SIDO ACTUALIZADA! ✅"
 echo -e "----------------------------------------------------------------------${NC}"
 echo -e "\n${CYAN}Pasos Finales:${NC}"
-echo -e "1.  Sube este cambio a tu repositorio. Vercel se redesplegará."
-echo -e "2.  Una vez desplegado, el botón 'Obtener Recomendación' funcionará correctamente."
+echo -e "1.  Sube este cambio a tu repositorio."
+echo -e "2.  Una vez desplegado, solicita una nueva recomendación. Notarás inmediatamente el cambio en el tono y la profundidad del análisis."
