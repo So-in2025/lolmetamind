@@ -7,7 +7,7 @@ import { motion } from 'framer-motion';
 export default function ProfileForm({ currentUser }) {
   const [status, setStatus] = useState('idle');
   const [recommendation, setRecommendation] = useState(null);
-  const { register, handleSubmit, formState: { errors } } = useForm();
+  const { register, handleSubmit, formState: { errors, isSubmitting } } = useForm();
   const zodiacSigns = [
     'Aries', 'Tauro', 'Géminis', 'Cáncer', 'Leo', 'Virgo',
     'Libra', 'Escorpio', 'Sagitario', 'Capricornio', 'Acuario', 'Piscis'
