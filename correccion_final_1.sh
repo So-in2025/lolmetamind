@@ -1,12 +1,13 @@
 #!/bin/bash
 
 # ==============================================================================
-# SCRIPT DE CORRECCIÓN FINAL - MANEJO DE VINCULACIÓN DUPLICADA
+# SCRIPT DE IMPLEMENTACIÓN FINAL - IA CON DATOS REALES DE RIOT
 #
-# Objetivo: 1. Añadir una validación en el backend para prevenir que un Riot ID
-#              sea vinculado a más de una cuenta de LoL MetaMind.
-#           2. Devolver un mensaje de error claro al usuario si el Riot ID
-#              ya está en uso.
+# Objetivo: 1. Conectar el sistema de IA a la API de Riot para obtener datos
+#              reales del jugador (Maestría de Campeones).
+#           2. Modificar el prompt de la IA para que considere estos datos.
+#           3. Hacer que las recomendaciones sean 100% personalizadas y basadas
+#              en estadísticas reales.
 # ==============================================================================
 
 # --- Colores ---
@@ -15,79 +16,252 @@ YELLOW='\033[1;33m'
 CYAN='\033[0;36m'
 NC='\033[0m'
 
-echo -e "${YELLOW}Aplicando la corrección para el manejo de Riot IDs duplicados...${NC}"
+echo -e "${YELLOW}Iniciando la conexión final: IA <=> API de Riot...${NC}"
 
-# --- Actualizar el endpoint del perfil con la nueva lógica de validación ---
-echo -e "\n${GREEN}Paso 1: Actualizando la API en 'src/app/api/user/profile/route.js'...${NC}"
-cat << 'EOF' > src/app/api/user/profile/route.js
+# --- 1. Añadir la función de Maestría de Campeones al servicio de Riot ---
+echo -e "\n${GREEN}Paso 1: Actualizando 'src/services/riotApiService.js' con la API de Maestría...${NC}"
+cat << 'EOF' > src/services/riotApiService.js
+// src/services/riotApiService.js
+import axios from 'axios';
+import { RIOT_API_KEY } from './apiConfig';
+
+const REGIONAL_ROUTES = {
+    americas: ['NA', 'BR', 'LAN', 'LAS'],
+    asia: ['KR', 'JP'],
+    europe: ['EUNE', 'EUW', 'TR', 'RU'],
+};
+const getRegionalRoute = (region) => {
+    for (const route in REGIONAL_ROUTES) {
+        if (REGIONAL_ROUTES[route].includes(region.toUpperCase())) return route;
+    }
+    return 'americas';
+};
+const getPlatformRoute = (region) => {
+    const platformRoutes = { LAN: 'la1', LAS: 'la2', NA: 'na1', EUW: 'euw1', EUNE: 'eun1', KR: 'kr', JP: 'jp1' };
+    return platformRoutes[region.toUpperCase()];
+};
+const createApi = (baseURL) => axios.create({ baseURL, headers: { "X-Riot-Token": RIOT_API_KEY } });
+
+export const getAccountByRiotId = async (gameName, tagLine, region) => {
+    const regionalRoute = getRegionalRoute(region);
+    const api = createApi(`https://${regionalRoute}.api.riotgames.com`);
+    const response = await api.get(`/riot/account/v1/accounts/by-riot-id/${encodeURIComponent(gameName)}/${tagLine}`);
+    return response.data;
+};
+export const getSummonerByPuuid = async (puuid, region) => {
+    const platformRoute = getPlatformRoute(region);
+    const api = createApi(`https://${platformRoute}.api.riotgames.com`);
+    const response = await api.get(`/lol/summoner/v4/summoners/by-puuid/${puuid}`);
+    return response.data;
+};
+export const getLiveGameBySummonerId = async (summonerId, region) => {
+    const platformRoute = getPlatformRoute(region);
+    const api = createApi(`https://${platformRoute}.api.riotgames.com`);
+    try {
+        const response = await api.get(`/lol/spectator/v4/active-games/by-summoner/${summonerId}`);
+        return response.data;
+    } catch (error) {
+        if (error.response?.status === 404) return null;
+        throw error;
+    }
+};
+
+/**
+ * **NUEVA FUNCIÓN**
+ * Obtiene los campeones con mayor maestría para un invocador.
+ * @param {string} puuid - El PUUID del invocador.
+ * @param {string} region - La región del invocador.
+ * @returns {Promise<object[]>} - Una lista de los campeones con más maestría.
+ */
+export const getChampionMastery = async (puuid, region) => {
+    const platformRoute = getPlatformRoute(region);
+    const api = createApi(`https://${platformRoute}.api.riotgames.com`);
+    try {
+        // Obtenemos los 5 campeones con más maestría.
+        const response = await api.get(`/lol/champion-mastery/v4/champion-masteries/by-puuid/${puuid}/top?count=5`);
+        return response.data;
+    } catch (error) {
+        console.error('Error fetching champion mastery:', error.response?.data || error.message);
+        throw error;
+    }
+};
+EOF
+echo "Actualizado: src/services/riotApiService.js. ✅"
+
+
+# --- 2. Modificar el endpoint de recomendación para que use los datos reales ---
+echo -e "\n${GREEN}Paso 2: Reescribiendo 'src/app/api/recommendation/route.js' para usar datos reales...${NC}"
+cat << 'EOF' > src/app/api/recommendation/route.js
 import { NextResponse } from 'next/server';
 import jwt from 'jsonwebtoken';
 import pool from '@/lib/db';
-import { getAccountByRiotId, getSummonerByPuuid } from '@/services/riotApiService';
+import { getChampionMastery } from '@/services/riotApiService';
+import { generateStrategicAnalysis } from '@/lib/ai/strategist';
 
 const JWT_SECRET = process.env.JWT_SECRET;
 
 export async function POST(request) {
   try {
+    // 1. Autenticar al usuario y obtener su ID de nuestra base de datos
     const token = request.headers.get('authorization')?.split(' ')[1];
-    if (!token) return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
-    
+    if (!token) {
+      return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
+    }
     const decoded = jwt.verify(token, JWT_SECRET);
     const userId = decoded.userId;
 
-    const { gameName, tagLine, region } = await request.json();
-    if (!gameName || !tagLine || !region) {
-      return NextResponse.json({ error: 'Nombre de juego, tagline y región son requeridos' }, { status: 400 });
+    // 2. Obtener el signo zodiacal del cuerpo de la solicitud
+    const { zodiacSign } = await request.json();
+    if (!zodiacSign) {
+      return NextResponse.json({ error: 'Signo zodiacal es requerido.' }, { status: 400 });
     }
-
-    // 1. Obtener PUUID desde la API de Cuentas
-    const accountData = await getAccountByRiotId(gameName, tagLine, region);
-    const { puuid } = accountData;
-
-    // 2. Obtener datos del Invocador usando el PUUID
-    const summonerData = await getSummonerByPuuid(puuid, region);
-    const { id: summoner_id } = summonerData;
-
-    // 3. *** NUEVA VALIDACIÓN ***
-    // Verificar si este PUUID ya está vinculado a OTRA cuenta.
-    const existingLink = await pool.query('SELECT id FROM users WHERE puuid = $1 AND id != $2', [puuid, userId]);
-    if (existingLink.rows.length > 0) {
-      return NextResponse.json({ error: 'Este Riot ID ya está vinculado a otra cuenta de LoL MetaMind.' }, { status: 409 }); // 409 Conflict
-    }
-
-    // 4. Actualizar nuestra base de datos
-    const result = await pool.query(
-      `UPDATE users 
-       SET riot_id_name = $1, riot_id_tagline = $2, region = $3, puuid = $4, summoner_id = $5, updated_at = NOW() 
-       WHERE id = $6 
-       RETURNING id, username, email, riot_id_name, riot_id_tagline, region`,
-      [gameName, tagLine, region, puuid, summoner_id, userId]
+    
+    // 3. Obtener los datos de Riot del usuario desde nuestra base de datos
+    const userResult = await pool.query(
+      'SELECT riot_id_name, region, puuid FROM users WHERE id = $1',
+      [userId]
     );
+    if (userResult.rows.length === 0 || !userResult.rows[0].puuid) {
+      return NextResponse.json({ error: 'Perfil de invocador no encontrado o incompleto.' }, { status: 404 });
+    }
+    const userData = userResult.rows[0];
 
-    if (result.rows.length === 0) {
-      return NextResponse.json({ error: 'Usuario no encontrado en nuestra base de datos' }, { status: 404 });
+    // 4. *** LLAMADA A LA API DE RIOT ***
+    // Usar los datos de nuestra DB para pedir los datos de maestría a Riot
+    const championMastery = await getChampionMastery(userData.puuid, userData.region);
+
+    // 5. Preparar todos los datos para la IA
+    const analysisData = {
+      summonerName: userData.riot_id_name,
+      zodiacSign: zodiacSign,
+      championMastery: championMastery // Datos reales de Riot
+    };
+
+    // 6. Llamar a la IA con los datos reales
+    const analysisResult = await generateStrategicAnalysis(analysisData);
+
+    if (analysisResult.error) {
+      return NextResponse.json({ error: analysisResult.message }, { status: 503 });
     }
 
-    return NextResponse.json({ message: 'Perfil actualizado con éxito', user: result.rows[0] });
+    return NextResponse.json(analysisResult);
 
   } catch (error) {
-    console.error('Error al actualizar perfil:', error);
-    if (error.code === '23505') { // Código de error de PostgreSQL para violación de unicidad
-      return NextResponse.json({ error: 'Este Riot ID ya está vinculado a otra cuenta.' }, { status: 409 });
-    }
-    if (error.response?.status === 404) {
-      return NextResponse.json({ error: `Riot ID no encontrado. Verifica el nombre, tagline y región.` }, { status: 404 });
-    }
-    return NextResponse.json({ error: 'Error interno del servidor al procesar la solicitud.' }, { status: 500 });
+    console.error('Error en el endpoint /api/recommendation:', error);
+    return NextResponse.json({ error: 'Error interno al procesar la solicitud de IA' }, { status: 500 });
   }
 }
 EOF
-echo "Actualizado: src/app/api/user/profile/route.js. ✅"
+echo "Actualizado: src/app/api/recommendation/route.js. ✅"
+
+
+# --- 3. Actualizar el prompt de la IA para que entienda los nuevos datos ---
+echo -e "\n${GREEN}Paso 3: Actualizando 'src/lib/ai/prompts.js' para incluir la maestría...${NC}"
+cat << 'EOF' > src/lib/ai/prompts.js
+/**
+ * Genera el prompt para el análisis estratégico inicial.
+ * @param {object} analysisData - Datos del jugador (summonerName, zodiacSign, championMastery).
+ * @returns {string} - El prompt completo para la IA.
+ */
+export const createInitialAnalysisPrompt = (analysisData) => {
+  const { summonerName, zodiacSign, championMastery } = analysisData;
+
+  // Simplificamos el formato de la maestría para que la IA lo entienda mejor.
+  const masterySummary = championMastery.map(champ => `ID: ${champ.championId}, Puntos: ${champ.championPoints}`);
+
+  return \`
+    Eres "MetaMind", un coach experto de League of Legends con un conocimiento único de la "psicología zodiacal" aplicada al juego.
+    Tu tono es analítico, proactivo y ligeramente místico.
+
+    Analiza los siguientes datos para el invocador "${summonerName}" (signo ${zodiacSign}) y proporciona un plan de acción conciso en formato JSON.
+
+    DATOS CLAVE DEL JUGADOR:
+    - Invocador: ${summonerName}
+    - Perfil Zodiacal: ${zodiacSign}
+    - Campeones con más maestría (ID y Puntos): ${JSON.stringify(masterySummary)}
+
+    Basado en los campeones que el jugador domina, su perfil zodiacal y el meta actual, tu tarea es recomendar un campeón y una estrategia.
+    La recomendación debe priorizar los campeones en los que el jugador ya tiene experiencia (su maestría).
+
+    Genera la siguiente estructura JSON:
+
+    {
+      "champion": "Nombre del Campeón Recomendado (elige uno de sus campeones con maestría si es viable en el meta, o uno similar)",
+      "role": "Rol Asignado",
+      "archetype": "Arquetipo de Juego (ej: Mago de Control, Asesino, Tanque de Vanguardia)",
+      "reasoning": "Explica brevemente por qué recomiendas este campeón, conectando su maestría, su signo zodiacal y el meta actual.",
+      "strategicAdvice": [
+        {
+          "type": "Early Game",
+          "content": "Un consejo específico para el juego temprano (minutos 1-15) para ${summonerName} con este campeón."
+        },
+        {
+          "type": "Mid Game",
+          "content": "Un consejo clave para el juego medio (minutos 15-25) enfocado en objetivos."
+        },
+        {
+          "type": "Late Game",
+          "content": "Una condición de victoria para el juego tardío (minutos 25+)."
+        }
+      ]
+    }
+  \`;
+};
+EOF
+echo "Actualizado: src/lib/ai/prompts.js. ✅"
+
+
+# --- 4. Actualizar el estratega para que pase los datos correctamente ---
+echo -e "\n${GREEN}Paso 4: Simplificando 'src/lib/ai/strategist.js'...${NC}"
+cat << 'EOF' > src/lib/ai/strategist.js
+import { GEMINI_API_KEY } from '@/services/apiConfig';
+import { createInitialAnalysisPrompt } from './prompts';
+
+const API_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key=${GEMINI_API_KEY}`;
+
+export const generateStrategicAnalysis = async (analysisData) => {
+  // Ahora el prompt se crea con los datos reales, incluyendo la maestría.
+  const prompt = createInitialAnalysisPrompt(analysisData);
+
+  try {
+    const response = await fetch(API_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        contents: [{ parts: [{ text: prompt }] }],
+      }),
+    });
+
+    if (!response.ok) {
+      const errorBody = await response.text();
+      throw new Error(`Error de la API de Gemini: ${response.status} ${errorBody}`);
+    }
+
+    const data = await response.json();
+    const rawText = data.candidates[0].content.parts[0].text;
+    const jsonText = rawText.replace(/\\\`\`\`json/g, '').replace(/\\\`\`\`/g, '').replace(/```json/g, '').replace(/```/g, '').trim();
+    
+    return JSON.parse(jsonText);
+
+  } catch (error) {
+    console.error('Error al generar análisis estratégico:', error);
+    return {
+      error: true,
+      message: "El coach de IA no está disponible en este momento. Inténtalo de nuevo más tarde."
+    };
+  }
+};
+EOF
+echo "Actualizado: src/lib/ai/strategist.js. ✅"
+
 
 echo -e "\n${YELLOW}----------------------------------------------------------------------"
-echo -e "¡LÓGICA DE VINCULACIÓN REFORZADA! ✅"
+echo -e "¡PROYECTO FINALIZADO! LA IA AHORA ES 100% REAL. ✅"
 echo -e "----------------------------------------------------------------------${NC}"
-echo -e "\n${CYAN}Pasos Finales:${NC}"
-echo -e "1.  Sube este cambio a tu repositorio. Vercel se redesplegará."
-echo -e "2.  **Importante:** Antes de probar, es posible que necesites limpiar los datos de prueba en tu base de datos. Inicia sesión con la cuenta de Google que quieres usar, y si otra cuenta ya tiene tu Riot ID, deberás eliminar la vinculación de esa otra cuenta manualmente desde tu gestor de base de datos (como DBeaver o la consola de Render)."
-echo -e "3.  Una vez limpia la base de datos, intenta vincular tu Riot ID de nuevo. ¡Ahora debería funcionar!"
+echo -e "\n${CYAN}¡Felicitaciones, Ingeniero!${NC}"
+echo -e "El ciclo está completo. La aplicación ahora:"
+echo -e "1.  Autentica a un usuario."
+echo -e "2.  Vincula su cuenta de Riot."
+echo -e "3.  Usa ese vínculo para obtener datos reales de la API de Riot."
+echo -e "4.  Alimenta a la IA con esos datos para generar una estrategia verdaderamente personalizada."
+echo -e "\nSube estos cambios y habrás completado la visión central de LoL MetaMind."

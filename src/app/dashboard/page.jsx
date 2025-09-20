@@ -4,34 +4,19 @@ import SummonerProfileForm from '@/components/forms/SummonerProfileForm';
 import ProfileForm from '@/components/forms/ProfileForm';
 import WeeklyChallenges from '@/components/WeeklyChallenges';
 import Link from 'next/link';
-import { useState, useEffect } from 'react';
 
 export default function DashboardPage() {
-  const auth = useAuth();
-  const [currentUser, setCurrentUser] = useState(auth ? auth.user : null);
-
-  useEffect(() => {
-    if (auth) {
-      setCurrentUser(auth.user);
-    }
-  }, [auth]);
+  const { user, login } = useAuth();
 
   const handleProfileUpdate = (updatedUser) => {
-    if (auth) {
-      const token = localStorage.getItem('authToken');
-      // Actualiza el contexto global y el estado local
-      auth.login(updatedUser, token); 
-      setCurrentUser(updatedUser);
-    }
+    const token = localStorage.getItem('authToken');
+    // Actualiza el contexto global, lo que forzará una re-renderización
+    login(updatedUser, token);
   };
 
-  // Si el contexto aún no carga, no renderizamos nada para evitar el error
-  if (!currentUser) {
-    return null; // O un spinner de carga
-  }
-
-  // CORRECCIÓN: La variable hasSummonerProfile se define correctamente.
-  const hasSummonerProfile = currentUser && currentUser.riot_id_name;
+  // La variable hasSummonerProfile ahora depende directamente del contexto 'user'
+  // y se actualizará cuando el contexto cambie.
+  const hasSummonerProfile = user && user.riot_id_name;
 
   return (
     <div className="w-full max-w-7xl mx-auto flex flex-col lg:flex-row gap-12">
@@ -43,11 +28,12 @@ export default function DashboardPage() {
                 Tu Centro de Mando
               </h2>
               <p className="text-lg text-lol-gold-light/90">
-                Usa el formulario para obtener un análisis instantáneo o revisa tus retos semanales.
+                Selecciona tu signo zodiacal para recibir un análisis instantáneo de la IA.
               </p>
             </div>
             <div className="w-full max-w-lg">
-              <ProfileForm />
+              {/* Le pasamos el usuario actual al formulario de perfil */}
+              <ProfileForm currentUser={user} />
             </div>
           </>
         ) : (
