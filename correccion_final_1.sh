@@ -1,10 +1,11 @@
 #!/bin/bash
 
 # ==============================================================================
-# SCRIPT DE HOTFIX - ReferenceError: isSubmitting is not defined
+# SCRIPT DE HOTFIX FINAL - AUTORIZACIÓN DE API PARA IA
 #
-# Objetivo: Corregir el componente ProfileForm para que defina correctamente
-#           la variable 'isSubmitting' que obtiene de react-hook-form.
+# Objetivo: 1. Solucionar el error 401 No Autorizado en la ruta /api/recommendation.
+#           2. Añadir la cabecera de autorización (Bearer Token) a la llamada
+#              fetch en el componente ProfileForm.
 # ==============================================================================
 
 # --- Colores ---
@@ -13,16 +14,137 @@ YELLOW='\033[1;33m'
 CYAN='\033[0;36m'
 NC='\033[0m'
 
-echo -e "${YELLOW}Corrigiendo el 'ReferenceError' en ProfileForm.jsx...${NC}"
+echo -e "${YELLOW}Corrigiendo el error de autorización 401 en ProfileForm.jsx...${NC}"
 
-# --- Usamos 'sed' para reemplazar la línea incorrecta por la correcta ---
-sed -i.bak "s/formState: { errors } } = useForm()/formState: { errors, isSubmitting } } = useForm()/g" src/components/forms/ProfileForm.jsx
-rm src/components/forms/ProfileForm.jsx.bak
+# --- Reescribir el ProfileForm para que envíe el token de autenticación ---
+cat << 'EOF' > src/components/forms/ProfileForm.jsx
+'use client';
+import React, { useState } from 'react';
+import { useForm } from 'react-hook-form';
+import { motion } from 'framer-motion';
+import { useAuth } from '@/context/AuthContext'; // Importamos useAuth
+
+export default function ProfileForm({ currentUser }) {
+  const [status, setStatus] = useState('idle');
+  const [recommendation, setRecommendation] = useState(null);
+  const { register, handleSubmit, formState: { errors, isSubmitting } } = useForm();
+  const { token } = useAuth(); // Obtenemos el token del contexto de autenticación
+
+  const zodiacSigns = [
+    'Aries', 'Tauro', 'Géminis', 'Cáncer', 'Leo', 'Virgo',
+    'Libra', 'Escorpio', 'Sagitario', 'Capricornio', 'Acuario', 'Piscis'
+  ];
+
+  const onSubmit = async (data) => {
+    setStatus('loading');
+    setRecommendation(null);
+    
+    try {
+      const response = await fetch('/api/recommendation', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          // *** LA LÍNEA MÁGICA QUE FALTABA ***
+          'Authorization': `Bearer ${token}` 
+        },
+        // El backend ya sabe quién eres por el token, solo necesita el signo.
+        body: JSON.stringify({ zodiacSign: data.zodiacSign }),
+      });
+
+      if (!response.ok) {
+        const err = await response.json();
+        throw new Error(err.error || 'La respuesta de la IA no fue exitosa');
+      }
+
+      const result = await response.json();
+      setRecommendation(result);
+      setStatus('success');
+    } catch (error) {
+      console.error('Error al enviar el formulario:', error);
+      setStatus('error'); // Manejo de errores para mostrar al usuario (opcional)
+    }
+  };
+
+  if (status === 'loading') {
+    return (
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="bg-lol-blue-medium text-lol-gold-light p-8 rounded-xl shadow-lg w-full text-center animate-pulse border-2 border-lol-gold-dark"
+      >
+        <h2 className="text-2xl font-display font-bold text-lol-blue-accent mb-4">Analizando tu Perfil Cósmico...</h2>
+        <p className="text-lol-gold-light/90">La IA está consultando los astros y tu perfil de Riot para encontrar tu campeón ideal.</p>
+      </motion.div>
+    );
+  }
+
+  if (status === 'success' && recommendation) {
+    return (
+      <motion.div
+        initial={{ opacity: 0, scale: 0.9 }}
+        animate={{ opacity: 1, scale: 1 }}
+        className="bg-lol-blue-medium text-lol-gold-light p-8 rounded-xl shadow-lg w-full border-2 border-lol-gold-dark"
+      >
+        <h2 className="text-2xl font-display font-bold text-lol-blue-accent mb-4 text-center">¡Análisis de IA Completo!</h2>
+        <div className="space-y-4 mt-6">
+          <div className="bg-lol-blue-dark p-4 rounded-lg border border-lol-gold-dark">
+            <h3 className="text-xl font-display font-bold text-lol-gold mb-2">Recomendación para {currentUser.riot_id_name}</h3>
+            <p><strong className="font-semibold text-lol-gold-light">Campeón Sugerido:</strong> <span className="text-lol-blue-accent font-bold">{recommendation.champion}</span></p>
+            <p><strong className="font-semibold text-lol-gold-light">Rol:</strong> <span className="text-green-400">{recommendation.role}</span></p>
+            <p><strong className="font-semibold text-lol-gold-light">Arquetipo:</strong> <span className="text-purple-400">{recommendation.archetype}</span></p>
+            <p className="mt-2"><strong className="font-semibold text-lol-gold-light">Razonamiento de la IA:</strong> {recommendation.reasoning}</p>
+          </div>
+          <div className="bg-lol-blue-dark p-4 rounded-lg border border-lol-gold-dark">
+            <strong className="text-xl font-display font-bold text-lol-gold block mb-2">Consejos Estratégicos:</strong>
+            <ul className="list-disc list-inside space-y-2 text-lol-gold-light/80">
+              {recommendation.strategicAdvice.map((advice, index) => <li key={index}><strong>{advice.type}:</strong> {advice.content}</li>)}
+            </ul>
+          </div>
+        </div>
+        <button
+          onClick={() => setStatus('idle')}
+          className="w-full mt-8 bg-lol-gold hover:bg-lol-gold-dark text-lol-blue-dark font-display font-bold py-3 px-4 rounded-lg"
+        >
+          Realizar otro Análisis
+        </button>
+      </motion.div>
+    );
+  }
+
+  return (
+    <div className="bg-lol-blue-medium text-lol-gold-light p-8 rounded-xl shadow-lg w-full border-2 border-lol-gold-dark">
+      <h2 className="text-2xl font-display font-bold text-lol-blue-accent mb-1">Análisis de IA</h2>
+      <p className="text-lol-gold-light/90 mb-6">Tu Riot ID <strong className="text-lol-blue-accent">{currentUser.riot_id_name}#{currentUser.riot_id_tagline}</strong> está listo. Solo falta un detalle.</p>
+      <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+        <div>
+          <label htmlFor="zodiacSign" className="block text-sm font-medium text-lol-gold-light mb-2">Signo Zodiacal</label>
+          <select
+            id="zodiacSign"
+            {...register("zodiacSign", { required: "Tu signo zodiacal es necesario para el análisis." })}
+            className="w-full bg-lol-blue-dark border-2 border-lol-gold-dark rounded-lg px-4 py-2"
+          >
+            <option value="">-- Selecciona tu signo --</option>
+            {zodiacSigns.map(sign => <option key={sign} value={sign}>{sign}</option>)}
+          </select>
+          {errors.zodiacSign && <p className="text-red-500 text-xs mt-1">{errors.zodiacSign.message}</p>}
+        </div>
+        <button
+          type="submit"
+          disabled={isSubmitting}
+          className="w-full bg-lol-gold hover:bg-lol-gold-dark text-lol-blue-dark font-display font-bold py-3 px-4 rounded-lg"
+        >
+          {isSubmitting ? 'La IA está trabajando...' : 'Obtener Recomendación'}
+        </button>
+      </form>
+    </div>
+  );
+}
+EOF
 
 echo -e "${GREEN}El archivo 'src/components/forms/ProfileForm.jsx' ha sido corregido. ✅${NC}"
 echo -e "\n${YELLOW}----------------------------------------------------------------------"
-echo -e "¡HOTFIX APLICADO! ✅"
+echo -e "¡SISTEMA COMPLETADO! ✅"
 echo -e "----------------------------------------------------------------------${NC}"
 echo -e "\n${CYAN}Pasos Finales:${NC}"
-echo -e "1.  Sube este cambio a tu repositorio: ${GREEN}git add . && git commit -m \"hotfix: Definir isSubmitting en ProfileForm\" && git push${NC}"
-echo -e "2.  Una vez Vercel termine de desplegar, el error desaparecerá."
+echo -e "1.  Sube este cambio a tu repositorio. Vercel se redesplegará."
+echo -e "2.  Una vez desplegado, el botón 'Obtener Recomendación' funcionará correctamente."

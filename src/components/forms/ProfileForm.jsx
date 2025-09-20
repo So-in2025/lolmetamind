@@ -2,12 +2,14 @@
 import React, { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { motion } from 'framer-motion';
+import { useAuth } from '@/context/AuthContext'; // Importamos useAuth
 
-// El formulario ahora recibe al usuario actual como prop
 export default function ProfileForm({ currentUser }) {
   const [status, setStatus] = useState('idle');
   const [recommendation, setRecommendation] = useState(null);
   const { register, handleSubmit, formState: { errors, isSubmitting } } = useForm();
+  const { token } = useAuth(); // Obtenemos el token del contexto de autenticación
+
   const zodiacSigns = [
     'Aries', 'Tauro', 'Géminis', 'Cáncer', 'Leo', 'Virgo',
     'Libra', 'Escorpio', 'Sagitario', 'Capricornio', 'Acuario', 'Piscis'
@@ -17,19 +19,16 @@ export default function ProfileForm({ currentUser }) {
     setStatus('loading');
     setRecommendation(null);
     
-    // Combinamos los datos del usuario vinculado con el signo zodiacal del formulario
-    const playerData = {
-      summonerName: currentUser.riot_id_name,
-      tagLine: currentUser.riot_id_tagline,
-      region: currentUser.region,
-      zodiacSign: data.zodiacSign
-    };
-
     try {
       const response = await fetch('/api/recommendation', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(playerData),
+        headers: {
+          'Content-Type': 'application/json',
+          // *** LA LÍNEA MÁGICA QUE FALTABA ***
+          'Authorization': `Bearer ${token}` 
+        },
+        // El backend ya sabe quién eres por el token, solo necesita el signo.
+        body: JSON.stringify({ zodiacSign: data.zodiacSign }),
       });
 
       if (!response.ok) {
@@ -42,7 +41,7 @@ export default function ProfileForm({ currentUser }) {
       setStatus('success');
     } catch (error) {
       console.error('Error al enviar el formulario:', error);
-      setStatus('error');
+      setStatus('error'); // Manejo de errores para mostrar al usuario (opcional)
     }
   };
 
@@ -73,6 +72,7 @@ export default function ProfileForm({ currentUser }) {
             <p><strong className="font-semibold text-lol-gold-light">Campeón Sugerido:</strong> <span className="text-lol-blue-accent font-bold">{recommendation.champion}</span></p>
             <p><strong className="font-semibold text-lol-gold-light">Rol:</strong> <span className="text-green-400">{recommendation.role}</span></p>
             <p><strong className="font-semibold text-lol-gold-light">Arquetipo:</strong> <span className="text-purple-400">{recommendation.archetype}</span></p>
+            <p className="mt-2"><strong className="font-semibold text-lol-gold-light">Razonamiento de la IA:</strong> {recommendation.reasoning}</p>
           </div>
           <div className="bg-lol-blue-dark p-4 rounded-lg border border-lol-gold-dark">
             <strong className="text-xl font-display font-bold text-lol-gold block mb-2">Consejos Estratégicos:</strong>
