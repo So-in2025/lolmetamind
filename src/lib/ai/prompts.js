@@ -11,8 +11,7 @@ export const createInitialAnalysisPrompt = (analysisData) => {
     championPoints: champ.championPoints
   }));
 
-  // CORRECCIÓN DE TONO: El prompt ahora se dirige directamente al usuario (TÚ/TU)
-  // y exige un nivel de análisis de experto.
+  // CORRECCIÓN: Se eliminó la barra invertida (\) que causaba el error de sintaxis.
   return \`
     Eres "MetaMind", un Astro-Táctico y coach de élite de League of Legends. Te diriges directamente a tu cliente, ${summonerName}, en segunda persona (tú, tu, tus). Tu tono es sabio, autoritario y revelador. Fusionas el análisis profundo de datos de Riot con la psicología zodiacal para crear estrategias hiper-personalizadas.
 
