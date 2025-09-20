@@ -1,119 +1,106 @@
 'use client';
 import React, { useState, useEffect, useRef } from 'react';
 
-const OBSOverlay = () => {
-  const [data, setData] = useState(null);
-  const [builds, setBuilds] = useState(null);
-  const [recommendation, setRecommendation] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
-  const [wsMessage, setWsMessage] = useState(null);
+// Estilos en línea para el componente, más fáciles de manejar con Tailwind
+const styles = {
+  container: "bg-lol-blue-dark/80 text-lol-gold-light p-4 rounded-lg shadow-lg w-full max-w-md mx-auto border-2 border-lol-gold-dark backdrop-blur-sm",
+  title: "text-lg font-display font-bold text-lol-blue-accent mb-3 text-center",
+  infoGrid: "grid grid-cols-2 gap-x-4 gap-y-2 text-sm mb-4",
+  infoItem: "bg-lol-blue-medium/50 p-2 rounded-md",
+  infoLabel: "font-semibold text-lol-gold",
+  tipContainer: "bg-purple-900/60 p-3 rounded-lg border border-purple-500 min-h-[80px] flex items-center justify-center text-center transition-all duration-300",
+  tipText: "text-base font-bold text-yellow-300 transition-opacity duration-500",
+};
 
+export default function OBSOverlay() {
+  const [error, setError] = useState(null);
+  const [wsMessage, setWsMessage] = useState("Esperando consejos del coach...");
+  const [isVisible, setIsVisible] = useState(true);
   const ws = useRef(null);
-  const token = typeof window !== 'undefined' ? localStorage.getItem('authToken') : null;
+  const messageTimeout = useRef(null);
 
   useEffect(() => {
-    // Conexión con el servidor WebSocket
-    if (!ws.current) {
-      if (!token) {       setError('No estás autenticado. Por favor, inicia sesión para usar el overlay.');       setLoading(false);       return;     }     // Adjuntamos el token como un parámetro en la URL de conexión     const wsUrl = `${process.env.NEXT_PUBLIC_WEBSOCKET_URL}?token=${token}`;     ws.current = new WebSocket(wsUrl);
-      console.log('Intento de conexión WebSocket...');
+    const token = localStorage.getItem('authToken');
+    const wsUrl = process.env.NEXT_PUBLIC_WEBSOCKET_URL;
 
-      ws.current.onopen = () => {
-        console.log('🔗 Conectado al servidor WebSocket para el coach.');
-      };
-
-      ws.current.onmessage = (event) => {
-        console.log('✉️ Mensaje del servidor:', event.data);
-        setWsMessage(event.data);
-        // **FUNCIONALIDAD: NARRACIÓN EN TIEMPO REAL**
-        if ('speechSynthesis' in window) {
-          const utterance = new SpeechSynthesisUtterance(event.data);
-          window.speechSynthesis.speak(utterance);
-        }
-      };
-
-      ws.current.onclose = () => {
-        console.log('💔 Desconectado del servidor WebSocket.');
-      };
-
-      ws.current.onerror = (err) => {
-        console.error('❌ Error en WebSocket:', err);
-      };
+    // *** CORRECCIÓN DEL BUG ***
+    // Verificamos que las variables necesarias existan antes de continuar.
+    if (!token) {
+      setError('No estás autenticado. Por favor, inicia sesión en la app principal primero.');
+      return;
+    }
+    if (!wsUrl) {
+      setError('La URL del servidor de WebSocket no está configurada. El administrador debe revisar las variables de entorno.');
+      return;
     }
 
-    // Lógica para obtener TODOS los datos iniciales de las APIs simuladas
-    const fetchAllData = async () => {
-      try {
-        const [overlayRes, buildsRes, recRes] = await Promise.all([
-          fetch('/api/overlay'),
-          fetch('/api/builds', { method: 'POST', body: JSON.stringify({ matchData: {} }), headers: { 'Content-Type': 'application/json' } }),
-          fetch('/api/recommendation', { method: 'POST', body: JSON.stringify({ playerData: {} }), headers: { 'Content-Type': 'application/json' } })
-        ]);
+    function connect() {
+      // Evita múltiples conexiones
+      if (ws.current && ws.current.readyState === WebSocket.OPEN) return;
 
-        if (!overlayRes.ok || !buildsRes.ok || !recRes.ok) {
-          throw new Error('No se pudo cargar la data del overlay o las recomendaciones.');
-        }
+      console.log('Intento de conexión WebSocket a:', wsUrl);
+      const socket = new WebSocket(`${wsUrl}?token=${token}`);
 
-        const overlayResult = await overlayRes.json();
-        const buildsResult = await buildsRes.json();
-        const recResult = await recRes.json();
+      socket.onopen = () => {
+        console.log('🔗 Conectado al servidor WebSocket para el coach.');
+        setError(null);
+      };
 
-        setData(overlayResult);
-        setBuilds(buildsResult);
-        setRecommendation(recResult);
+      socket.onmessage = (event) => {
+        console.log('✉️ Mensaje del servidor:', event.data);
+        
+        // *** LÓGICA DE TEXTO FLOTANTE ***
+        setIsVisible(false); // Oculta el texto anterior
 
-      } catch (err) {
-        setError(err.message);
-      } finally {
-        setLoading(false);
-      }
-    };
+        setTimeout(() => {
+          setWsMessage(event.data);
+          setIsVisible(true); // Muestra el nuevo texto con una transición
+        }, 500); // Pequeño delay para la animación de salida
 
-    fetchAllData();
-    const interval = setInterval(fetchAllData, 30000);
-    
+        // Oculta el mensaje después de un tiempo para que no sature la pantalla
+        if (messageTimeout.current) clearTimeout(messageTimeout.current);
+        messageTimeout.current = setTimeout(() => {
+          setIsVisible(false);
+        }, 15000); // El consejo permanece visible por 15 segundos
+      };
+
+      socket.onclose = () => {
+        console.log('💔 Desconectado. Reintentando en 5 segundos...');
+        setTimeout(connect, 5000); // Intenta reconectar si se pierde la conexión
+      };
+
+      socket.onerror = (err) => {
+        console.error('❌ Error en WebSocket:', err);
+        setError("No se pudo conectar al servidor de coaching. Reintentando...");
+        socket.close(); // Cierra la conexión fallida para forzar la reconexión
+      };
+      
+      ws.current = socket;
+    }
+
+    connect();
+
+    // Limpieza al desmontar el componente
     return () => {
-      clearInterval(interval);
-      if (ws.current && ws.current.readyState === WebSocket.OPEN) {
+      if (messageTimeout.current) clearTimeout(messageTimeout.current);
+      if (ws.current) {
         ws.current.close();
       }
     };
   }, []);
 
-  if (loading) {
-    return <div className="bg-lol-blue-dark bg-opacity-90 text-lol-gold-light p-6 rounded-xl shadow-lg w-full text-center animate-pulse max-w-sm mx-auto border-2 border-lol-gold-dark">Cargando datos...</div>;
-  }
   if (error) {
-    return <div className="bg-lol-blue-dark bg-opacity-90 text-red-500 p-6 rounded-xl shadow-lg w-full text-center max-w-sm mx-auto border-2 border-lol-gold-dark">Error: {error}</div>;
+    return <div className={styles.container}><p className="text-red-500 text-center">{error}</p></div>;
   }
+
   return (
-    <div className="bg-lol-blue-dark bg-opacity-90 text-lol-gold-light p-6 rounded-xl shadow-lg w-full border-2 border-lol-gold-dark max-w-lg mx-auto">
-      <h3 className="text-xl font-display font-bold text-lol-blue-accent mb-4 text-center">Panel del Coach</h3>
-
-      <div className="bg-lol-blue-medium p-4 rounded-lg mb-4">
-        <p className="text-sm mb-2"><strong className="font-semibold text-lol-gold">Jugador:</strong> {data.summonerName}</p>
-        <p className="text-sm mb-2"><strong className="font-semibold text-lol-gold">Campeón:</strong> {data.champion} ({data.role})</p>
-        <p className="text-sm"><strong className="font-semibold text-lol-gold">Arquetipo:</strong> <span className="text-purple-400">{recommendation.archetype}</span></p>
+    <div className={styles.container}>
+      <h3 className={styles.title}>MetaMind Coach</h3>
+      <div className={styles.tipContainer}>
+        <p className={`${styles.tipText} ${isVisible ? 'opacity-100' : 'opacity-0'}`}>
+          {wsMessage}
+        </p>
       </div>
-
-      <div className="bg-purple-800 p-3 rounded-lg animate-pulse mb-4">
-        <p className="text-lg font-bold text-yellow-300">¡Alerta Estratégica!</p>
-        <p className="text-sm mt-1">{wsMessage || "Esperando consejos del coach..."}</p>
-      </div>
-      
-      {builds && (
-        <div className="bg-lol-blue-medium p-4 rounded-lg">
-          <h4 className="text-md font-display font-bold text-lol-gold mb-2">Build Recomendada</h4>
-          <ul className="list-disc list-inside space-y-1 text-sm text-lol-gold-light/80">
-            {builds.items.map((item, index) => <li key={index}>{item.name} - {item.reason}</li>)}
-          </ul>
-          <h4 className="text-md font-display font-bold text-lol-gold mt-4 mb-2">Runas</h4>
-          <ul className="list-disc list-inside space-y-1 text-sm text-lol-gold-light/80">
-            {builds.runes.map((rune, index) => <li key={index}>{rune.name} - {rune.reason}</li>)}
-          </ul>
-        </div>
-      )}
     </div>
   );
 };
-export default OBSOverlay;
