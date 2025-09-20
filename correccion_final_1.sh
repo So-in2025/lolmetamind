@@ -1,11 +1,12 @@
 #!/bin/bash
 
 # ==============================================================================
-# SCRIPT DE SOLUCIÓN DEFINITIVA - BLINDAJE DE LA API DE RIOT
+# SCRIPT DE CORRECCIÓN DEFINITIVA Y SINCRONIZADA - ROBUSTEZ TOTAL DE LA API
 #
-# Objetivo: Erradicar de raíz el error 'TypeError: Cannot read properties of 
-#           undefined (reading 'map')' haciendo que el servicio que contacta
-#           a Riot sea 100% a prueba de fallos.
+# Objetivo: 1. Erradicar de raíz el error 'TypeError' aplicando la corrección
+#              al código actual del proyecto.
+#           2. Hacer que el servicio que contacta a Riot sea 100% a prueba de
+#              fallos, devolviendo siempre un array vacío en caso de error.
 # ==============================================================================
 
 # --- Colores ---
@@ -14,7 +15,7 @@ YELLOW='\033[1;33m'
 CYAN='\033[0;36m'
 NC='\033[0m'
 
-echo -e "${YELLOW}Aplicando la solución definitiva. Blindando 'src/services/riotApiService.js'...${NC}"
+echo -e "${YELLOW}Aplicando la solución definitiva y sincronizada. Blindando 'src/services/riotApiService.js'...${NC}"
 
 # --- Reescribir el servicio de Riot API para que sea indestructible ---
 cat << 'EOF' > src/services/riotApiService.js
@@ -62,7 +63,7 @@ export const getChampionMastery = async (puuid, region) => {
     const api = createApi(`https://${platformRoute}.api.riotgames.com`);
     try {
         const response = await api.get(`/lol/champion-mastery/v4/champion-masteries/by-puuid/${puuid}/top?count=5`);
-        // Si la respuesta es exitosa pero no es un array (ej. nulo o vacío), devuelve [].
+        // Asegura que si la respuesta es exitosa pero no es un array (ej. nulo o vacío), devuelve [].
         return Array.isArray(response.data) ? response.data : [];
     } catch (error) {
         console.error('Error al obtener maestría de campeones (se devolverá un array vacío para proteger el sistema):', error.response?.data || error.message);

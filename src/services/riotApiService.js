@@ -42,7 +42,7 @@ export const getChampionMastery = async (puuid, region) => {
     const api = createApi(`https://${platformRoute}.api.riotgames.com`);
     try {
         const response = await api.get(`/lol/champion-mastery/v4/champion-masteries/by-puuid/${puuid}/top?count=5`);
-        // Si la respuesta es exitosa pero no es un array (ej. nulo o vacío), devuelve [].
+        // Asegura que si la respuesta es exitosa pero no es un array (ej. nulo o vacío), devuelve [].
         return Array.isArray(response.data) ? response.data : [];
     } catch (error) {
         console.error('Error al obtener maestría de campeones (se devolverá un array vacío para proteger el sistema):', error.response?.data || error.message);
