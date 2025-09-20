@@ -2,11 +2,12 @@ import { NextResponse } from 'next/server';
 import jwt from 'jsonwebtoken';
 import pool from '@/lib/db';
 import { getChampionMastery } from '@/services/riotApiService';
+import { getChampionNameById } from '@/services/dataDragonService'; // Importamos el nuevo servicio
 import { generateStrategicAnalysis } from '@/lib/ai/strategist';
+import { createInitialAnalysisPrompt } from '@/lib/ai/prompts';
 
 const JWT_SECRET = process.env.JWT_SECRET;
 
-// Lista de posibles pronósticos astrológicos para dar variedad diaria
 const dailyForecasts = [
   "Hoy, Marte favorece la agresión calculada y las iniciaciones audaces.",
   "La influencia de la Luna pide un enfoque en el control de la visión y la protección del equipo.",
@@ -37,21 +38,29 @@ export async function POST(request) {
     }
     const userData = userResult.rows[0];
 
-    const championMastery = await getChampionMastery(userData.puuid, userData.region);
+    const championMasteryData = await getChampionMastery(userData.puuid, userData.region);
 
-    // *** LÓGICA DE ATRACCIÓN DIARIA ***
-    // Selecciona un pronóstico basado en el día del año para que cambie diariamente.
+    // *** LA TRADUCCIÓN MÁGICA ***
+    // Convertimos los IDs de maestría en nombres antes de enviarlos a la IA.
+    const championMasteryWithNames = await Promise.all(
+      championMasteryData.map(async (mastery) => ({
+        name: await getChampionNameById(mastery.championId),
+        points: mastery.championPoints,
+      }))
+    );
+
     const dayOfYear = Math.floor((new Date() - new Date(new Date().getFullYear(), 0, 0)) / 1000 / 60 / 60 / 24);
     const dailyAstrologicalForecast = dailyForecasts[dayOfYear % dailyForecasts.length];
 
     const analysisData = {
       summonerName: userData.riot_id_name,
       zodiacSign: zodiacSign,
-      championMastery: championMastery,
-      dailyAstrologicalForecast: dailyAstrologicalForecast // Añadimos el nuevo dato
+      championMastery: championMasteryWithNames, // Enviamos la lista con nombres
+      dailyAstrologicalForecast: dailyAstrologicalForecast
     };
 
-    const analysisResult = await generateStrategicAnalysis(analysisData);
+    const prompt = createInitialAnalysisPrompt(analysisData);
+    const analysisResult = await generateStrategicAnalysis({ customPrompt: prompt });
 
     if (analysisResult.error) {
       return NextResponse.json({ error: analysisResult.message }, { status: 503 });
@@ -60,7 +69,7 @@ export async function POST(request) {
     return NextResponse.json(analysisResult);
 
   } catch (error) {
-    console.error('Error en el endpoint /api/recommendation:', error);
-    return NextResponse.json({ error: 'Error interno al procesar la solicitud de IA' }, { status: 500 });
+    console.error("Error en el endpoint /api/recommendation:", error);
+    return NextResponse.json({ error: 'Error interno del servidor al gestionar la recomendación.' }, { status: 500 });
   }
 }

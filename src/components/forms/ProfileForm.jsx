@@ -52,7 +52,7 @@ export default function ProfileForm({ currentUser }) {
     );
   }
 
-  // *** NUEVA SECCIÓN DE RESULTADOS MEJORADA ***
+  // --- UI de Resultados Actualizada ---
   if (status === 'success' && recommendation) {
     return (
       <motion.div
@@ -61,9 +61,7 @@ export default function ProfileForm({ currentUser }) {
         className="bg-lol-blue-medium text-lol-gold-light p-8 rounded-xl shadow-lg w-full border-2 border-lol-gold-dark"
       >
         <h2 className="text-3xl font-display font-bold text-lol-blue-accent mb-6 text-center">Plan de Acción para {currentUser.riot_id_name}</h2>
-        
         <div className="space-y-6">
-          {/* Módulo de Análisis de Estilo de Juego */}
           {recommendation.playstyleAnalysis && (
             <div className="bg-lol-blue-dark p-4 rounded-lg border border-lol-gold-dark">
               <h3 className="text-xl font-display font-bold text-lol-gold mb-2">{recommendation.playstyleAnalysis.title}</h3>
@@ -71,28 +69,22 @@ export default function ProfileForm({ currentUser }) {
               <p className="text-sm text-lol-gold-light/80 mt-1">{recommendation.playstyleAnalysis.description}</p>
             </div>
           )}
-
-          {/* Módulo de Sinergia Astro-Táctica */}
           {recommendation.astroTacticSynergy && (
             <div className="bg-lol-blue-dark p-4 rounded-lg border border-lol-gold-dark">
               <h3 className="text-xl font-display font-bold text-lol-gold mb-2">{recommendation.astroTacticSynergy.title}</h3>
               <p className="text-sm text-lol-gold-light/80">{recommendation.astroTacticSynergy.description}</p>
             </div>
           )}
-
-          {/* Módulo de Coaching de Maestría */}
           {recommendation.masteryCoaching && Array.isArray(recommendation.masteryCoaching.tips) && (
             <div className="bg-lol-blue-dark p-4 rounded-lg border border-lol-gold-dark">
               <h3 className="text-xl font-display font-bold text-lol-gold mb-2">{recommendation.masteryCoaching.title}</h3>
               <ul className="list-disc list-inside space-y-2 text-lol-gold-light/80 text-sm">
                 {recommendation.masteryCoaching.tips.map((tip, index) => (
-                  <li key={index}><strong>Campeón ID {tip.championId}:</strong> {tip.advice}</li>
+                  <li key={index}><strong>{tip.championName}:</strong> {tip.advice}</li>
                 ))}
               </ul>
             </div>
           )}
-
-          {/* Módulo de Nuevas Recomendaciones */}
           {recommendation.newChampionRecommendations && (
             <div className="bg-lol-blue-dark p-4 rounded-lg border border-lol-gold-dark">
               <h3 className="text-xl font-display font-bold text-lol-gold mb-3">{recommendation.newChampionRecommendations.title}</h3>
@@ -109,7 +101,6 @@ export default function ProfileForm({ currentUser }) {
             </div>
           )}
         </div>
-
         <button
           onClick={() => setStatus('idle')}
           className="w-full mt-8 bg-lol-gold hover:bg-lol-gold-dark text-lol-blue-dark font-display font-bold py-3 px-4 rounded-lg"
@@ -120,6 +111,7 @@ export default function ProfileForm({ currentUser }) {
     );
   }
 
+  // --- Formulario (sin cambios) ---
   return (
     <div className="bg-lol-blue-medium text-lol-gold-light p-8 rounded-xl shadow-lg w-full border-2 border-lol-gold-dark">
       <h2 className="text-2xl font-display font-bold text-lol-blue-accent mb-1">Análisis de IA</h2>
