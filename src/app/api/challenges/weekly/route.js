@@ -7,6 +7,9 @@ import { createChallengeGenerationPrompt } from '@/lib/ai/prompts';
 
 const JWT_SECRET = process.env.JWT_SECRET;
 
+// SOLUCIÓN: Forzar el renderizado dinámico para esta ruta
+export const dynamic = 'force-dynamic';
+
 async function generateAndStoreChallenges(userId, userData) {
     const matchIds = await getMatchHistoryIds(userData.puuid, userData.region);
     
@@ -15,7 +18,6 @@ async function generateAndStoreChallenges(userId, userData) {
     }
 
     let recentMatchesPerformance = [];
-    // Usamos un bucle seguro en lugar de map para mayor control
     for (const matchId of matchIds) {
         const matchDetails = await getMatchDetails(matchId, userData.region);
         const participant = matchDetails.info.participants.find(p => p.puuid === userData.puuid);
@@ -36,7 +38,7 @@ async function generateAndStoreChallenges(userId, userData) {
 
     if (!Array.isArray(challengesFromAI)) {
         console.error("La IA no devolvió un array de desafíos. Se recibió:", challengesFromAI);
-        return []; // Seguridad
+        return [];
     }
 
     const client = await pool.connect();

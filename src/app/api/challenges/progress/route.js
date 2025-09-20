@@ -5,6 +5,9 @@ import { getMatchHistoryIds, getMatchDetails } from '@/services/riotApiService';
 
 const JWT_SECRET = process.env.JWT_SECRET;
 
+// SOLUCIÓN: Forzar el renderizado dinámico para esta ruta
+export const dynamic = 'force-dynamic';
+
 export async function POST(request) {
     try {
         const token = request.headers.get('authorization')?.split(' ')[1];
@@ -19,7 +22,6 @@ export async function POST(request) {
         }
         const { puuid, region } = userResult.rows[0];
 
-        // Obtener la última partida del usuario
         const matchIds = await getMatchHistoryIds(puuid, region);
         if (matchIds.length === 0) {
             return NextResponse.json({ message: "No se encontraron partidas recientes." });
@@ -32,7 +34,6 @@ export async function POST(request) {
             return NextResponse.json({ error: "No se encontraron datos del jugador en la última partida." }, { status: 404 });
         }
 
-        // Obtener desafíos activos del usuario
         const { rows: activeChallenges } = await pool.query(
             "SELECT * FROM user_challenges WHERE user_id = $1 AND expires_at > NOW() AND is_completed = FALSE",
             [userId]
@@ -49,7 +50,6 @@ export async function POST(request) {
                 progressMade = participant[metric];
             }
 
-            // Actualizar el progreso (este es un ejemplo simple, se puede hacer más complejo)
             const newProgress = Math.min(challenge.goal, challenge.progress + progressMade);
             const isCompleted = newProgress >= challenge.goal;
 

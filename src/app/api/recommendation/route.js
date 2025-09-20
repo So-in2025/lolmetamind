@@ -8,6 +8,9 @@ import { createInitialAnalysisPrompt } from '@/lib/ai/prompts';
 
 const JWT_SECRET = process.env.JWT_SECRET;
 
+// SOLUCIÓN: Forzar el renderizado dinámico para esta ruta
+export const dynamic = 'force-dynamic';
+
 const dailyForecasts = [
   "Hoy, Marte favorece la agresión calculada.",
   "La influencia de la Luna pide un enfoque en el control de la visión.",
