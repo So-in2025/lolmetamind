@@ -18,12 +18,9 @@ const WeeklyChallenges = () => {
         if (Array.isArray(result)) {
           setChallenges(result);
         } else {
-          // Si la API no devuelve un array, lo dejamos como un array vacío para no romper el .map()
           setChallenges([]);
-          console.warn("La API de retos no devolvió un array:", result);
         }
       } catch (err) {
-        console.error('Error al obtener retos:', err);
         setError(err.message);
       } finally {
         setLoading(false);
@@ -41,14 +38,13 @@ const WeeklyChallenges = () => {
   }
 
   return (
-    <div className="bg-lol-blue-medium p-8 rounded-xl shadow-lg w-full border-2 border-lol-gold-dark mt-12">
+    <div className="bg-lol-blue-medium p-8 rounded-xl shadow-lg w-full border-2 border-lol-gold-dark mt-12 lg:mt-0">
       <h3 className="text-2xl font-display font-bold text-lol-gold mb-4 text-center">Retos Semanales</h3>
-      {/* *** LA CORRECCIÓN CLAVE ***
-          Verificamos explícitamente que 'challenges' sea un array antes de hacer el .map() */}
+      {/* Verificación explícita para asegurar que 'challenges' es un array antes de mapear */}
       {Array.isArray(challenges) && challenges.length > 0 ? (
         <ul className="space-y-4">
           {challenges.map(challenge => (
-            <li key={challenge.id} className="bg-lol-blue-dark p-4 rounded-lg border border-lol-gold-dark flex flex-col md:flex-row justify-between items-start md:items-center">
+            <li key={challenge.id} className="bg-lol-blue-dark p-4 rounded-lg border border-lol-gold-dark">
               <div>
                 <h4 className="font-display font-bold text-lol-blue-accent">{challenge.title}</h4>
                 <p className="text-sm text-lol-gold-light/80 mt-1">{challenge.description}</p>
@@ -56,14 +52,14 @@ const WeeklyChallenges = () => {
                   <span className="font-semibold text-lol-gold-light">Progreso:</span> {challenge.progress}/{challenge.goal}
                 </div>
               </div>
-              <span className="mt-3 md:mt-0 px-3 py-1 bg-purple-600 text-white text-xs font-bold rounded-full">
+              <span className="mt-3 block text-center px-3 py-1 bg-purple-600 text-white text-xs font-bold rounded-full">
                 Recompensa: {challenge.reward}
               </span>
             </li>
           ))}
         </ul>
       ) : (
-        <p className="text-center text-lol-gold-light/70">No hay retos semanales disponibles en este momento.</p>
+        <p className="text-center text-lol-gold-light/70">No hay retos semanales disponibles.</p>
       )}
     </div>
   );
