@@ -31,34 +31,42 @@ export const getSummonerByPuuid = async (puuid, region) => {
     const response = await api.get(`/lol/summoner/v4/summoners/by-puuid/${puuid}`);
     return response.data;
 };
-export const getLiveGameBySummonerId = async (summonerId, region) => {
-    const platformRoute = getPlatformRoute(region);
-    const api = createApi(`https://${platformRoute}.api.riotgames.com`);
-    try {
-        const response = await api.get(`/lol/spectator/v4/active-games/by-summoner/${summonerId}`);
-        return response.data;
-    } catch (error) {
-        if (error.response?.status === 404) return null;
-        throw error;
-    }
-};
 
 /**
- * **NUEVA FUNCIÓN**
+ * **FUNCIÓN CORREGIDA**
  * Obtiene los campeones con mayor maestría para un invocador.
+ * Si no encuentra datos o hay un error, devuelve un array vacío para evitar que la aplicación se rompa.
  * @param {string} puuid - El PUUID del invocador.
  * @param {string} region - La región del invocador.
- * @returns {Promise<object[]>} - Una lista de los campeones con más maestría.
+ * @returns {Promise<object[]>} - Una lista de los campeones con más maestría o un array vacío.
  */
 export const getChampionMastery = async (puuid, region) => {
     const platformRoute = getPlatformRoute(region);
     const api = createApi(`https://${platformRoute}.api.riotgames.com`);
     try {
-        // Obtenemos los 5 campeones con más maestría.
         const response = await api.get(`/lol/champion-mastery/v4/champion-masteries/by-puuid/${puuid}/top?count=5`);
-        return response.data;
+        return response.data || []; // Devuelve los datos, o un array vacío si la respuesta es nula
     } catch (error) {
-        console.error('Error fetching champion mastery:', error.response?.data || error.message);
-        throw error;
+        console.error('Error fetching champion mastery (ignorado para el usuario, se devuelve array vacío):', error.response?.data || error.message);
+        // En lugar de lanzar un error, devolvemos un array vacío.
+        return [];
     }
+};
+
+export const getMatchHistoryIds = async (puuid, region) => {
+    const regionalRoute = getRegionalRoute(region);
+    const api = createApi(`https://${regionalRoute}.api.riotgames.com`);
+    try {
+        const response = await api.get(`/lol/match/v5/matches/by-puuid/${puuid}/ids?queue=420&start=0&count=5`);
+        return response.data || [];
+    } catch (error) {
+        console.error('Error fetching match history (se devuelve array vacío):', error.response?.data || error.message);
+        return [];
+    }
+};
+export const getMatchDetails = async (matchId, region) => {
+    const regionalRoute = getRegionalRoute(region);
+    const api = createApi(`https://${regionalRoute}.api.riotgames.com`);
+    const response = await api.get(`/lol/match/v5/matches/${matchId}`);
+    return response.data;
 };
