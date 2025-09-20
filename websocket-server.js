@@ -5,16 +5,15 @@ const url = require('url');
 const { Pool } = require('pg');
 require('dotenv').config();
 
-// Importamos las funciones desde la carpeta 'dist'
-const { getLiveGameBySummonerId } = require('./dist/services/riotApiService.js');
-const { createLiveCoachingPrompt } = require('./dist/lib/ai/prompts.js');
-const { generateStrategicAnalysis } = require('./dist/lib/ai/strategist.js');
+// Las rutas ahora apuntan a la carpeta 'dist' que Babel genera.
+const { getLiveGameBySummonerId } = require('./dist/services/riotApiService');
+const { createLiveCoachingPrompt } = require('./dist/lib/ai/prompts');
+const { generateStrategicAnalysis } = require('./dist/lib/ai/strategist');
 
 const port = process.env.PORT || 8080;
 const JWT_SECRET = process.env.JWT_SECRET;
 const DATABASE_URL = process.env.DATABASE_URL;
 
-// Configuración de la base de datos para el servidor de Node.js
 const pool = new Pool({
   connectionString: DATABASE_URL,
   ssl: {

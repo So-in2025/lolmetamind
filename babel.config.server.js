@@ -1,6 +1,5 @@
 // babel.config.server.js
-// Esta configuración SÓLO se usa para el script 'build:server'.
-// Next.js (Vercel) ignorará este archivo por completo.
+// Configuración de Babel para el servidor de WebSockets (Render)
 module.exports = {
   "presets": [
     [
@@ -8,6 +7,17 @@ module.exports = {
       {
         "targets": {
           "node": "current"
+        }
+      }
+    ]
+  ],
+  "plugins": [
+    [
+      "module-resolver",
+      {
+        "root": ["./src"],
+        "alias": {
+          "@": "./src"
         }
       }
     ]
