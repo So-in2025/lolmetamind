@@ -1,3 +1,5 @@
+// src/app/api/challenges/weekly/route.js
+
 import { NextResponse } from 'next/server';
 import jwt from 'jsonwebtoken';
 import pool from '@/lib/db';
@@ -18,6 +20,7 @@ async function generateAndStoreChallenges(userId, userData) {
     }
 
     let recentMatchesPerformance = [];
+    // Usamos un bucle seguro en lugar de map para mayor control
     for (const matchId of matchIds) {
         const matchDetails = await getMatchDetails(matchId, userData.region);
         const participant = matchDetails.info.participants.find(p => p.puuid === userData.puuid);
@@ -38,7 +41,7 @@ async function generateAndStoreChallenges(userId, userData) {
 
     if (!Array.isArray(challengesFromAI)) {
         console.error("La IA no devolvió un array de desafíos. Se recibió:", challengesFromAI);
-        return [];
+        return []; // Seguridad
     }
 
     const client = await pool.connect();
