@@ -33,26 +33,29 @@ export const getSummonerByPuuid = async (puuid, region) => {
 };
 
 /**
- * **FUNCIÓN CORREGIDA**
- * Obtiene los campeones con mayor maestría para un invocador.
- * Si no encuentra datos o hay un error, devuelve un array vacío para evitar que la aplicación se rompa.
- * @param {string} puuid - El PUUID del invocador.
- * @param {string} region - La región del invocador.
- * @returns {Promise<object[]>} - Una lista de los campeones con más maestría o un array vacío.
+ * **FUNCIÓN CORREGIDA Y BLINDADA**
+ * Obtiene los campeones con mayor maestría. Si la API de Riot falla o no devuelve
+ * datos, esta función SIEMPRE devolverá un array vacío para prevenir crashes.
  */
 export const getChampionMastery = async (puuid, region) => {
     const platformRoute = getPlatformRoute(region);
     const api = createApi(`https://${platformRoute}.api.riotgames.com`);
     try {
         const response = await api.get(`/lol/champion-mastery/v4/champion-masteries/by-puuid/${puuid}/top?count=5`);
-        return response.data || []; // Devuelve los datos, o un array vacío si la respuesta es nula
+        // Si la respuesta es exitosa pero no contiene datos, devuelve un array vacío.
+        return response.data || [];
     } catch (error) {
-        console.error('Error fetching champion mastery (ignorado para el usuario, se devuelve array vacío):', error.response?.data || error.message);
-        // En lugar de lanzar un error, devolvemos un array vacío.
+        console.error('Error al obtener maestría de campeones (se devolverá un array vacío):', error.response?.data || error.message);
+        // Si la llamada a la API falla por cualquier motivo, devuelve un array vacío.
         return [];
     }
 };
 
+/**
+ * **FUNCIÓN CORREGIDA Y BLINDADA**
+ * Obtiene el historial de partidas. Si la API de Riot falla o no devuelve
+ * datos, esta función SIEMPRE devolverá un array vacío.
+ */
 export const getMatchHistoryIds = async (puuid, region) => {
     const regionalRoute = getRegionalRoute(region);
     const api = createApi(`https://${regionalRoute}.api.riotgames.com`);
@@ -60,10 +63,11 @@ export const getMatchHistoryIds = async (puuid, region) => {
         const response = await api.get(`/lol/match/v5/matches/by-puuid/${puuid}/ids?queue=420&start=0&count=5`);
         return response.data || [];
     } catch (error) {
-        console.error('Error fetching match history (se devuelve array vacío):', error.response?.data || error.message);
+        console.error('Error al obtener historial de partidas (se devolverá un array vacío):', error.response?.data || error.message);
         return [];
     }
 };
+
 export const getMatchDetails = async (matchId, region) => {
     const regionalRoute = getRegionalRoute(region);
     const api = createApi(`https://${regionalRoute}.api.riotgames.com`);
