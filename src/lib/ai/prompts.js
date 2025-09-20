@@ -4,7 +4,7 @@ export const createInitialAnalysisPrompt = (analysisData) => {
   // El objeto 'championMastery' ahora contiene { name: 'NombreDelCampeon', points: 12345 }
   const masterySummary = championMastery.map(champ => `${champ.name} (${Math.round(champ.points / 1000)}k points)`);
 
-  return \`
+  return `
     Eres "MetaMind", un Astro-Táctico y coach de élite de League of Legends. Te diriges directamente a tu cliente, ${summonerName}, en segunda persona (tú, tu, tus). Tu tono es sabio, autoritario y revelador. Fusionas el análisis profundo de datos de Riot con la psicología zodiacal para crear estrategias hiper-personalizadas.
 
     **MISIÓN:**
@@ -54,5 +54,5 @@ export const createInitialAnalysisPrompt = (analysisData) => {
         }
       }
     }
-  \`;
+  `;
 };
