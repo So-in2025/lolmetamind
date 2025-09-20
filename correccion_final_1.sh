@@ -1,11 +1,11 @@
 #!/bin/bash
 
 # ==============================================================================
-# SCRIPT DE CORRECCIÓN FINAL Y DEFINITIVA - SINTAXIS DE PROMPT.JS
+# SCRIPT DE HOTFIX - TypeError: Cannot read properties of undefined (reading 'map')
 #
-# Objetivo: 1. Corregir el error de sintaxis 'Expected unicode escape' que está
-#              rompiendo el build en Vercel y Render.
-#           2. Dejar la aplicación web 100% funcional y estable.
+# Objetivo: 1. Corregir el error de renderizado en el componente WeeklyChallenges.
+#           2. Añadir una verificación para asegurar que los datos sean un array
+#              antes de intentar renderizarlos con .map().
 # ==============================================================================
 
 # --- Colores ---
@@ -14,85 +14,88 @@ YELLOW='\033[1;33m'
 CYAN='\033[0;36m'
 NC='\033[0m'
 
-echo -e "${YELLOW}Aplicando corrección final de sintaxis a 'src/lib/ai/prompts.js'...${NC}"
+echo -e "${YELLOW}Corrigiendo el 'TypeError' en WeeklyChallenges.jsx...${NC}"
 
-# --- Reescribir el archivo prompts.js con la sintaxis 100% correcta ---
-cat << 'EOF' > src/lib/ai/prompts.js
-/**
- * Genera el prompt para el análisis ASTRO-TÁCTICO avanzado.
- * @param {object} analysisData - Datos completos del jugador.
- * @returns {string} - El prompt completo para la IA.
- */
-export const createInitialAnalysisPrompt = (analysisData) => {
-  const { summonerName, zodiacSign, championMastery, dailyAstrologicalForecast } = analysisData;
+# --- Reescribir el componente WeeklyChallenges con la nueva verificación de seguridad ---
+cat << 'EOF' > src/components/WeeklyChallenges.jsx
+'use client';
+import React, { useState, useEffect } from 'react';
 
-  const masterySummary = championMastery.map(champ => ({
-    championId: champ.championId,
-    championPoints: champ.championPoints
-  }));
+const WeeklyChallenges = () => {
+  const [challenges, setChallenges] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
-  // CORRECCIÓN: Se eliminó la barra invertida (\) que causaba el error de sintaxis.
-  return \`
-    Eres "MetaMind", un Astro-Táctico y coach de élite de League of Legends. Te diriges directamente a tu cliente, ${summonerName}, en segunda persona (tú, tu, tus). Tu tono es sabio, autoritario y revelador. Fusionas el análisis profundo de datos de Riot con la psicología zodiacal para crear estrategias hiper-personalizadas.
-
-    **MISIÓN:**
-    Realiza un análisis exhaustivo para ${summonerName} y entrégale su plan de acción diario en un formato JSON claro y profesional.
-
-    **DATOS DE TU JUGADOR:**
-    1.  **Invocador:** ${summonerName}
-    2.  **Perfil Zodiacal:** ${zodiacSign} (Esto revela tu temperamento innato y arquetipo como jugador).
-    3.  **Arsenal Principal (Top 5 de Maestría):** ${JSON.stringify(masterySummary)} (Estos son los campeones que dominas. Analiza sus arquetipos para entender tu zona de confort táctica).
-    4.  **Directiva Astral del Día:** "${dailyAstrologicalForecast}" (Este es el flujo cósmico de hoy. Debe influir directamente en CADA consejo que des).
-
-    **PROCESO DE ANÁLISIS (ESTRICTO):**
-    1.  **Diagnóstico de Estilo de Juego:** Basado en tu arsenal principal, define tu estilo de juego. Ve más allá de lo obvio (ej: "Eres un 'Duelista de Alto Riesgo' que prefiere escaramuzas cortas a peleas de equipo extendidas", "Tu perfil es de 'Mago de Asedio', buscas controlar el tempo y desgastar al enemigo desde la distancia").
-    2.  **Sinergia Astro-Táctica:** Explica cómo tu signo ${zodiacSign} impacta tu estilo de juego, y cómo la Directiva Astral de hoy ("${dailyAstrologicalForecast}") debe modular tu enfoque. (Ej: "Como Aries, tu impulso es iniciar, pero la directiva de hoy, centrada en la paciencia, exige que uses esa agresividad para contra-iniciar, no para forzar jugadas").
-    3.  **Coaching de Arsenal:** Elige 1 o 2 campeones de tu arsenal principal. Ofrécele una táctica específica y de alto nivel para aplicar HOY, que un coach promedio pasaría por alto. Debe estar directamente ligada a la Directiva Astral.
-    4.  **Expansión de Arsenal:** Recomienda DOS nuevos campeones para expandir tus horizontes:
-        -   **Campeón de Sinergia:** Uno que se alinee perfectamente con tu núcleo de fortalezas (estilo + signo).
-        -   **Campeón de Desarrollo:** Uno que te obligue a confrontar una debilidad inherente a tu arquetipo para convertirte en un jugador más completo.
-
-    **FORMATO DE SALIDA (JSON ESTRICTO):**
-    {
-      "playstyleAnalysis": {
-        "title": "Diagnóstico de tu Estilo de Juego",
-        "style": "Tu arquetipo como jugador (ej: Duelista de Flanco)",
-        "description": "Un análisis profesional de cómo abordas el juego, tus fortalezas y posibles puntos ciegos."
-      },
-      "astroTacticSynergy": {
-        "title": "Tu Directiva Táctica del Día",
-        "description": "Cómo tu temperamento de ${zodiacSign} debe adaptarse al flujo cósmico de hoy para maximizar tu rendimiento."
-      },
-      "masteryCoaching": {
-        "title": "Instrucciones para tu Arsenal Principal",
-        "tips": [
-          {
-            "championId": "ID del campeón",
-            "advice": "Una táctica avanzada y específica para este campeón, aplicable a la directiva de hoy."
-          }
-        ]
-      },
-      "newChampionRecommendations": {
-        "title": "Expansión de Arsenal",
-        "synergy": {
-          "champion": "Nombre del Campeón de Sinergia",
-          "reason": "Por qué este campeón capitaliza tus fortalezas naturales y es tu siguiente paso lógico."
-        },
-        "development": {
-          "champion": "Nombre del Campeón de Desarrollo",
-          "reason": "Por qué dominar a este campeón te forzará a superar tus límites y te hará un jugador impredecible."
+  useEffect(() => {
+    const fetchChallenges = async () => {
+      try {
+        const response = await fetch('/api/challenges/weekly');
+        if (!response.ok) {
+          throw new Error('No se pudo cargar la lista de retos.');
         }
+        const result = await response.json();
+        // Nos aseguramos de que lo que guardamos en el estado sea siempre un array
+        if (Array.isArray(result)) {
+          setChallenges(result);
+        } else {
+          // Si la API no devuelve un array, lo dejamos como un array vacío para no romper el .map()
+          setChallenges([]);
+          console.warn("La API de retos no devolvió un array:", result);
+        }
+      } catch (err) {
+        console.error('Error al obtener retos:', err);
+        setError(err.message);
+      } finally {
+        setLoading(false);
       }
-    }
-  \`;
-};
-EOF
-echo "Actualizado: src/lib/ai/prompts.js. ✅"
+    };
+    fetchChallenges();
+  }, []);
 
+  if (loading) {
+    return <div className="bg-lol-blue-medium p-6 rounded-xl shadow-lg w-full text-center animate-pulse">Cargando retos...</div>;
+  }
+
+  if (error) {
+    return <div className="bg-lol-blue-medium text-red-400 p-6 rounded-xl shadow-lg w-full text-center">Error: {error}</div>;
+  }
+
+  return (
+    <div className="bg-lol-blue-medium p-8 rounded-xl shadow-lg w-full border-2 border-lol-gold-dark mt-12">
+      <h3 className="text-2xl font-display font-bold text-lol-gold mb-4 text-center">Retos Semanales</h3>
+      {/* *** LA CORRECCIÓN CLAVE ***
+          Verificamos explícitamente que 'challenges' sea un array antes de hacer el .map() */}
+      {Array.isArray(challenges) && challenges.length > 0 ? (
+        <ul className="space-y-4">
+          {challenges.map(challenge => (
+            <li key={challenge.id} className="bg-lol-blue-dark p-4 rounded-lg border border-lol-gold-dark flex flex-col md:flex-row justify-between items-start md:items-center">
+              <div>
+                <h4 className="font-display font-bold text-lol-blue-accent">{challenge.title}</h4>
+                <p className="text-sm text-lol-gold-light/80 mt-1">{challenge.description}</p>
+                <div className="mt-2 text-sm">
+                  <span className="font-semibold text-lol-gold-light">Progreso:</span> {challenge.progress}/{challenge.goal}
+                </div>
+              </div>
+              <span className="mt-3 md:mt-0 px-3 py-1 bg-purple-600 text-white text-xs font-bold rounded-full">
+                Recompensa: {challenge.reward}
+              </span>
+            </li>
+          ))}
+        </ul>
+      ) : (
+        <p className="text-center text-lol-gold-light/70">No hay retos semanales disponibles en este momento.</p>
+      )}
+    </div>
+  );
+};
+
+export default WeeklyChallenges;
+EOF
+
+echo -e "${GREEN}El archivo 'src/components/WeeklyChallenges.jsx' ha sido corregido. ✅${NC}"
 echo -e "\n${YELLOW}----------------------------------------------------------------------"
-echo -e "¡CORRECCIÓN DE BUILD APLICADA! ✅"
+echo -e "¡HOTFIX APLICADO! ✅"
 echo -e "----------------------------------------------------------------------${NC}"
 echo -e "\n${CYAN}Pasos Finales:${NC}"
-echo -e "1.  Sube este cambio a tu repositorio: ${GREEN}git add . && git commit -m \"fix: Corregir error de sintaxis en el prompt de la IA\" && git push${NC}"
-echo -e "2.  Tanto Vercel como Render deberían compilar sin errores ahora."
-echo -e "3.  Una vez desplegado, la funcionalidad de 'Obtener Recomendación' estará 100% operativa con la IA mejorada."
+echo -e "1.  Sube este cambio a tu repositorio. Vercel se redesplegará."
+echo -e "2.  El Dashboard ahora cargará sin errores, mostrando los retos semanales correctamente."
