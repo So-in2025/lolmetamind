@@ -56,3 +56,54 @@ export const createInitialAnalysisPrompt = (analysisData) => {
     }
   `;
 };
+
+/**
+ * Genera el prompt para crear desafíos de coaching personalizados.
+ * @param {object} playerData - Datos del jugador (nombre, historial de partidas).
+ * @returns {string} - El prompt para la IA.
+ */
+export const createChallengeGenerationPrompt = (playerData) => {
+  const { summonerName, recentMatchesPerformance } = playerData;
+
+  return \`
+    Eres "MetaMind", un coach de élite de League of Legends. Tu tarea es analizar el rendimiento reciente de un jugador y crear 3 desafíos de mejora personalizados (1 diario, 2 semanales) en formato JSON.
+
+    **DATOS DEL JUGADOR:**
+    - Invocador: ${summonerName}
+    - Resumen de rendimiento en sus últimas partidas: ${JSON.stringify(recentMatchesPerformance)}
+
+    **INSTRUCCIONES:**
+    1.  **Analiza los datos:** Identifica 3 áreas de mejora claras. Busca métricas consistentemente bajas como 'visionScore', 'wardsPlaced', 'csPerMinute', o un alto número de 'deaths'.
+    2.  **Crea 3 Desafíos SMART:**
+        -   **Uno Diario:** Un objetivo pequeño y alcanzable en una o dos partidas.
+        -   **Dos Semanales:** Objetivos más grandes que requieren consistencia a lo largo de varias partidas.
+    3.  **Enfoque en Coaching:** Los desafíos deben enseñar buenos hábitos. En lugar de "Gana 1 partida", crea "Mantén una visión de control superior a la de tu oponente de línea en 2 partidas ganadas".
+    4.  **Define Métricas Claras:** Usa nombres de métricas de la API de Riot (ej: 'visionScore', 'kills', 'deaths', 'totalMinionsKilled', 'wardsPlaced').
+    5.  **Genera un JSON VÁLIDO:** La salida debe ser un array de 3 objetos JSON, sin texto adicional.
+
+    **FORMATO DE SALIDA (JSON ESTRICTO):**
+    [
+      {
+        "title": "Control de Visión Diario",
+        "description": "En tu próxima partida, coloca al menos 15 centinelas de visión. La información es poder.",
+        "challenge_type": "daily",
+        "metric": "wardsPlaced",
+        "goal": 15
+      },
+      {
+        "title": "Consistencia del Granjero",
+        "description": "Logra un promedio de 7.5 súbditos por minuto en tus próximas 5 partidas.",
+        "challenge_type": "weekly",
+        "metric": "csPerMinute",
+        "goal": 7.5
+      },
+      {
+        "title": "Supervivencia Táctica",
+        "description": "Mantén un promedio de menos de 5 muertes en tus próximas 5 partidas clasificatorias.",
+        "challenge_type": "weekly",
+        "metric": "deaths",
+        "goal": 5
+      }
+    ]
+  \`;
+};

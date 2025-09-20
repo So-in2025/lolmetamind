@@ -25,3 +25,21 @@ CREATE TABLE users (
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
+
+-- Tabla para almacenar los desafíos activos de los usuarios
+CREATE TABLE user_challenges (
+    id SERIAL PRIMARY KEY,
+    user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    title VARCHAR(255) NOT NULL,
+    description TEXT NOT NULL,
+    challenge_type VARCHAR(50) NOT NULL, -- 'daily' o 'weekly'
+    metric VARCHAR(100) NOT NULL,        -- ej: 'kills', 'visionScore', 'csPerMinute'
+    goal INTEGER NOT NULL,
+    progress INTEGER DEFAULT 0,
+    is_completed BOOLEAN DEFAULT FALSE,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    expires_at TIMESTAMP WITH TIME ZONE NOT NULL
+);
+
+-- Índice para búsquedas rápidas
+CREATE INDEX idx_user_challenges_user_id ON user_challenges(user_id);
