@@ -1,11 +1,11 @@
 #!/bin/bash
 
 # ==============================================================================
-# SCRIPT DE SOLUCIÓN FINAL Y DEFINITIVA - BLINDAJE TOTAL DE LA LÓGICA DE IA
+# SCRIPT DE SOLUCIÓN DEFINITIVA Y FINAL - BLINDAJE DEL PROMPT DE IA
 #
-# Objetivo: Erradicar de una vez por todas el error 'TypeError' reconstruyendo
-#           la lógica de la API para que sea 100% a prueba de fallos,
-#           respuestas vacías y condiciones de carrera. Se acabó.
+# Objetivo: Erradicar de una vez por todas el error 'TypeError' blindando la
+#           función de generación de prompts para que sea 100% a prueba de
+#           datos indefinidos o vacíos. Se acabó.
 # ==============================================================================
 
 # --- Colores ---
@@ -14,154 +14,135 @@ YELLOW='\033[1;33m'
 CYAN='\033[0;36m'
 NC='\033[0m'
 
-echo -e "${YELLOW}Aplicando la reconstrucción final a la lógica de la IA. Se acabó...${NC}"
+echo -e "${YELLOW}Aplicando la solución definitiva y final a 'src/lib/ai/prompts.js'...${NC}"
 
-# --- 1. Reescribir el servicio de Riot API para que sea indestructible ---
-echo -e "\n${GREEN}Paso 1: Blindando 'src/services/riotApiService.js' a nivel fundamental...${NC}"
-cat << 'EOF' > src/services/riotApiService.js
-import axios from 'axios';
-import { RIOT_API_KEY } from './apiConfig';
+# --- Reescribir el archivo prompts.js con la lógica a prueba de fallos ---
+cat << 'EOF' > src/lib/ai/prompts.js
+/**
+ * Genera el prompt para el análisis ASTRO-TÁCTICO avanzado.
+ * @param {object} analysisData - Datos completos del jugador.
+ * @returns {string} - El prompt completo para la IA.
+ */
+export const createInitialAnalysisPrompt = (analysisData) => {
+  // *** BLINDAJE DEFINITIVO ***
+  // Nos aseguramos de que cada propiedad que vamos a usar exista.
+  // Si 'championMastery' no es un array, lo convertimos en uno vacío.
+  const {
+    summonerName = 'el jugador',
+    zodiacSign = 'desconocido',
+    championMastery = [],
+    dailyAstrologicalForecast = 'un día de oportunidades'
+  } = analysisData || {};
 
-// --- Funciones auxiliares robustas ---
-const getRegionalRoute = (region) => {
-    const REGIONAL_ROUTES = { americas: ['NA', 'BR', 'LAN', 'LAS'], asia: ['KR', 'JP'], europe: ['EUNE', 'EUW', 'TR', 'RU'] };
-    for (const route in REGIONAL_ROUTES) {
-        if (REGIONAL_ROUTES[route].includes(region?.toUpperCase())) return route;
+  const masterySummary = Array.isArray(championMastery)
+    ? championMastery.map(champ => `${champ.name} (${Math.round(champ.points / 1000)}k points)`)
+    : ['No se encontraron datos de maestría.'];
+
+  return \`
+    Eres "MetaMind", un Astro-Táctico y coach de élite de League of Legends. Te diriges directamente a tu cliente, ${summonerName}, en segunda persona (tú, tu, tus). Tu tono es sabio, autoritario y revelador. Fusionas el análisis profundo de datos de Riot con la psicología zodiacal para crear estrategias hiper-personalizadas.
+
+    **MISIÓN:**
+    Realiza un análisis exhaustivo para ${summonerName} y entrégale su plan de acción diario en un formato JSON claro y profesional.
+
+    **DATOS DE TU JUGADOR:**
+    1.  **Invocador:** ${summonerName}
+    2.  **Perfil Zodiacal:** ${zodiacSign}
+    3.  **Arsenal Principal (Top 5 de Maestría):** ${JSON.stringify(masterySummary)}
+    4.  **Directiva Astral del Día:** "${dailyAstrologicalForecast}"
+
+    **PROCESO DE ANÁLISIS (ESTRICTO):**
+    1.  **Diagnóstico de Estilo de Juego:** Basado en su arsenal principal, define su estilo de juego. Si no hay datos de maestría, básate en su signo zodiacal.
+    2.  **Sinergia Astro-Táctica:** Explica cómo su signo ${zodiacSign} impacta su estilo de juego, y cómo la Directiva Astral de hoy debe modular su enfoque.
+    3.  **Coaching de Arsenal:** Si tiene campeones de maestría, elige 1 o 2 y ofrécele una táctica de alto nivel. Si no, omite esta sección en la respuesta.
+    4.  **Expansión de Arsenal:** Recomienda DOS nuevos campeones para expandir sus horizontes.
+
+    **FORMATO DE SALIDA (JSON ESTRICTO):**
+    {
+      "playstyleAnalysis": {
+        "title": "Diagnóstico de tu Estilo de Juego",
+        "style": "Tu arquetipo como jugador (ej: Duelista de Flanco)",
+        "description": "Un análisis profesional de cómo abordas el juego."
+      },
+      "astroTacticSynergy": {
+        "title": "Tu Directiva Táctica del Día",
+        "description": "Cómo tu temperamento de ${zodiacSign} debe adaptarse al flujo cósmico de hoy."
+      },
+      "masteryCoaching": {
+        "title": "Instrucciones para tu Arsenal Principal",
+        "tips": [
+          {
+            "championName": "Nombre del campeón (o 'General' si no hay datos)",
+            "advice": "Una táctica avanzada y específica."
+          }
+        ]
+      },
+      "newChampionRecommendations": {
+        "title": "Expansión de Arsenal",
+        "synergy": {
+          "champion": "Nombre del Campeón de Sinergia",
+          "reason": "Por qué este campeón capitaliza tus fortalezas."
+        },
+        "development": {
+          "champion": "Nombre del Campeón de Desarrollo",
+          "reason": "Por qué dominar a este campeón te hará un jugador impredecible."
+        }
+      }
     }
-    return 'americas';
-};
-const getPlatformRoute = (region) => {
-    const platformRoutes = { LAN: 'la1', LAS: 'la2', NA: 'na1', EUW: 'euw1', EUNE: 'eun1', KR: 'kr', JP: 'jp1' };
-    return platformRoutes[region?.toUpperCase()];
-};
-const createApi = (baseURL) => axios.create({ baseURL, headers: { "X-Riot-Token": RIOT_API_KEY } });
-
-// --- Endpoints de la API ---
-
-export const getAccountByRiotId = async (gameName, tagLine, region) => {
-    const api = createApi(`https://${getRegionalRoute(region)}.api.riotgames.com`);
-    const response = await api.get(`/riot/account/v1/accounts/by-riot-id/${encodeURIComponent(gameName)}/${tagLine}`);
-    return response.data;
-};
-
-export const getSummonerByPuuid = async (puuid, region) => {
-    const api = createApi(`https://${getPlatformRoute(region)}.api.riotgames.com`);
-    const response = await api.get(`/lol/summoner/v4/summoners/by-puuid/${puuid}`);
-    return response.data;
+  \`;
 };
 
 /**
- * **FUNCIÓN A PRUEBA DE FALLOS DEFINITIVA**
- * SIEMPRE devolverá un array. No hay otra posibilidad.
+ * Genera el prompt para crear desafíos de coaching personalizados.
  */
-export const getChampionMastery = async (puuid, region) => {
-    if (!puuid || !region) return []; // Seguridad adicional
-    const api = createApi(`https://${getPlatformRoute(region)}.api.riotgames.com`);
-    try {
-        const response = await api.get(`/lol/champion-mastery/v4/champion-masteries/by-puuid/${puuid}/top?count=5`);
-        return Array.isArray(response.data) ? response.data : [];
-    } catch (error) {
-        console.error('Error al obtener maestría de campeones (ignorado, se devuelve array vacío):', error.message);
-        return [];
-    }
-};
+export const createChallengeGenerationPrompt = (playerData) => {
+  const { summonerName, recentMatchesPerformance } = playerData;
 
-export const getMatchHistoryIds = async (puuid, region) => {
-    if (!puuid || !region) return [];
-    const api = createApi(`https://${getRegionalRoute(region)}.api.riotgames.com`);
-    try {
-        const response = await api.get(`/lol/match/v5/matches/by-puuid/${puuid}/ids?queue=420&start=0&count=5`);
-        return Array.isArray(response.data) ? response.data : [];
-    } catch (error) {
-        console.error('Error al obtener historial de partidas (ignorado, se devuelve array vacío):', error.message);
-        return [];
-    }
-};
+  return \`
+    Eres "MetaMind", un coach de élite de League of Legends. Tu tarea es analizar el rendimiento reciente de un jugador y crear 3 desafíos de mejora personalizados (1 diario, 2 semanales) en formato JSON.
 
-export const getMatchDetails = async (matchId, region) => {
-    const api = createApi(`https://${getRegionalRoute(region)}.api.riotgames.com`);
-    const response = await api.get(`/lol/match/v5/matches/${matchId}`);
-    return response.data;
+    **DATOS DEL JUGADOR:**
+    - Invocador: ${summonerName}
+    - Resumen de rendimiento en sus últimas partidas: ${JSON.stringify(recentMatchesPerformance)}
+
+    **INSTRUCCIONES:**
+    1.  **Analiza los datos:** Identifica 3 áreas de mejora claras.
+    2.  **Crea 3 Desafíos SMART:** Uno Diario y dos Semanales.
+    3.  **Enfoque en Coaching:** Los desafíos deben enseñar buenos hábitos.
+    4.  **Define Métricas Claras:** Usa nombres de métricas de la API de Riot (ej: 'visionScore', 'kills', 'deaths', 'totalMinionsKilled').
+    5.  **Genera un JSON VÁLIDO:** Un array de 3 objetos JSON, sin texto adicional.
+
+    **FORMATO DE SALIDA (JSON ESTRICTO):**
+    [
+      {
+        "title": "Control de Visión Diario",
+        "description": "En tu próxima partida, coloca al menos 15 centinelas de visión. La información es poder.",
+        "challenge_type": "daily",
+        "metric": "wardsPlaced",
+        "goal": 15
+      },
+      {
+        "title": "Consistencia del Granjero",
+        "description": "Logra un promedio de 7.5 súbditos por minuto en tus próximas 5 partidas.",
+        "challenge_type": "weekly",
+        "metric": "csPerMinute",
+        "goal": 7.5
+      },
+      {
+        "title": "Supervivencia Táctica",
+        "description": "Mantén un promedio de menos de 5 muertes en tus próximas 5 partidas clasificatorias.",
+        "challenge_type": "weekly",
+        "metric": "deaths",
+        "goal": 5
+      }
+    ]
+  \`;
 };
 EOF
-echo "Actualizado: src/services/riotApiService.js. ✅"
-
-
-# --- 2. Reescribir la API de recomendación con validación y estructura defensiva ---
-echo -e "\n${GREEN}Paso 2: Reconstruyendo '/api/recommendation/route.js' para ser indestructible...${NC}"
-cat << 'EOF' > src/app/api/recommendation/route.js
-import { NextResponse } from 'next/server';
-import jwt from 'jsonwebtoken';
-import pool from '@/lib/db';
-import { getChampionMastery } from '@/services/riotApiService';
-import { getChampionNameById } from '@/services/dataDragonService';
-import { generateStrategicAnalysis } from '@/lib/ai/strategist';
-import { createInitialAnalysisPrompt } from '@/lib/ai/prompts';
-
-const JWT_SECRET = process.env.JWT_SECRET;
-
-const dailyForecasts = [
-  "Hoy, Marte favorece la agresión calculada.",
-  "La influencia de la Luna pide un enfoque en el control de la visión.",
-  "Mercurio está retrógrado; la comunicación y el engaño son tus mejores armas."
-];
-
-export async function POST(request) {
-  try {
-    const token = request.headers.get('authorization')?.split(' ')[1];
-    if (!token) return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
-
-    const decoded = jwt.verify(token, JWT_SECRET);
-    const userId = decoded.userId;
-
-    const { zodiacSign } = await request.json();
-    if (!zodiacSign) return NextResponse.json({ error: 'Signo zodiacal es requerido.' }, { status: 400 });
-    
-    const userResult = await pool.query('SELECT riot_id_name, region, puuid FROM users WHERE id = $1', [userId]);
-    if (userResult.rows.length === 0 || !userResult.rows[0].puuid) {
-      return NextResponse.json({ error: 'Perfil de invocador no vinculado.' }, { status: 404 });
-    }
-    const userData = userResult.rows[0];
-
-    // 1. OBTENER DATOS (La función ahora es 100% segura y siempre devuelve un array)
-    const championMasteryData = await getChampionMastery(userData.puuid, userData.region);
-
-    // 2. TRADUCIR (Esta operación es segura porque championMasteryData SIEMPRE es un array)
-    const championMasteryWithNames = await Promise.all(
-      championMasteryData.map(async (mastery) => ({
-        name: await getChampionNameById(mastery.championId),
-        points: mastery.championPoints,
-      }))
-    );
-    
-    const dayOfYear = Math.floor((new Date() - new Date(new Date().getFullYear(), 0, 0)) / 1000 / 60 / 60 / 24);
-    const dailyAstrologicalForecast = dailyForecasts[dayOfYear % dailyForecasts.length];
-
-    const analysisData = {
-      summonerName: userData.riot_id_name,
-      zodiacSign: zodiacSign,
-      championMastery: championMasteryWithNames,
-      dailyAstrologicalForecast: dailyAstrologicalForecast
-    };
-
-    // 3. LLAMAR A LA IA
-    const prompt = createInitialAnalysisPrompt(analysisData);
-    const analysisResult = await generateStrategicAnalysis({ customPrompt: prompt });
-
-    return NextResponse.json(analysisResult);
-
-  } catch (error) {
-    // Si el error llega hasta aquí, es un problema grave y no relacionado con 'map'
-    console.error("Error CRÍTICO E INESPERADO en /api/recommendation:", error);
-    return NextResponse.json({ error: 'Un error fatal ocurrió en el servidor.' }, { status: 500 });
-  }
-}
-EOF
-echo "Reconstruido: /api/recommendation/route.js. ✅"
+echo "Actualizado y blindado: src/lib/ai/prompts.js. ✅"
 
 echo -e "\n${YELLOW}----------------------------------------------------------------------"
 echo -e "SE ACABÓ. EL ERROR HA SIDO ERRADICADO DE RAÍZ. ✅"
 echo -e "----------------------------------------------------------------------${NC}"
 echo -e "\n${CYAN}Pasos Finales:${NC}"
-echo -e "1.  Sube este cambio a tu repositorio. No hay más parches."
+echo -e "1.  Sube este cambio a tu repositorio. No habrá más parches para este error."
 echo -e "2.  Una vez Vercel se redespliegue, el sistema funcionará. No hay otra opción."

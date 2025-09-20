@@ -1,10 +1,24 @@
+/**
+ * Genera el prompt para el análisis ASTRO-TÁCTICO avanzado.
+ * @param {object} analysisData - Datos completos del jugador.
+ * @returns {string} - El prompt completo para la IA.
+ */
 export const createInitialAnalysisPrompt = (analysisData) => {
-  const { summonerName, zodiacSign, championMastery, dailyAstrologicalForecast } = analysisData;
+  // *** BLINDAJE DEFINITIVO ***
+  // Nos aseguramos de que cada propiedad que vamos a usar exista.
+  // Si 'championMastery' no es un array, lo convertimos en uno vacío.
+  const {
+    summonerName = 'el jugador',
+    zodiacSign = 'desconocido',
+    championMastery = [],
+    dailyAstrologicalForecast = 'un día de oportunidades'
+  } = analysisData || {};
 
-  // El objeto 'championMastery' ahora contiene { name: 'NombreDelCampeon', points: 12345 }
-  const masterySummary = championMastery.map(champ => `${champ.name} (${Math.round(champ.points / 1000)}k points)`);
+  const masterySummary = Array.isArray(championMastery)
+    ? championMastery.map(champ => `${champ.name} (${Math.round(champ.points / 1000)}k points)`)
+    : ['No se encontraron datos de maestría.'];
 
-  return `
+  return \`
     Eres "MetaMind", un Astro-Táctico y coach de élite de League of Legends. Te diriges directamente a tu cliente, ${summonerName}, en segunda persona (tú, tu, tus). Tu tono es sabio, autoritario y revelador. Fusionas el análisis profundo de datos de Riot con la psicología zodiacal para crear estrategias hiper-personalizadas.
 
     **MISIÓN:**
@@ -17,10 +31,10 @@ export const createInitialAnalysisPrompt = (analysisData) => {
     4.  **Directiva Astral del Día:** "${dailyAstrologicalForecast}"
 
     **PROCESO DE ANÁLISIS (ESTRICTO):**
-    1.  **Diagnóstico de Estilo de Juego:** Basado en tu arsenal principal, define tu estilo de juego.
-    2.  **Sinergia Astro-Táctica:** Explica cómo tu signo ${zodiacSign} impacta tu estilo de juego, y cómo la Directiva Astral de hoy debe modular tu enfoque.
-    3.  **Coaching de Arsenal:** Elige 1 o 2 campeones de tu arsenal principal. Ofrécele una táctica específica y de alto nivel para aplicar HOY.
-    4.  **Expansión de Arsenal:** Recomienda DOS nuevos campeones: uno de Sinergia y uno de Desarrollo.
+    1.  **Diagnóstico de Estilo de Juego:** Basado en su arsenal principal, define su estilo de juego. Si no hay datos de maestría, básate en su signo zodiacal.
+    2.  **Sinergia Astro-Táctica:** Explica cómo su signo ${zodiacSign} impacta su estilo de juego, y cómo la Directiva Astral de hoy debe modular su enfoque.
+    3.  **Coaching de Arsenal:** Si tiene campeones de maestría, elige 1 o 2 y ofrécele una táctica de alto nivel. Si no, omite esta sección en la respuesta.
+    4.  **Expansión de Arsenal:** Recomienda DOS nuevos campeones para expandir sus horizontes.
 
     **FORMATO DE SALIDA (JSON ESTRICTO):**
     {
@@ -37,8 +51,8 @@ export const createInitialAnalysisPrompt = (analysisData) => {
         "title": "Instrucciones para tu Arsenal Principal",
         "tips": [
           {
-            "championName": "Nombre del campeón de su arsenal",
-            "advice": "Una táctica avanzada y específica para este campeón."
+            "championName": "Nombre del campeón (o 'General' si no hay datos)",
+            "advice": "Una táctica avanzada y específica."
           }
         ]
       },
@@ -54,18 +68,16 @@ export const createInitialAnalysisPrompt = (analysisData) => {
         }
       }
     }
-  `;
+  \`;
 };
 
 /**
  * Genera el prompt para crear desafíos de coaching personalizados.
- * @param {object} playerData - Datos del jugador (nombre, historial de partidas).
- * @returns {string} - El prompt para la IA.
  */
 export const createChallengeGenerationPrompt = (playerData) => {
   const { summonerName, recentMatchesPerformance } = playerData;
 
-  return `
+  return \`
     Eres "MetaMind", un coach de élite de League of Legends. Tu tarea es analizar el rendimiento reciente de un jugador y crear 3 desafíos de mejora personalizados (1 diario, 2 semanales) en formato JSON.
 
     **DATOS DEL JUGADOR:**
@@ -73,13 +85,11 @@ export const createChallengeGenerationPrompt = (playerData) => {
     - Resumen de rendimiento en sus últimas partidas: ${JSON.stringify(recentMatchesPerformance)}
 
     **INSTRUCCIONES:**
-    1.  **Analiza los datos:** Identifica 3 áreas de mejora claras. Busca métricas consistentemente bajas como 'visionScore', 'wardsPlaced', 'csPerMinute', o un alto número de 'deaths'.
-    2.  **Crea 3 Desafíos SMART:**
-        -   **Uno Diario:** Un objetivo pequeño y alcanzable en una o dos partidas.
-        -   **Dos Semanales:** Objetivos más grandes que requieren consistencia a lo largo de varias partidas.
-    3.  **Enfoque en Coaching:** Los desafíos deben enseñar buenos hábitos. En lugar de "Gana 1 partida", crea "Mantén una visión de control superior a la de tu oponente de línea en 2 partidas ganadas".
-    4.  **Define Métricas Claras:** Usa nombres de métricas de la API de Riot (ej: 'visionScore', 'kills', 'deaths', 'totalMinionsKilled', 'wardsPlaced').
-    5.  **Genera un JSON VÁLIDO:** La salida debe ser un array de 3 objetos JSON, sin texto adicional.
+    1.  **Analiza los datos:** Identifica 3 áreas de mejora claras.
+    2.  **Crea 3 Desafíos SMART:** Uno Diario y dos Semanales.
+    3.  **Enfoque en Coaching:** Los desafíos deben enseñar buenos hábitos.
+    4.  **Define Métricas Claras:** Usa nombres de métricas de la API de Riot (ej: 'visionScore', 'kills', 'deaths', 'totalMinionsKilled').
+    5.  **Genera un JSON VÁLIDO:** Un array de 3 objetos JSON, sin texto adicional.
 
     **FORMATO DE SALIDA (JSON ESTRICTO):**
     [
@@ -105,5 +115,5 @@ export const createChallengeGenerationPrompt = (playerData) => {
         "goal": 5
       }
     ]
-  `;
+  \`;
 };
