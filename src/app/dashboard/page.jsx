@@ -4,19 +4,26 @@ import SummonerProfileForm from '@/components/forms/SummonerProfileForm';
 import ProfileForm from '@/components/forms/ProfileForm';
 import WeeklyChallenges from '@/components/WeeklyChallenges';
 import Link from 'next/link';
+import { useState, useEffect } from 'react';
 
 export default function DashboardPage() {
   const { user, login } = useAuth();
+  // Estado local para forzar la re-renderización cuando el perfil se actualiza
+  const [currentUser, setCurrentUser] = useState(user);
 
-  const handleProfileUpdate = (updatedUser) => {
+  useEffect(() => {
+    setCurrentUser(user);
+  }, [user]);
+
+  const handleProfileUpdate = (updatedUserData) => {
     const token = localStorage.getItem('authToken');
-    // Actualiza el contexto global, lo que forzará una re-renderización
-    login(updatedUser, token);
+    // Actualiza el contexto global
+    login(updatedUserData, token);
+    // Actualiza el estado local para reflejar el cambio inmediatamente
+    setCurrentUser(updatedUserData);
   };
 
-  // La variable hasSummonerProfile ahora depende directamente del contexto 'user'
-  // y se actualizará cuando el contexto cambie.
-  const hasSummonerProfile = user && user.riot_id_name;
+  const hasSummonerProfile = currentUser && currentUser.riot_id_name;
 
   return (
     <div className="w-full max-w-7xl mx-auto flex flex-col lg:flex-row gap-12">
@@ -32,8 +39,7 @@ export default function DashboardPage() {
               </p>
             </div>
             <div className="w-full max-w-lg">
-              {/* Le pasamos el usuario actual al formulario de perfil */}
-              <ProfileForm currentUser={user} />
+              <ProfileForm currentUser={currentUser} />
             </div>
           </>
         ) : (

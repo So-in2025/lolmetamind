@@ -3,14 +3,16 @@ import React, { useState } from 'react';
 import { useForm } from 'react-hook-form';
 
 export default function SummonerProfileForm({ onProfileUpdate }) {
-  const { register, handleSubmit, formState: { errors, isSubmitting } } = useForm();
+  const { register, handleSubmit, formState: { errors, isSubmitting }, getValues } = useForm();
   const [apiError, setApiError] = useState('');
+  const [showSimulationButton, setShowSimulationButton] = useState(false);
+  const [isSimulating, setIsSimulating] = useState(false);
   const regions = ['LAS', 'LAN', 'NA', 'EUW', 'EUNE', 'KR', 'JP'];
 
   const onSubmit = async (data) => {
     setApiError('');
+    setShowSimulationButton(false);
     try {
-      // Limpia el tagline si el usuario incluye el #
       const cleanTagLine = data.tagLine.startsWith('#') ? data.tagLine.substring(1) : data.tagLine;
 
       const response = await fetch('/api/user/profile', {
@@ -24,7 +26,6 @@ export default function SummonerProfileForm({ onProfileUpdate }) {
 
       const result = await response.json();
       if (!response.ok) {
-        // Usamos el mensaje de error específico de la API si está disponible
         throw new Error(result.error || 'No se pudo actualizar el perfil.');
       }
       
@@ -34,6 +35,41 @@ export default function SummonerProfileForm({ onProfileUpdate }) {
     } catch (err) {
       console.error("Error en el envío del formulario:", err);
       setApiError(err.message);
+      // Si el error ocurre, mostramos el botón de simulación
+      setShowSimulationButton(true);
+    }
+  };
+
+  // Nueva función para manejar el modo de simulación
+  const handleSimulation = async () => {
+    setIsSimulating(true);
+    setApiError('');
+    const data = getValues(); // Obtenemos los datos actuales del formulario
+    try {
+        const cleanTagLine = data.tagLine.startsWith('#') ? data.tagLine.substring(1) : data.tagLine;
+        const response = await fetch('/api/user/profile/simulate', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${localStorage.getItem('authToken')}`
+            },
+            body: JSON.stringify({ ...data, tagLine: cleanTagLine }),
+        });
+
+        const result = await response.json();
+        if (!response.ok) {
+            throw new Error(result.error || 'No se pudo crear el perfil simulado.');
+        }
+
+        alert('¡Modo de simulación activado! Perfil simulado vinculado con éxito.');
+        if(onProfileUpdate) onProfileUpdate(result.user);
+
+    } catch (err) {
+        console.error("Error en la simulación:", err);
+        setApiError(err.message);
+    } finally {
+        setIsSimulating(false);
+        setShowSimulationButton(false);
     }
   };
 
@@ -86,6 +122,20 @@ export default function SummonerProfileForm({ onProfileUpdate }) {
           {isSubmitting ? 'Verificando y Guardando...' : 'Vincular y Guardar'}
         </button>
       </form>
+      
+      {/* Botón de simulación que aparece en caso de error */}
+      {showSimulationButton && (
+        <div className="mt-4 text-center">
+            <p className="text-sm text-lol-gold-light/70 mb-2">Aún no estamos conectados con Riot.</p>
+            <button
+                onClick={handleSimulation}
+                disabled={isSimulating}
+                className="w-full bg-lol-blue-accent hover:bg-cyan-500 text-lol-blue-dark font-display font-bold py-3 px-4 rounded-lg disabled:opacity-50"
+            >
+                {isSimulating ? 'Simulando...' : '¿Quieres avanzar con una simulación?'}
+            </button>
+        </div>
+      )}
     </div>
   );
 }
