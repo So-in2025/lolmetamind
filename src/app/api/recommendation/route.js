@@ -7,8 +7,6 @@ import { generateStrategicAnalysis } from '@/lib/ai/strategist';
 import { createInitialAnalysisPrompt } from '@/lib/ai/prompts';
 
 const JWT_SECRET = process.env.JWT_SECRET;
-
-// SOLUCIÓN: Forzar el renderizado dinámico para esta ruta
 export const dynamic = 'force-dynamic';
 
 const dailyForecasts = [
@@ -34,14 +32,29 @@ export async function POST(request) {
     }
     const userData = userResult.rows[0];
 
-    const championMasteryData = await getChampionMastery(userData.puuid, userData.region);
+    let championMasteryWithNames = [];
 
-    const championMasteryWithNames = await Promise.all(
-      championMasteryData.map(async (mastery) => ({
-        name: await getChampionNameById(mastery.championId),
-        points: mastery.championPoints,
-      }))
-    );
+    // --- INICIO DE LA LÓGICA DE SIMULACIÓN ---
+    if (userData.puuid.startsWith('simulated-')) {
+      console.log('Modo Simulación: Usando datos de maestría de campeones falsos.');
+      championMasteryWithNames = [
+        { name: 'Yasuo', points: 150000 },
+        { name: 'Lux', points: 120000 },
+        { name: 'Zed', points: 95000 },
+        { name: 'Jhin', points: 80000 },
+        { name: 'Lee Sin', points: 75000 },
+      ];
+    } else {
+      // Lógica original para usuarios reales
+      const championMasteryData = await getChampionMastery(userData.puuid, userData.region);
+      championMasteryWithNames = await Promise.all(
+        championMasteryData.map(async (mastery) => ({
+          name: await getChampionNameById(mastery.championId),
+          points: mastery.championPoints,
+        }))
+      );
+    }
+    // --- FIN DE LA LÓGICA DE SIMULACIÓN ---
     
     const dayOfYear = Math.floor((new Date() - new Date(new Date().getFullYear(), 0, 0)) / 1000 / 60 / 60 / 24);
     const dailyAstrologicalForecast = dailyForecasts[dayOfYear % dailyForecasts.length];

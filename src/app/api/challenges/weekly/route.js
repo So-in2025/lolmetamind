@@ -1,5 +1,3 @@
-// src/app/api/challenges/weekly/route.js
-
 import { NextResponse } from 'next/server';
 import jwt from 'jsonwebtoken';
 import pool from '@/lib/db';
@@ -8,45 +6,58 @@ import { generateStrategicAnalysis } from '@/lib/ai/strategist';
 import { createChallengeGenerationPrompt } from '@/lib/ai/prompts';
 
 const JWT_SECRET = process.env.JWT_SECRET;
-
-// SOLUCIÓN: Forzar el renderizado dinámico para esta ruta
 export const dynamic = 'force-dynamic';
 
 async function generateAndStoreChallenges(userId, userData) {
-    const matchIds = await getMatchHistoryIds(userData.puuid, userData.region);
-    
-    if (matchIds.length === 0) {
-        return [];
-    }
-
     let recentMatchesPerformance = [];
-    // Usamos un bucle seguro en lugar de map para mayor control
-    for (const matchId of matchIds) {
-        const matchDetails = await getMatchDetails(matchId, userData.region);
-        const participant = matchDetails.info.participants.find(p => p.puuid === userData.puuid);
-        if (participant) {
-            recentMatchesPerformance.push({
-                win: participant.win,
-                kills: participant.kills,
-                deaths: participant.deaths,
-                assists: participant.assists,
-                visionScore: participant.visionScore,
-                csPerMinute: (participant.totalMinionsKilled / (matchDetails.info.gameDuration / 60)).toFixed(1)
-            });
+
+    // --- INICIO DE LA LÓGICA DE SIMULACIÓN ---
+    if (userData.puuid.startsWith('simulated-')) {
+        console.log('Modo Simulación: Usando datos de historial de partidas falsos.');
+        recentMatchesPerformance = [
+            { win: true, kills: 10, deaths: 2, assists: 8, visionScore: 35, csPerMinute: 8.5 },
+            { win: false, kills: 2, deaths: 8, assists: 5, visionScore: 15, csPerMinute: 6.0 },
+            { win: true, kills: 15, deaths: 4, assists: 12, visionScore: 45, csPerMinute: 9.1 },
+            { win: true, kills: 8, deaths: 1, assists: 10, visionScore: 55, csPerMinute: 7.8 },
+            { win: false, kills: 4, deaths: 10, assists: 3, visionScore: 20, csPerMinute: 5.5 },
+        ];
+    } else {
+        // Lógica original para usuarios reales
+        const matchIds = await getMatchHistoryIds(userData.puuid, userData.region);
+        if (matchIds.length === 0) return [];
+        
+        for (const matchId of matchIds) {
+            const matchDetails = await getMatchDetails(matchId, userData.region);
+            const participant = matchDetails.info.participants.find(p => p.puuid === userData.puuid);
+            if (participant) {
+                recentMatchesPerformance.push({
+                    win: participant.win,
+                    kills: participant.kills,
+                    deaths: participant.deaths,
+                    assists: participant.assists,
+                    visionScore: participant.visionScore,
+                    csPerMinute: (participant.totalMinionsKilled / (matchDetails.info.gameDuration / 60)).toFixed(1)
+                });
+            }
         }
     }
+    // --- FIN DE LA LÓGICA DE SIMULACIÓN ---
+
+    if (recentMatchesPerformance.length === 0) return [];
 
     const prompt = createChallengeGenerationPrompt({ summonerName: userData.riot_id_name, recentMatchesPerformance });
     const challengesFromAI = await generateStrategicAnalysis({ customPrompt: prompt });
 
     if (!Array.isArray(challengesFromAI)) {
         console.error("La IA no devolvió un array de desafíos. Se recibió:", challengesFromAI);
-        return []; // Seguridad
+        return [];
     }
 
     const client = await pool.connect();
     try {
         await client.query('BEGIN');
+        // Limpiar desafíos antiguos antes de insertar nuevos para evitar duplicados
+        await client.query('DELETE FROM user_challenges WHERE user_id = $1', [userId]);
         for (const challenge of challengesFromAI) {
             const expires_at = new Date();
             expires_at.setDate(expires_at.getDate() + (challenge.challenge_type === 'daily' ? 1 : 7));

@@ -1,142 +1,146 @@
 'use client';
 import React, { useState } from 'react';
 import { useForm } from 'react-hook-form';
-import { motion } from 'framer-motion';
-import { useAuth } from '@/context/AuthContext';
 
-export default function ProfileForm({ currentUser }) {
-  const [status, setStatus] = useState('idle');
-  const [recommendation, setRecommendation] = useState(null);
-  const { register, handleSubmit, formState: { errors, isSubmitting } } = useForm();
-  const { token } = useAuth();
-  const zodiacSigns = [
-    'Aries', 'Tauro', 'Géminis', 'Cáncer', 'Leo', 'Virgo',
-    'Libra', 'Escorpio', 'Sagitario', 'Capricornio', 'Acuario', 'Piscis'
-  ];
+export default function SummonerProfileForm({ onProfileUpdate }) {
+  const { register, handleSubmit, formState: { errors, isSubmitting }, getValues } = useForm();
+  const [apiError, setApiError] = useState('');
+  const [showSimulationButton, setShowSimulationButton] = useState(false);
+  const [isSimulating, setIsSimulating] = useState(false);
 
   const onSubmit = async (data) => {
-    setStatus('loading');
-    setRecommendation(null);
+    setApiError('');
+    setShowSimulationButton(false);
     try {
-      const response = await fetch('/api/recommendation', {
+      const cleanTagLine = data.tagLine.startsWith('#') ? data.tagLine.substring(1) : data.tagLine;
+
+      const response = await fetch('/api/user/profile', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
+          'Authorization': `Bearer ${localStorage.getItem('authToken')}`
         },
-        body: JSON.stringify({ zodiacSign: data.zodiacSign }),
+        body: JSON.stringify({ ...data, tagLine: cleanTagLine }),
       });
-      if (!response.ok) {
-        const err = await response.json();
-        throw new Error(err.error || 'La respuesta de la IA no fue exitosa');
-      }
+
       const result = await response.json();
-      setRecommendation(result);
-      setStatus('success');
-    } catch (error) {
-      console.error('Error al enviar el formulario:', error);
-      setStatus('error');
+      if (!response.ok) {
+        throw new Error(result.error || 'No se pudo actualizar el perfil.');
+      }
+      
+      alert('¡Perfil de invocador vinculado con éxito!');
+      if(onProfileUpdate) onProfileUpdate(result.user);
+
+    } catch (err) {
+      console.error("Error en el envío del formulario:", err);
+      setApiError(err.message);
+      // Si el error ocurre, mostramos el botón de simulación
+      setShowSimulationButton(true);
     }
   };
 
-  if (status === 'loading') {
-    return (
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="bg-lol-blue-medium text-lol-gold-light p-8 rounded-xl shadow-lg w-full text-center animate-pulse border-2 border-lol-gold-dark"
-      >
-        <h2 className="text-2xl font-display font-bold text-lol-blue-accent mb-4">Analizando tu Perfil Cósmico...</h2>
-        <p className="text-lol-gold-light/90">La IA está consultando los astros y tu perfil de Riot para entregar tu plan de acción diario.</p>
-      </motion.div>
-    );
-  }
+  // Nueva función para manejar el modo de simulación
+  const handleSimulation = async () => {
+    setIsSimulating(true);
+    setApiError('');
+    const data = getValues(); // Obtenemos los datos actuales del formulario
+    try {
+        const cleanTagLine = data.tagLine.startsWith('#') ? data.tagLine.substring(1) : data.tagLine;
+        const response = await fetch('/api/user/profile/simulate', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${localStorage.getItem('authToken')}`
+            },
+            body: JSON.stringify({ ...data, tagLine: cleanTagLine }),
+        });
 
-  // --- UI de Resultados Actualizada ---
-  if (status === 'success' && recommendation) {
-    return (
-      <motion.div
-        initial={{ opacity: 0, scale: 0.95 }}
-        animate={{ opacity: 1, scale: 1 }}
-        className="bg-lol-blue-medium text-lol-gold-light p-8 rounded-xl shadow-lg w-full border-2 border-lol-gold-dark"
-      >
-        <h2 className="text-3xl font-display font-bold text-lol-blue-accent mb-6 text-center">Plan de Acción para {currentUser.riot_id_name}</h2>
-        <div className="space-y-6">
-          {recommendation.playstyleAnalysis && (
-            <div className="bg-lol-blue-dark p-4 rounded-lg border border-lol-gold-dark">
-              <h3 className="text-xl font-display font-bold text-lol-gold mb-2">{recommendation.playstyleAnalysis.title}</h3>
-              <p><strong className="font-semibold text-lol-gold-light">Arquetipo:</strong> <span className="text-lol-blue-accent font-bold">{recommendation.playstyleAnalysis.style}</span></p>
-              <p className="text-sm text-lol-gold-light/80 mt-1">{recommendation.playstyleAnalysis.description}</p>
-            </div>
-          )}
-          {recommendation.astroTacticSynergy && (
-            <div className="bg-lol-blue-dark p-4 rounded-lg border border-lol-gold-dark">
-              <h3 className="text-xl font-display font-bold text-lol-gold mb-2">{recommendation.astroTacticSynergy.title}</h3>
-              <p className="text-sm text-lol-gold-light/80">{recommendation.astroTacticSynergy.description}</p>
-            </div>
-          )}
-          {recommendation.masteryCoaching && Array.isArray(recommendation.masteryCoaching.tips) && (
-            <div className="bg-lol-blue-dark p-4 rounded-lg border border-lol-gold-dark">
-              <h3 className="text-xl font-display font-bold text-lol-gold mb-2">{recommendation.masteryCoaching.title}</h3>
-              <ul className="list-disc list-inside space-y-2 text-lol-gold-light/80 text-sm">
-                {recommendation.masteryCoaching.tips.map((tip, index) => (
-                  <li key={index}><strong>{tip.championName}:</strong> {tip.advice}</li>
-                ))}
-              </ul>
-            </div>
-          )}
-          {recommendation.newChampionRecommendations && (
-            <div className="bg-lol-blue-dark p-4 rounded-lg border border-lol-gold-dark">
-              <h3 className="text-xl font-display font-bold text-lol-gold mb-3">{recommendation.newChampionRecommendations.title}</h3>
-              <div className="space-y-3">
-                <div>
-                  <h4 className="font-semibold text-lol-blue-accent">Campeón de Sinergia: {recommendation.newChampionRecommendations.synergy.champion}</h4>
-                  <p className="text-sm text-lol-gold-light/80">{recommendation.newChampionRecommendations.synergy.reason}</p>
-                </div>
-                <div>
-                  <h4 className="font-semibold text-purple-400">Campeón de Desarrollo: {recommendation.newChampionRecommendations.development.champion}</h4>
-                  <p className="text-sm text-lol-gold-light/80">{recommendation.newChampionRecommendations.development.reason}</p>
-                </div>
-              </div>
-            </div>
-          )}
-        </div>
-        <button
-          onClick={() => setStatus('idle')}
-          className="w-full mt-8 bg-lol-gold hover:bg-lol-gold-dark text-lol-blue-dark font-display font-bold py-3 px-4 rounded-lg"
-        >
-          Realizar otro Análisis
-        </button>
-      </motion.div>
-    );
-  }
+        const result = await response.json();
+        if (!response.ok) {
+            throw new Error(result.error || 'No se pudo crear el perfil simulado.');
+        }
 
-  // --- Formulario (sin cambios) ---
+        alert('¡Modo de simulación activado! Perfil simulado vinculado con éxito.');
+        if(onProfileUpdate) onProfileUpdate(result.user);
+
+    } catch (err) {
+        console.error("Error en la simulación:", err);
+        setApiError(err.message);
+    } finally {
+        setIsSimulating(false);
+        setShowSimulationButton(false);
+    }
+  };
+
   return (
     <div className="bg-lol-blue-medium text-lol-gold-light p-8 rounded-xl shadow-lg w-full border-2 border-lol-gold-dark">
-      <h2 className="text-2xl font-display font-bold text-lol-blue-accent mb-1">Análisis de IA</h2>
-      <p className="text-lol-gold-light/90 mb-6">Tu Riot ID <strong className="text-lol-blue-accent">{currentUser.riot_id_name}#{currentUser.riot_id_tagline}</strong> está listo. Solo falta un detalle.</p>
+      <h2 className="text-2xl font-display font-bold text-lol-blue-accent mb-2">Vincula tu Riot ID</h2>
+      <p className="text-lol-gold-light/90 mb-6">
+        Ingresa tu nombre de juego y tu tagline para activar el coaching. Lo encontrarás pasando el mouse sobre tu avatar en el cliente de Riot.
+      </p>
+      {apiError && <p className="bg-red-900/50 text-red-300 border border-red-500 rounded-md p-3 text-center mb-4">{apiError}</p>}
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+        <div className="flex flex-col md:flex-row gap-4">
+          <div className="flex-grow">
+            <label htmlFor="gameName" className="block text-sm font-medium mb-2">Nombre de Juego</label>
+            <input
+              id="gameName"
+              placeholder="Ej: Faker"
+              {...register("gameName", { required: "El nombre es requerido." })}
+              className="w-full bg-lol-blue-dark border-2 border-lol-gold-dark rounded-lg px-4 py-2"
+            />
+            {errors.gameName && <p className="text-red-500 text-xs mt-1">{errors.gameName.message}</p>}
+          </div>
+          <div className="w-full md:w-1/3">
+            <label htmlFor="tagLine" className="block text-sm font-medium mb-2">Tagline</label>
+            <input
+              id="tagLine"
+              placeholder="KR1"
+              {...register("tagLine", { required: "El tagline es requerido." })}
+              className="w-full bg-lol-blue-dark border-2 border-lol-gold-dark rounded-lg px-4 py-2"
+            />
+            {errors.tagLine && <p className="text-red-500 text-xs mt-1">{errors.tagLine.message}</p>}
+          </div>
+        </div>
         <div>
-          <label htmlFor="zodiacSign" className="block text-sm font-medium text-lol-gold-light mb-2">Signo Zodiacal</label>
+          <label htmlFor="region" className="block text-sm font-medium mb-2">Región de Juego</label>
           <select
-            id="zodiacSign"
-            {...register("zodiacSign", { required: "Tu signo zodiacal es necesario para el análisis." })}
+            id="region"
+            {...register("region", { required: "Debes seleccionar una región." })}
             className="w-full bg-lol-blue-dark border-2 border-lol-gold-dark rounded-lg px-4 py-2"
           >
-            <option value="">-- Selecciona tu signo --</option>
-            {zodiacSigns.map(sign => <option key={sign} value={sign}>{sign}</option>)}
+            <option value="LAS">LAS</option>
+            <option value="LAN">LAN</option>
+            <option value="NA">NA</option>
+            <option value="EUW">EUW</option>
+            <option value="EUNE">EUNE</option>
+            <option value="KR">KR</option>
+            <option value="JP">JP</option>
           </select>
-          {errors.zodiacSign && <p className="text-red-500 text-xs mt-1">{errors.zodiacSign.message}</p>}
+          {errors.region && <p className="text-red-500 text-xs mt-1">{errors.region.message}</p>}
         </div>
         <button
           type="submit"
           disabled={isSubmitting}
-          className="w-full bg-lol-gold hover:bg-lol-gold-dark text-lol-blue-dark font-display font-bold py-3 px-4 rounded-lg"
+          className="w-full bg-lol-gold hover:bg-lol-gold-dark text-lol-blue-dark font-display font-bold py-3 px-4 rounded-lg disabled:opacity-50"
         >
-          {isSubmitting ? 'La IA está trabajando...' : 'Obtener Recomendación'}
+          {isSubmitting ? 'Verificando y Guardando...' : 'Vincular y Guardar'}
         </button>
       </form>
+      
+      {/* Botón de simulación que aparece en caso de error */}
+      {showSimulationButton && (
+        <div className="mt-4 text-center">
+            <p className="text-sm text-lol-gold-light/70 mb-2">Aún no estamos conectados con Riot.</p>
+            <button
+                onClick={handleSimulation}
+                disabled={isSimulating}
+                className="w-full bg-lol-blue-accent hover:bg-cyan-500 text-lol-blue-dark font-display font-bold py-3 px-4 rounded-lg disabled:opacity-50"
+            >
+                {isSimulating ? 'Simulando...' : '¿Quieres avanzar con una simulación?'}
+            </button>
+        </div>
+      )}
     </div>
   );
 }
