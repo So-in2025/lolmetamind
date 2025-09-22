@@ -1,3 +1,58 @@
+#!/bin/bash
+
+# ==============================================================================
+# SCRIPT DE CORRECCIÓN FIEL: LoL MetaMind
+# Corrige un proyecto ya unificado para que la landing page sea una réplica
+# exacta del código y diseño original, sin alterar la visión del autor.
+# ==============================================================================
+
+# --- Colores para la salida ---
+GREEN='\033[0;32m'
+YELLOW='\033[1;33m'
+CYAN='\033[0;36m'
+NC='\033[0m'
+
+echo -e "${YELLOW}Iniciando la corrección final de LoL MetaMind...${NC}"
+
+# --- 1. Instalar TODAS las dependencias necesarias ---
+echo -e "\n${CYAN}[PASO 1/4] Asegurando todas las dependencias necesarias...${NC}"
+npm install react-youtube framer-motion react-icons
+echo -e "${GREEN}Dependencias instaladas/verificadas. ✅${NC}"
+
+# --- 2. Restaurar Estilos Originales ---
+echo -e "\n${CYAN}[PASO 2/4] Restaurando los estilos originales en globals.css...${NC}"
+cat << 'EOF' > ./src/app/globals.css
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Fuentes y estilos base de la landing page original */
+@font-face {
+    font-family: 'BeaufortforLOL-Bold';
+    src: url('/fonts/BeaufortforLOL-Bold.woff2') format('woff2');
+    font-weight: bold;
+    font-style: normal;
+}
+
+body {
+    /* Se mantienen los colores de tu app, pero se asegura el resto */
+    margin: 0;
+    display: flex;
+    place-items: center;
+    min-width: 320px;
+    min-height: 100vh;
+    background-color: #010A13; /* Fondo base de la app */
+}
+
+.text-stroke {
+    -webkit-text-stroke: 1px #000;
+}
+EOF
+echo -e "${GREEN}Estilos restaurados con éxito. ✅${NC}"
+
+# --- 3. Reemplazar la Página Principal (/) con TU CÓDIGO ORIGINAL ---
+echo -e "\n${CYAN}[PASO 3/4] Reemplazando la página principal con tu código original...${NC}"
+cat << 'EOF' > ./src/app/page.jsx
 'use client';
 import React, { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -116,3 +171,17 @@ export default function LandingPage() {
     </div>
   );
 }
+EOF
+echo -e "${GREEN}Página principal restaurada fielmente. ✅${NC}"
+
+# --- 4. Limpieza de Archivos Incorrectos ---
+echo -e "\n${CYAN}[PASO 4/4] Eliminando archivos y carpetas incorrectas de intentos anteriores...${NC}"
+rm -rf ./src/app/presentation
+rm -f ./src/components/forms/ProfileFlowForm.jsx
+echo -e "${GREEN}Limpieza completada. ✅${NC}"
+
+echo -e "\n${YELLOW}----------------------------------------------------------------------"
+echo -e "¡CORRECCIÓN COMPLETADA! ✅"
+echo -e "Tu proyecto ahora tiene la landing page original como página de inicio."
+echo -e "Ejecuta 'npm install' y luego 'npm run dev' para verificar."
+echo -e "----------------------------------------------------------------------${NC}"
