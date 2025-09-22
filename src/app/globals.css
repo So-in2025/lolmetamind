@@ -12,7 +12,7 @@
 }
 
 body {
-  background-color: #0d1117;
+  background-color: #0d1117; /* Fondo oscuro predeterminado, aunque las secciones lo sobreescriben */
   color: white;
   font-family: 'Roboto', sans-serif;
   margin: 0;
@@ -21,3 +21,16 @@ body {
 .text-stroke {
     -webkit-text-stroke: 1px #000;
 }
+/* Asegúrate de que los colores de Tailwind estén definidos en tu tailwind.config.js
+   Ejemplo:
+   extend: {
+     colors: {
+       'lol-gold': '#C8AA6E',
+       'lol-gold-dark': '#A07F4A',
+       'lol-gold-light': '#F0E6D2',
+       'lol-blue-dark': '#0A1428',
+       'lol-blue-medium': '#001A31',
+       'lol-blue-accent': '#0BC7E0',
+     },
+   },
+*/
