@@ -8,7 +8,7 @@ const VideoPlayer = ({ videoId }) => {
       autoplay: 1,
       controls: 0,
       loop: 1,
-      playlist: videoId, // Necesario para que el loop funcione
+      playlist: videoId,
       mute: 1,
       modestbranding: 1,
       showinfo: 0,

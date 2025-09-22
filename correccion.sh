@@ -2,7 +2,7 @@
 
 # ==============================================================================
 # SCRIPT DE CORRECCIÓN FIEL: LoL MetaMind
-# Corrige un proyecto ya unificado para que la landing page sea una réplica
+# Corrige el proyecto ya unificado para que la landing page sea una réplica
 # exacta del código y diseño original, sin alterar la visión del autor.
 # ==============================================================================
 
@@ -15,18 +15,88 @@ NC='\033[0m'
 echo -e "${YELLOW}Iniciando la corrección final de LoL MetaMind...${NC}"
 
 # --- 1. Instalar TODAS las dependencias necesarias ---
-echo -e "\n${CYAN}[PASO 1/4] Asegurando todas las dependencias necesarias...${NC}"
+echo -e "\n${CYAN}[PASO 1/5] Asegurando todas las dependencias necesarias...${NC}"
 npm install react-youtube framer-motion react-icons
 echo -e "${GREEN}Dependencias instaladas/verificadas. ✅${NC}"
 
-# --- 2. Restaurar Estilos Originales ---
-echo -e "\n${CYAN}[PASO 2/4] Restaurando los estilos originales en globals.css...${NC}"
+# --- 2. Crear/Restaurar los componentes originales de la landing ---
+echo -e "\n${CYAN}[PASO 2/5] Restaurando los componentes originales...${NC}"
+mkdir -p ./src/components/landing
+
+# Restaurar EpicButton.jsx
+cat << 'EOF' > ./src/components/landing/EpicButton.jsx
+import React from 'react';
+import { motion } from 'framer-motion';
+
+const EpicButton = ({ children, onClick }) => {
+  return (
+    <motion.button
+      onClick={onClick}
+      whileHover={{ scale: 1.05 }}
+      whileTap={{ scale: 0.95 }}
+      className="bg-lol-gold hover:bg-lol-gold-dark text-lol-blue-dark font-bold py-3 px-8 rounded-lg shadow-lg uppercase tracking-wider text-lg transition-colors duration-300"
+      style={{ fontFamily: "'BeaufortforLOL-Bold', serif" }}
+    >
+      {children}
+    </motion.button>
+  );
+};
+
+export default EpicButton;
+EOF
+
+# Restaurar VideoPlayer.jsx adaptado para react-youtube
+cat << 'EOF' > ./src/components/landing/VideoPlayer.jsx
+'use client';
+import React from 'react';
+import YouTube from 'react-youtube';
+
+const VideoPlayer = ({ videoId }) => {
+  const opts = {
+    playerVars: {
+      autoplay: 1,
+      controls: 0,
+      loop: 1,
+      playlist: videoId,
+      mute: 1,
+      modestbranding: 1,
+      showinfo: 0,
+      start: 0,
+      fs: 0,
+      iv_load_policy: 3
+    },
+  };
+
+  return (
+    <div className="absolute top-0 left-0 w-full h-full overflow-hidden">
+      <YouTube
+        videoId={videoId}
+        opts={opts}
+        className="absolute top-1/2 left-1/2 w-full h-full -translate-x-1/2 -translate-y-1/2"
+        style={{
+            width: '177.77777778vh', /* 100 * (16/9) */
+            minWidth: '100%',
+            minHeight: '56.25vw' /* 100 * (9/16) */
+        }}
+      />
+    </div>
+  );
+};
+
+export default VideoPlayer;
+EOF
+echo -e "${GREEN}Componentes restaurados. ✅${NC}"
+
+# --- 3. Restaurar Estilos Originales ---
+echo -e "\n${CYAN}[PASO 3/5] Restaurando los estilos originales en globals.css...${NC}"
+# Se combina el globals.css de la app con los estilos base de tu landing
 cat << 'EOF' > ./src/app/globals.css
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
-/* Fuentes y estilos base de la landing page original */
+@import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700;900&family=Roboto:wght@400;700&display=swap');
+
 @font-face {
     font-family: 'BeaufortforLOL-Bold';
     src: url('/fonts/BeaufortforLOL-Bold.woff2') format('woff2');
@@ -35,13 +105,10 @@ cat << 'EOF' > ./src/app/globals.css
 }
 
 body {
-    /* Se mantienen los colores de tu app, pero se asegura el resto */
-    margin: 0;
-    display: flex;
-    place-items: center;
-    min-width: 320px;
-    min-height: 100vh;
-    background-color: #010A13; /* Fondo base de la app */
+  background-color: #0d1117;
+  color: white;
+  font-family: 'Roboto', sans-serif;
+  margin: 0;
 }
 
 .text-stroke {
@@ -50,13 +117,13 @@ body {
 EOF
 echo -e "${GREEN}Estilos restaurados con éxito. ✅${NC}"
 
-# --- 3. Reemplazar la Página Principal (/) con TU CÓDIGO ORIGINAL ---
-echo -e "\n${CYAN}[PASO 3/4] Reemplazando la página principal con tu código original...${NC}"
+# --- 4. Reemplazar la Página Principal (/) con TU CÓDIGO ORIGINAL ---
+echo -e "\n${CYAN}[PASO 4/5] Reemplazando la página principal con tu código original...${NC}"
 cat << 'EOF' > ./src/app/page.jsx
 'use client';
 import React, { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { FaBrain, FaCrosshairs, FaPalette, FaMicrophoneAlt, FaFilm, FaTrophy, FaFacebook, FaGlobe, FaCheckCircle, FaStar, FaPlayCircle, FaVolumeUp, FaVolumeMute } from 'react-icons/fa';
+import { FaBrain, FaCrosshairs, FaPalette, FaMicrophoneAlt, FaFilm, FaTrophy, FaFacebook, FaGlobe } from 'react-icons/fa';
 import EpicButton from '@/components/landing/EpicButton';
 import VideoPlayer from '@/components/landing/VideoPlayer';
 import PricingPlans from '@/components/pricing/PricingPlans';
@@ -174,8 +241,8 @@ export default function LandingPage() {
 EOF
 echo -e "${GREEN}Página principal restaurada fielmente. ✅${NC}"
 
-# --- 4. Limpieza de Archivos Incorrectos ---
-echo -e "\n${CYAN}[PASO 4/4] Eliminando archivos y carpetas incorrectas de intentos anteriores...${NC}"
+# --- 5. Limpieza de Archivos Incorrectos ---
+echo -e "\n${CYAN}[PASO 5/5] Eliminando archivos y carpetas incorrectas de intentos anteriores...${NC}"
 rm -rf ./src/app/presentation
 rm -f ./src/components/forms/ProfileFlowForm.jsx
 echo -e "${GREEN}Limpieza completada. ✅${NC}"
@@ -183,5 +250,5 @@ echo -e "${GREEN}Limpieza completada. ✅${NC}"
 echo -e "\n${YELLOW}----------------------------------------------------------------------"
 echo -e "¡CORRECCIÓN COMPLETADA! ✅"
 echo -e "Tu proyecto ahora tiene la landing page original como página de inicio."
-echo -e "Ejecuta 'npm install' y luego 'npm run dev' para verificar."
+echo -e "Ejecuta 'npm run dev' para verificar."
 echo -e "----------------------------------------------------------------------${NC}"

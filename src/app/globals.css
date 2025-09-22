@@ -2,7 +2,8 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Fuentes y estilos base de la landing page original */
+@import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700;900&family=Roboto:wght@400;700&display=swap');
+
 @font-face {
     font-family: 'BeaufortforLOL-Bold';
     src: url('/fonts/BeaufortforLOL-Bold.woff2') format('woff2');
@@ -11,13 +12,10 @@
 }
 
 body {
-    /* Se mantienen los colores de tu app, pero se asegura el resto */
-    margin: 0;
-    display: flex;
-    place-items: center;
-    min-width: 320px;
-    min-height: 100vh;
-    background-color: #010A13; /* Fondo base de la app */
+  background-color: #0d1117;
+  color: white;
+  font-family: 'Roboto', sans-serif;
+  margin: 0;
 }
 
 .text-stroke {
