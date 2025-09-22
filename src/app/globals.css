@@ -9,3 +9,15 @@ body {
   color: white;
   font-family: 'Roboto', sans-serif;
 }
+
+/* Estilos importados de la landing page */
+@font-face {
+    font-family: 'BeaufortforLOL-Bold';
+    src: url('/fonts/BeaufortforLOL-Bold.woff2') format('woff2');
+    font-weight: bold;
+    font-style: normal;
+}
+
+.text-stroke {
+    -webkit-text-stroke: 1px #000;
+}
