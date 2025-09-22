@@ -2,7 +2,7 @@
 
 # ==============================================================================
 # SCRIPT DE CORRECCIÓN FIEL: LoL MetaMind
-# Corrige el proyecto ya unificado para que la landing page sea una réplica
+# Corrige un proyecto ya unificado para que la landing page sea una réplica
 # exacta del código y diseño original, sin alterar la visión del autor.
 # ==============================================================================
 
