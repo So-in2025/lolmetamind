@@ -1,5 +1,5 @@
 'use client';
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { FaBrain, FaCrosshairs, FaPalette, FaMicrophoneAlt, FaFilm, FaTrophy, FaFacebook, FaGlobe } from 'react-icons/fa';
 import EpicButton from '@/components/landing/EpicButton';
@@ -9,7 +9,7 @@ import PricingPlans from '@/components/pricing/PricingPlans';
 export default function LandingPage() {
   const [siteEntered, setSiteEntered] = useState(false);
   const [loadVideo, setLoadVideo] = useState(false);
-  
+
   const features = [
     { title: 'Recomendador IA', desc: 'Recibe recomendaciones de campeón, rol y estilo de juego basadas en tu personalidad y signo zodiacal, con 3 tips clave para empezar a ganar.', icon: <FaBrain /> },
     { title: 'Análisis de Partida 360°', desc: 'Domina cada partida con builds y runas adaptativas, análisis pre-juego, consejos en vivo y reportes post-partida para explotar tus fortalezas.', icon: <FaCrosshairs /> },
@@ -28,6 +28,7 @@ export default function LandingPage() {
     }, 500); // Pequeño delay para la transición
   };
 
+  // --- ETAPA 1: PÁGINA DE INGRESO ---
   if (!siteEntered) {
     return (
       <main className="min-h-screen flex flex-col justify-center items-center text-center p-4 bg-black text-white" style={{ backgroundImage: "url('/img/hero-bg.webp')", backgroundSize: 'cover', backgroundPosition: 'center' }}>
@@ -51,6 +52,7 @@ export default function LandingPage() {
     );
   }
 
+  // --- ETAPA 2: LANDING PAGE COMPLETA ---
   return (
     <div className="min-h-screen text-white" style={{ backgroundImage: "url('/img/background.webp')", backgroundSize: 'cover', backgroundPosition: 'center', backgroundAttachment: 'fixed' }}>
         <section className="h-screen flex flex-col justify-center items-center text-center p-4" style={{ backgroundImage: "url('/img/hero-bg.webp')", backgroundSize: 'cover', backgroundPosition: 'center' }}>
@@ -99,6 +101,7 @@ export default function LandingPage() {
             <motion.p initial={{ y: 50, opacity: 0 }} whileInView={{ y: 0, opacity: 1 }} viewport={{ once: true }} transition={{ duration: 1, delay: 0.2 }} className="text-lol-gold-light/90 text-lg md:text-2xl mb-10 max-w-3xl mx-auto text-shadow-md">
                 Dejá de adivinar. Empezá a dominar. Uníte a la revolución de estrategia y contenido con el poder de la IA y la astrología.
             </motion.p>
+            {/* Este botón ahora redirige a la API de Google Auth, unificando el flujo */ }
             <EpicButton onClick={() => window.location.href='/api/auth/google'}>Registrate Gratis</EpicButton>
         </section>
 
