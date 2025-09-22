@@ -1,49 +1,31 @@
 'use client';
 import { useAuth } from '@/context/AuthContext';
-import SummonerProfileForm from '@/components/forms/SummonerProfileForm';
-import ProfileForm from '@/components/forms/ProfileForm';
+import ProfileFlowForm from '@/components/forms/ProfileFlowForm'; // Importamos el nuevo componente unificado
 import WeeklyChallenges from '@/components/WeeklyChallenges';
 import Link from 'next/link';
 
 export default function DashboardPage() {
-  // Obtenemos el usuario y la función de login directamente del contexto.
-  // No usaremos un estado local 'currentUser' para evitar problemas de sincronización.
   const { user, login } = useAuth();
 
-  // Esta función se pasa al formulario. Cuando se ejecuta, actualiza el contexto.
   const handleProfileUpdate = (updatedUserData) => {
     const token = localStorage.getItem('authToken');
-    // Al llamar a login, el 'user' del contexto cambiará,
-    // y cualquier componente que use 'useAuth()' se volverá a renderizar.
     login(updatedUserData, token);
+    // Forzamos un refresh de la página para asegurar que todos los componentes reciban el nuevo estado.
+    // Es la solución más robusta para asegurar la transición de la UI.
+    window.location.reload();
   };
 
-  // La decisión de qué mostrar se basa directamente en el 'user' del contexto.
   const hasSummonerProfile = user && user.riot_id_name;
 
   return (
     <div className="w-full max-w-7xl mx-auto flex flex-col lg:flex-row gap-12">
       <div className="w-full lg:w-2/3 flex flex-col items-center">
-        {hasSummonerProfile ? (
-          <>
-            <div className="w-full max-w-lg mb-8 text-center lg:text-left">
-              <h2 className="text-4xl md:text-5xl font-display font-bold text-lol-blue-accent mb-4">
-                Tu Centro de Mando
-              </h2>
-              <p className="text-lg text-lol-gold-light/90">
-                Selecciona tu signo zodiacal para recibir un análisis instantáneo de la IA.
-              </p>
-            </div>
-            <div className="w-full max-w-lg">
-              {/* Le pasamos el usuario directamente desde el contexto */}
-              <ProfileForm currentUser={user} />
-            </div>
-          </>
-        ) : (
-          <div className="w-full max-w-lg">
-            <SummonerProfileForm onProfileUpdate={handleProfileUpdate} />
-          </div>
-        )}
+        {/* Renderizamos el nuevo componente unificado, pasándole el estado y la función de actualización */}
+        <ProfileFlowForm
+          hasProfile={hasSummonerProfile}
+          onProfileUpdate={handleProfileUpdate}
+          currentUser={user}
+        />
       </div>
       <div className="w-full lg:w-1/3 flex flex-col items-center mt-0 lg:mt-12">
         <div className="w-full max-w-lg">
