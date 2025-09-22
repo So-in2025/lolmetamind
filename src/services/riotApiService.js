@@ -41,7 +41,6 @@ export const getAccountByRiotId = async (gameName, tagLine, region) => {
     }
 };
 
-// *** NUEVA FUNCIÓN MÁS DIRECTA Y ROBUSTA ***
 export const getSummonerByName = async (name, region) => {
     try {
         const api = createApi(`https://${getPlatformRoute(region)}.api.riotgames.com`);
@@ -54,6 +53,21 @@ export const getSummonerByName = async (name, region) => {
         handleApiError(error, 'getSummonerByName');
     }
 };
+
+// --- FUNCIÓN AÑADIDA PARA CORREGIR EL ERROR ---
+export const getSummonerByPuuid = async (puuid, region) => {
+    try {
+        const api = createApi(`https://${getPlatformRoute(region)}.api.riotgames.com`);
+        const response = await api.get(`/lol/summoner/v4/summoners/by-puuid/${puuid}`);
+        if (!response.data || !response.data.id) {
+            throw new Error('La respuesta de Riot no contiene un ID de invocador válido para el PUUID proporcionado.');
+        }
+        return response.data;
+    } catch (error) {
+        handleApiError(error, 'getSummonerByPuuid');
+    }
+};
+// --- FIN DE LA CORRECCIÓN ---
 
 export const getChampionMastery = async (puuid, region) => {
     if (!puuid || !region) return [];
