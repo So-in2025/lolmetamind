@@ -2,6 +2,7 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { FaBrain, FaCrosshairs, FaPalette, FaMicrophoneAlt, FaFilm, FaTrophy, FaFacebook, FaGlobe } from 'react-icons/fa';
+// Rutas de importación corregidas para la nueva estructura
 import EpicButton from '@/components/landing/EpicButton';
 import VideoPlayer from '@/components/landing/VideoPlayer';
 import PricingPlans from '@/components/pricing/PricingPlans';
@@ -9,7 +10,7 @@ import PricingPlans from '@/components/pricing/PricingPlans';
 export default function LandingPage() {
   const [siteEntered, setSiteEntered] = useState(false);
   const [loadVideo, setLoadVideo] = useState(false);
-
+  
   const features = [
     { title: 'Recomendador IA', desc: 'Recibe recomendaciones de campeón, rol y estilo de juego basadas en tu personalidad y signo zodiacal, con 3 tips clave para empezar a ganar.', icon: <FaBrain /> },
     { title: 'Análisis de Partida 360°', desc: 'Domina cada partida con builds y runas adaptativas, análisis pre-juego, consejos en vivo y reportes post-partida para explotar tus fortalezas.', icon: <FaCrosshairs /> },
@@ -25,10 +26,10 @@ export default function LandingPage() {
     setLoadVideo(true);
     setTimeout(() => {
       setSiteEntered(true);
-    }, 500); // Pequeño delay para la transición
+    }, 500);
   };
 
-  // --- ETAPA 1: PÁGINA DE INGRESO ---
+  // --- ETAPA 1: PÁGINA DE INGRESO (Tu código original) ---
   if (!siteEntered) {
     return (
       <main className="min-h-screen flex flex-col justify-center items-center text-center p-4 bg-black text-white" style={{ backgroundImage: "url('/img/hero-bg.webp')", backgroundSize: 'cover', backgroundPosition: 'center' }}>
@@ -52,7 +53,7 @@ export default function LandingPage() {
     );
   }
 
-  // --- ETAPA 2: LANDING PAGE COMPLETA ---
+  // --- ETAPA 2: LANDING PAGE COMPLETA (Tu código original) ---
   return (
     <div className="min-h-screen text-white" style={{ backgroundImage: "url('/img/background.webp')", backgroundSize: 'cover', backgroundPosition: 'center', backgroundAttachment: 'fixed' }}>
         <section className="h-screen flex flex-col justify-center items-center text-center p-4" style={{ backgroundImage: "url('/img/hero-bg.webp')", backgroundSize: 'cover', backgroundPosition: 'center' }}>
@@ -88,6 +89,7 @@ export default function LandingPage() {
             </div>
         </section>
 
+        {/* Aquí se integra tu componente de planes de precios ya existente */}
         <section id="pricing-section" className="py-20 bg-lol-blue-dark/90">
             <div className="container mx-auto px-4">
                 <PricingPlans />
@@ -101,7 +103,7 @@ export default function LandingPage() {
             <motion.p initial={{ y: 50, opacity: 0 }} whileInView={{ y: 0, opacity: 1 }} viewport={{ once: true }} transition={{ duration: 1, delay: 0.2 }} className="text-lol-gold-light/90 text-lg md:text-2xl mb-10 max-w-3xl mx-auto text-shadow-md">
                 Dejá de adivinar. Empezá a dominar. Uníte a la revolución de estrategia y contenido con el poder de la IA y la astrología.
             </motion.p>
-            {/* Este botón ahora redirige a la API de Google Auth, unificando el flujo */ }
+            {/* El botón final ahora apunta a la ruta de autenticación de tu app */}
             <EpicButton onClick={() => window.location.href='/api/auth/google'}>Registrate Gratis</EpicButton>
         </section>
 
