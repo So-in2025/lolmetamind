@@ -2,8 +2,9 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { FaBrain, FaCrosshairs, FaPalette, FaMicrophoneAlt, FaFilm, FaTrophy, FaFacebook, FaGlobe, FaCheckCircle, FaStar, FaPlayCircle, FaVolumeUp, FaVolumeMute } from 'react-icons/fa';
-import EpicButton from '@/components/EpicButton';
-import VideoPlayer from '@/components/VideoPlayer';
+import EpicButton from '@/components/landing/EpicButton';
+import VideoPlayer from '@/components/landing/VideoPlayer';
+import PricingPlans from '@/components/pricing/PricingPlans';
 
 export default function LandingPage() {
   const [siteEntered, setSiteEntered] = useState(false);
