@@ -4,7 +4,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { FaBrain, FaCrosshairs, FaPalette, FaMicrophoneAlt, FaFilm, FaTrophy, FaFacebook, FaGlobe, FaCheckCircle, FaStar, FaPlayCircle, FaVolumeUp, FaVolumeMute } from 'react-icons/fa';
 import EpicButton from '@/components/landing/EpicButton';
 import VideoPlayer from '@/components/landing/VideoPlayer';
-import PricingPlans from '@/components/pricing/PricingPlans';
+import Link from 'next/link';
 
 export default function LandingPage() {
   const [siteEntered, setSiteEntered] = useState(false);
@@ -127,10 +127,10 @@ export default function LandingPage() {
             transition={{ delay: 1.8, type: 'spring', stiffness: 100 }}
             className="mt-10"
           >
-            {/* CORRECCIÓN: el botón "Explorar Plataforma" se desplaza a la sección de precios */}
-            <EpicButton onClick={() => document.getElementById('pricing-section').scrollIntoView({ behavior: 'smooth' })}>
-                Explorar Plataforma
-            </EpicButton>
+            {/* CORRECCIÓN: el botón "Explorar Plataforma" ahora redirige a la nueva página de precios */}
+            <Link href="/pricings">
+                <EpicButton>Explorar Plataforma</EpicButton>
+            </Link>
           </motion.div>
         </section>
 
@@ -186,12 +186,40 @@ export default function LandingPage() {
             </div>
         </section>
 
-        {/* Agregamos el id para el scroll */}
-        <section id="pricing-section" className="py-20 px-4 bg-lol-blue-dark">
+        <section className="py-20 px-4 bg-lol-blue-dark">
             <motion.h2 initial={{ y: 50, opacity: 0 }} whileInView={{ y: 0, opacity: 1 }} viewport={{ once: true }} transition={{ duration: 1 }} className="text-4xl md:text-6xl font-display font-bold text-center text-lol-gold mb-16 text-shadow-md">
                 Elegí Tu Arsenal
             </motion.h2>
-            <PricingPlans />
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-12 max-w-5xl mx-auto">
+            <motion.div initial={{ opacity: 0, x: -50 }} whileInView={{ opacity: 1, x: 0 }} viewport={{ once: true }} transition={{ duration: 1 }} className="bg-lol-blue-medium p-8 border-2 border-lol-gold-dark flex flex-col">
+                <h3 className="text-3xl font-display font-bold text-lol-gold-light mb-4">Plan Gratuito</h3>
+                <p className="text-lol-gold-light/70 mb-8">Perfecto para empezar a explorar tu potencial astrológico.</p>
+                <ul className="space-y-4 text-lg">
+                <li className="flex items-center gap-3"><FaCheckCircle className="text-lol-blue-accent" /> Recomendador de Campeón</li>
+                <li className="flex items-center gap-3"><FaCheckCircle className="text-lol-blue-accent" /> Análisis Pre-Partida Básico</li>
+                <li className="flex items-center gap-3"><FaCheckCircle className="text-lol-blue-accent" /> Perfil Zodiacal Básico</li>
+                <li className="flex items-center gap-3"><FaCheckCircle className="text-lol-blue-accent" /> Clips con marca de agua</li>
+                <li className="flex items-center gap-3"><FaCheckCircle className="text-lol-blue-accent" /> TTS para clips (Voz estándar)</li>
+                </ul>
+            </motion.div>
+            <motion.div initial={{ opacity: 0, x: 50 }} whileInView={{ opacity: 1, x: 0 }} viewport={{ once: true }} transition={{ duration: 1, delay: 0.2 }} className="bg-lol-blue-medium p-8 border-2 border-lol-blue-accent relative flex flex-col" style={{ boxShadow: '0 0 25px rgba(11, 198, 227, 0.5)' }}>
+                <div className="absolute top-0 -translate-y-1/2 left-1/2 -translate-x-1/2 bg-lol-blue-accent text-lol-blue-dark font-bold font-display px-4 py-1 text-sm uppercase tracking-widest">
+                <FaStar className="inline-block mr-2" />
+                Más Popular
+                </div>
+                <h3 className="text-3xl font-display font-bold text-lol-blue-accent mb-4">Plan Premium</h3>
+                <p className="text-lol-gold-light/70 mb-8">Desata todo el poder de MetaMind y domina la grieta.</p>
+                <ul className="space-y-4 text-lg">
+                    <li className="flex items-start gap-3"><FaCheckCircle className="text-lol-blue-accent mt-1 flex-shrink-0" /> <div><strong className="text-lol-gold-light">Todo lo del Plan Gratuito,</strong> y además:</div></li>
+                    <li className="flex items-center gap-3"><FaCheckCircle className="text-lol-blue-accent" /> <strong className="text-lol-gold-light">Builds y Runas Adaptativas</strong></li>
+                    <li className="flex items-center gap-3"><FaCheckCircle className="text-lol-blue-accent" /> <strong className="text-lol-gold-light">Consejos Estratégicos en Vivo</strong></li>
+                    <li className="flex items-center gap-3"><FaCheckCircle className="text-lol-light" /> <strong className="text-lol-gold-light">Análisis Post-Partida Detallado</strong></li>
+                    <li className="flex items-center gap-3"><FaCheckCircle className="text-lol-blue-accent" /> <strong className="text-lol-gold-light">Overlays Inteligentes Animados</strong></li>
+                    <li className="flex items-center gap-3"><FaCheckCircle className="text-lol-blue-accent" /> <strong className="text-lol-gold-light">Clips Ilimitados sin marca</strong></li>
+                    <li className="flex items-center gap-3"><FaCheckCircle className="text-lol-blue-accent" /> <strong className="text-lol-gold-light">TTS Pro en Overlay y Clips</strong></li>
+                </ul>
+            </motion.div>
+            </div>
         </section>
 
         <section className="py-20 px-4 bg-lol-blue-dark/80 text-center bg-cover bg-center" style={{ backgroundImage: "linear-gradient(rgba(10, 20, 40, 0.8), rgba(10, 20, 40, 0.9)), url('/img/background.webp')"}}>
@@ -201,8 +229,9 @@ export default function LandingPage() {
             <motion.p initial={{ y: 50, opacity: 0 }} whileInView={{ y: 0, opacity: 1 }} viewport={{ once: true }} transition={{ duration: 1, delay: 0.2 }} className="text-lol-gold-light/90 text-lg md:text-2xl mb-10 max-w-3xl mx-auto text-shadow-md">
                 Dejá de adivinar. Empezá a dominar. Uníte a la revolución de estrategia y contenido con el poder de la IA y la astrología.
             </motion.p>
-            {/* Este botón ya está configurado para la autenticación */}
-            <EpicButton onClick={() => window.location.href='/api/auth/google'}>Registrate Gratis</EpicButton>
+            <Link href="/pricings" passHref>
+                <EpicButton>Registrate Gratis</EpicButton>
+            </Link>
         </section>
 
         <footer className="py-8 bg-lol-blue-dark text-center text-lol-gold-light/70 border-t border-lol-gold-dark">
