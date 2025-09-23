@@ -195,6 +195,7 @@ export default function LandingPage() {
                 <p className="text-lol-gold-light/70 mb-8">Perfecto para empezar a explorar tu potencial astrológico.</p>
                 <ul className="space-y-4 text-lg">
                 <li className="flex items-center gap-3"><FaCheckCircle className="text-lol-blue-accent" /> Recomendador de Campeón</li>
+                <li className="flex items-center gap-3"><FaCheckCircle className="text-lol-blue-accent" /> Builds y Runas Adaptativas</li>
                 <li className="flex items-center gap-3"><FaCheckCircle className="text-lol-blue-accent" /> Análisis Pre-Partida Básico</li>
                 <li className="flex items-center gap-3"><FaCheckCircle className="text-lol-blue-accent" /> Perfil Zodiacal Básico</li>
                 <li className="flex items-center gap-3"><FaCheckCircle className="text-lol-blue-accent" /> Clips con marca de agua</li>
@@ -210,7 +211,6 @@ export default function LandingPage() {
                 <p className="text-lol-gold-light/70 mb-8">Desata todo el poder de MetaMind y domina la grieta.</p>
                 <ul className="space-y-4 text-lg">
                     <li className="flex items-start gap-3"><FaCheckCircle className="text-lol-blue-accent mt-1 flex-shrink-0" /> <div><strong className="text-lol-gold-light">Todo lo del Plan Gratuito,</strong> y además:</div></li>
-                    <li className="flex items-center gap-3"><FaCheckCircle className="text-lol-blue-accent" /> <strong className="text-lol-gold-light">Builds y Runas Adaptativas</strong></li>
                     <li className="flex items-center gap-3"><FaCheckCircle className="text-lol-blue-accent" /> <strong className="text-lol-gold-light">Consejos Estratégicos en Vivo</strong></li>
                     <li className="flex items-center gap-3"><FaCheckCircle className="text-lol-light" /> <strong className="text-lol-gold-light">Análisis Post-Partida Detallado</strong></li>
                     <li className="flex items-center gap-3"><FaCheckCircle className="text-lol-blue-accent" /> <strong className="text-lol-gold-light">Overlays Inteligentes Animados</strong></li>
