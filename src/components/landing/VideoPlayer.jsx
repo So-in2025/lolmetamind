@@ -25,9 +25,9 @@ const VideoPlayer = ({ videoId }) => {
         opts={opts}
         className="absolute top-1/2 left-1/2 w-full h-full -translate-x-1/2 -translate-y-1/2"
         style={{
-            width: '177.77777778vh', /* 100 * (16/9) */
+            width: '177.77777778vh',
             minWidth: '100%',
-            minHeight: '56.25vw' /* 100 * (9/16) */
+            minHeight: '56.25vw'
         }}
       />
     </div>
