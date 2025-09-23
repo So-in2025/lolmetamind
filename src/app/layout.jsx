@@ -7,6 +7,9 @@ const inter = Inter({ subsets: ['latin'] })
 export const metadata = {
   title: 'LoL MetaMind',
   description: 'Plataforma de coaching con IA para League of Legends',
+  icons: {
+    icon: '/vite.svg',
+  }
 }
 
 export default function RootLayout({ children }) {
