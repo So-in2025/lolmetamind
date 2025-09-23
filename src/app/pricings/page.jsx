@@ -8,7 +8,7 @@ export default function PricingsPage() {
     <motion.div 
       initial={{ opacity: 0 }} 
       animate={{ opacity: 1 }} 
-      className="min-h-screen bg-lol-blue-dark text-lol-gold-light font-body flex flex-col items-center justify-center py-20"
+      className="h-screen w-screen flex flex-col items-center justify-center bg-lol-blue-dark text-lol-gold-light font-body"
       style={{ backgroundImage: "url('/img/background.webp')", backgroundSize: 'cover', backgroundPosition: 'center', backgroundAttachment: 'fixed' }}
     >
       <PricingPlans />
