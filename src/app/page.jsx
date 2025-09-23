@@ -186,7 +186,7 @@ export default function LandingPage() {
             </div>
         </section>
 
-        <section className="py-20 px-4 bg-lol-blue-dark">
+        <section id="arsenal-section" className="py-20 px-4 bg-lol-blue-dark">
             <motion.h2 initial={{ y: 50, opacity: 0 }} whileInView={{ y: 0, opacity: 1 }} viewport={{ once: true }} transition={{ duration: 1 }} className="text-4xl md:text-6xl font-display font-bold text-center text-lol-gold mb-16 text-shadow-md">
                 Elegí Tu Arsenal
             </motion.h2>
