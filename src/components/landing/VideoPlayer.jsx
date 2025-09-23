@@ -1,37 +1,29 @@
-'use client';
 import React from 'react';
 import YouTube from 'react-youtube';
 
-const VideoPlayer = ({ videoId }) => {
+export default function VideoPlayer({ videoId, onReady, isMuted }) {
   const opts = {
+    height: '100%',
+    width: '100%',
     playerVars: {
       autoplay: 1,
-      controls: 0,
-      loop: 1,
-      playlist: videoId,
-      mute: 1,
       modestbranding: 1,
-      showinfo: 0,
-      start: 0,
-      fs: 0,
-      iv_load_policy: 3
+      rel: 0,
+      controls: 0,
+      enablejsapi: 1,
+      mute: isMuted ? 1 : 0,
     },
   };
 
   return (
-    <div className="absolute top-0 left-0 w-full h-full overflow-hidden">
+    <div className="relative pt-[56.25%] w-full h-0">
       <YouTube
         videoId={videoId}
         opts={opts}
-        className="absolute top-1/2 left-1/2 w-full h-full -translate-x-1/2 -translate-y-1/2"
-        style={{
-            width: '177.77777778vh',
-            minWidth: '100%',
-            minHeight: '56.25vw'
-        }}
+        onReady={onReady}
+        className="absolute top-0 left-0 w-full h-full"
+        iframeClassName="w-full h-full rounded-3xl"
       />
     </div>
   );
-};
-
-export default VideoPlayer;
+}
