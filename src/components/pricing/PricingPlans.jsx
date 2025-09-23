@@ -9,9 +9,9 @@ const plans = [
     price: '0',
     features: [
       'Recomendador de Campeón',
-      'Runas Adaptativas',
+      'Runas & Builds Adaptativas',
       'Análisis Pre-Partida',
-      'Perfil Zodiacal Básico',
+      'Perfil Zodiacal',
       'Clips con marca de agua'
     ],
     cta: 'Empezar Gratis',
@@ -23,7 +23,6 @@ const plans = [
     priceId: 'price_1PQfEHFp5L5d2dZ3e6Y4L0T8',
     features: [
       'Todo lo del Plan Gratuito',
-      'Builds Adaptativas',
       'Consejos Estratégicos en Vivo',
       'Análisis Post-Partida',
       'Overlays Inteligentes Animados',
@@ -43,10 +42,7 @@ export default function PricingPlans() {
 
   const handlePlanClick = (plan) => {
     if (!isAuthenticated) {
-      // --- INICIO DE LA CORRECCIÓN ---
-      // Usamos una ruta relativa para que funcione en local y en producción
       window.location.href = '/api/auth/google';
-      // --- FIN DE LA CORRECCIÓN ---
       return;
     }
     if (plan.priceId) {

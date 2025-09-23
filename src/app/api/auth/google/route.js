@@ -51,7 +51,8 @@ export async function GET(request) {
 
     const token = createToken(user);
     
-    const redirectUrl = new URL('/dashboard', url.origin);
+    // CAMBIO CLAVE: Redirigir a la página principal, a la sección de precios.
+    const redirectUrl = new URL('/#pricing-section', url.origin);
     redirectUrl.searchParams.set('token', token);
     return NextResponse.redirect(redirectUrl);
 
