@@ -127,10 +127,10 @@ export default function LandingPage() {
             transition={{ delay: 1.8, type: 'spring', stiffness: 100 }}
             className="mt-10"
           >
-            {/* CORRECCIÓN: el botón "Explorar Plataforma" ahora redirige a la nueva página de precios */}
-            <Link href="/pricings">
-                <EpicButton>Explorar Plataforma</EpicButton>
-            </Link>
+            {/* CORRECCIÓN: el botón "Explorar Plataforma" se desplaza a la sección de precios */}
+            <EpicButton onClick={() => document.getElementById('arsenal-section').scrollIntoView({ behavior: 'smooth' })}>
+                Explorar Plataforma
+            </EpicButton>
           </motion.div>
         </section>
 
