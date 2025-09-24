@@ -44,7 +44,6 @@ export default function PricingPlans() {
 
   const handlePlanClick = (plan) => {
     if (!isAuthenticated) {
-      // Novedad: Redirigir a Google Auth con la URL final del dashboard
       window.location.href = '/api/auth/google?redirect_to=/dashboard';
       return;
     }
@@ -80,9 +79,10 @@ export default function PricingPlans() {
       <h2 className="text-4xl font-display font-bold text-center text-lol-gold mb-12">Elige Tu Arsenal</h2>
       <div className="grid grid-cols-1 md:grid-cols-2 gap-8 overflow-y-auto max-h-full">
         {plans.map((plan) => (
+          // CAMBIO CLAVE: Agregamos una clase de margen para evitar el desbordamiento al hacer hover.
           <motion.div 
             key={plan.name} 
-            className={'bg-lol-blue-medium p-4 md:p-6 border-2 ' + (plan.isPopular ? 'border-lol-blue-accent' : 'border-lol-gold-dark') + ' rounded-lg flex flex-col justify-between'}
+            className={'bg-lol-blue-medium p-4 md:p-6 border-2 m-1 ' + (plan.isPopular ? 'border-lol-blue-accent' : 'border-lol-gold-dark') + ' rounded-lg flex flex-col justify-between'}
             whileHover={{ scale: 1.02 }}
             transition={{ type: 'spring', stiffness: 400, damping: 10 }}
           >
