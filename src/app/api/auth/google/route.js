@@ -16,12 +16,17 @@ const oauth2Client = new google.auth.OAuth2(
 export async function GET(request) {
   const url = new URL(request.url);
   const code = url.searchParams.get('code');
+  
+  // Novedad: Leer el parámetro 'redirect_to' de la URL
+  const redirectTo = url.searchParams.get('redirect_to');
 
   if (!code) {
     const authUrl = oauth2Client.generateAuthUrl({
       access_type: 'offline',
       scope: ['https://www.googleapis.com/auth/userinfo.email', 'https://www.googleapis.com/auth/userinfo.profile'],
-      prompt: 'consent'
+      prompt: 'consent',
+      // Novedad: Asegurar que el parámetro 'redirect_to' se mantenga
+      state: redirectTo ? `redirect_to=${encodeURIComponent(redirectTo)}` : undefined,
     });
     return NextResponse.redirect(authUrl);
   }
@@ -51,8 +56,12 @@ export async function GET(request) {
 
     const token = createToken(user);
     
-    // CAMBIO CLAVE: Redirige a la nueva página de precios, no al dashboard
-    const redirectUrl = new URL('/pricings', url.origin);
+    // Novedad: Redirigir a la URL especificada o al dashboard por defecto
+    const finalRedirectPath = url.searchParams.get('state')?.includes('redirect_to=')
+      ? decodeURIComponent(url.searchParams.get('state').split('redirect_to=')[1])
+      : '/dashboard';
+
+    const redirectUrl = new URL(finalRedirectPath, url.origin);
     redirectUrl.searchParams.set('token', token);
     return NextResponse.redirect(redirectUrl);
 

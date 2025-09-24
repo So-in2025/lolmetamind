@@ -9,7 +9,8 @@ function UserProfile() {
 
     const handleLogout = () => {
         auth.logout();
-        router.push('/login');
+        // CAMBIO CLAVE: Redirigir a la página principal en lugar de /login
+        router.push('/');
     };
 
     if (!auth || !auth.user) return null;

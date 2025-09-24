@@ -10,7 +10,7 @@ const plans = [
     price: '0',
     features: [
       'Recomendador de Campeón',
-      'Runas y Builds Adaptativas',
+      'Runas Adaptativas',
       'Análisis Pre-Partida',
       'Perfil Zodiacal Básico',
       'Clips con marca de agua'
@@ -20,10 +20,11 @@ const plans = [
   },
   {
     name: 'Plan Premium',
-    price: '4.99',
+    price: '6.99',
     priceId: 'price_1PQfEHFp5L5d2dZ3e6Y4L0T8',
     features: [
       'Todo lo del Plan Gratuito',
+      'Builds Adaptativas',
       'Consejos Estratégicos en Vivo',
       'Análisis Post-Partida',
       'Overlays Inteligentes Animados',
@@ -43,7 +44,8 @@ export default function PricingPlans() {
 
   const handlePlanClick = (plan) => {
     if (!isAuthenticated) {
-      window.location.href = '/api/auth/google';
+      // Novedad: Redirigir a Google Auth con la URL final del dashboard
+      window.location.href = '/api/auth/google?redirect_to=/dashboard';
       return;
     }
     if (plan.priceId) {
@@ -76,7 +78,7 @@ export default function PricingPlans() {
   return (
     <div className="w-full max-w-4xl mx-auto flex flex-col items-center justify-center p-4">
       <h2 className="text-4xl font-display font-bold text-center text-lol-gold mb-12">Elige Tu Arsenal</h2>
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-8 overflow-y-auto max-h-full">
         {plans.map((plan) => (
           <motion.div 
             key={plan.name} 
