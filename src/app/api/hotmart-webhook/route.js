@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
-import { db } from '@/lib/db';
-import { v4 as uuidv4 } from 'uuid'; // Importación correcta
+import db from '@/lib/db'; // Importación por defecto
+import { v4 as uuidv4 } from 'uuid';
 
 export async function POST(req) {
   try {
@@ -16,7 +16,7 @@ export async function POST(req) {
 
     const eventType = hotmartEvent.event;
     const userEmail = hotmartEvent.email;
-    const subscriptionId = hotmartEvent.sub_id; // Corregido según posible nombre de campo
+    const subscriptionId = hotmartEvent.sub_id;
 
     if (!userEmail) {
         return NextResponse.json({ message: 'Email no proporcionado.' }, { status: 400 });

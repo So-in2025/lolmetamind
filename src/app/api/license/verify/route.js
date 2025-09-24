@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
-import { db } from '@/lib/db';
+import db from '@/lib/db'; // Importación por defecto
+import { v4 as uuidv4 } from 'uuid';
 
 export async function POST(req) {
   try {
