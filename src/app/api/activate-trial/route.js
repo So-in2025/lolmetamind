@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { db } from '@/lib/db';
-import { auth } from '@clerk/nextjs'; // RUTA CORREGIDA Y DEFINITIVA
+import { auth } from '@clerk/nextjs'; // RUTA CORREGIDA
 
 export async function POST(req) {
     try {
@@ -9,7 +9,6 @@ export async function POST(req) {
             return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
         }
 
-        // Buscamos al usuario por su google_id que Clerk nos proporciona como userId
         const userResult = await db.query('SELECT * FROM users WHERE google_id = ', [userId]);
         const user = userResult.rows[0];
 

@@ -1,17 +1,17 @@
 #!/bin/bash
 
-echo "Aplicando correcciones finales para el despliegue..."
+echo "Corrigiendo dependencias y errores de importación..."
 
-# --- Paso 1: Instalar 'uuid' y guardarlo en package.json ---
-echo "Asegurando que 'uuid' esté instalado como dependencia..."
-npm install uuid --save
+# --- Paso 1: Instalar las dependencias que faltan ---
+echo "Instalando @clerk/nextjs y uuid..."
+npm install @clerk/nextjs uuid --save
 
-# --- Paso 2: Corregir la importación de Clerk en el endpoint de la prueba ---
+# --- Paso 2: Corregir la importación en el endpoint de la prueba ---
 echo "Corrigiendo la ruta de importación de Clerk en 'activate-trial'..."
 cat > src/app/api/activate-trial/route.js << EOL
 import { NextResponse } from 'next/server';
 import { db } from '@/lib/db';
-import { auth } from '@clerk/nextjs'; // RUTA CORREGIDA Y DEFINITIVA
+import { auth } from '@clerk/nextjs'; // RUTA CORREGIDA
 
 export async function POST(req) {
     try {
@@ -20,7 +20,6 @@ export async function POST(req) {
             return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
         }
 
-        // Buscamos al usuario por su google_id que Clerk nos proporciona como userId
         const userResult = await db.query('SELECT * FROM users WHERE google_id = $1', [userId]);
         const user = userResult.rows[0];
 
@@ -48,8 +47,8 @@ export async function POST(req) {
 EOL
 
 echo "¡Corrección completada!"
-echo "Sube estos cambios a GitHub para que Vercel y Render se actualicen."
+echo "Ahora, sube los cambios a GitHub para que el despliegue funcione."
 echo "Ejecuta los siguientes comandos:"
 echo "1. git add ."
-echo "2. git commit -m \"Fix Clerk import path for deployment\""
+echo "2. git commit -m \"Fix: add missing clerk/uuid dependencies and correct import path\""
 echo "3. git push"

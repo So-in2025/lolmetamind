@@ -17,6 +17,7 @@
     "electron:package": "npm run build && electron-builder"
   },
   "dependencies": {
+    "@clerk/nextjs": "^6.32.2",
     "@paddle/paddle-node-sdk": "^3.2.1",
     "@tailwindcss/aspect-ratio": "^0.4.2",
     "autoprefixer": "^10.4.21",
