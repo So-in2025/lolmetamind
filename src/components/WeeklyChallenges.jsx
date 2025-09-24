@@ -1,6 +1,7 @@
 'use client';
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '@/context/AuthContext';
+import { motion } from 'framer-motion';
 
 const WeeklyChallenges = () => {
   const [challenges, setChallenges] = useState([]);
@@ -45,8 +46,7 @@ const WeeklyChallenges = () => {
         const result = await response.json();
         if (!response.ok) throw new Error(result.error || 'Error al procesar la partida.');
         alert('¡Progreso actualizado! Vuelve a cargar la página para ver los cambios.');
-        // Para una mejor UX, se debería refrescar el estado aquí.
-        // window.location.reload(); // Solución simple
+        window.location.reload(); 
     } catch (err) {
         setError(err.message);
     } finally {
@@ -66,16 +66,31 @@ const WeeklyChallenges = () => {
     }
     return (
       <ul className="space-y-4">
-        {challenges.map(challenge => (
-          <li key={challenge.id} className="bg-lol-blue-dark p-4 rounded-lg border border-lol-gold-dark">
-            <h4 className="font-display font-bold text-lol-blue-accent">{challenge.title} ({challenge.challenge_type})</h4>
-            <p className="text-sm text-lol-gold-light/80 mt-1">{challenge.description}</p>
-            <div className="mt-2 text-sm">
-              <span className="font-semibold text-lol-gold-light">Progreso:</span> {challenge.progress} / {challenge.goal}
-              {challenge.is_completed && <span className="text-green-400 ml-2">¡Completado!</span>}
-            </div>
-          </li>
-        ))}
+        {challenges.map(challenge => {
+          const progressPercent = Math.min(100, (challenge.progress / challenge.goal) * 100);
+          return (
+            <motion.li 
+              key={challenge.id} 
+              className="bg-lol-blue-dark p-4 rounded-lg border border-lol-gold-dark"
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.5 }}
+            >
+              <h4 className="font-display font-bold text-lol-blue-accent">{challenge.title} ({challenge.challenge_type})</h4>
+              <p className="text-sm text-lol-gold-light/80 mt-1">{challenge.description}</p>
+              <div className="mt-2 text-sm">
+                <span className="font-semibold text-lol-gold-light">Progreso:</span> {challenge.progress} / {challenge.goal}
+                {challenge.is_completed && <span className="text-green-400 ml-2">¡Completado!</span>}
+              </div>
+              <div className="w-full bg-gray-700 rounded-full h-2.5 mt-2">
+                <div 
+                  className="bg-lol-blue-accent h-2.5 rounded-full transition-all duration-500" 
+                  style={{ width: `${progressPercent}%` }}
+                ></div>
+              </div>
+            </motion.li>
+          );
+        })}
       </ul>
     );
   };

@@ -3,6 +3,7 @@ import React, { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { motion } from 'framer-motion';
 import { useAuth } from '@/context/AuthContext';
+import { FaCheckCircle, FaStar } from 'react-icons/fa';
 
 // Este componente ahora maneja AMBOS pasos del flujo.
 export default function ProfileFlowForm({ hasProfile, onProfileUpdate, currentUser }) {
@@ -109,8 +110,55 @@ export default function ProfileFlowForm({ hasProfile, onProfileUpdate, currentUs
       return (
         <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} className="bg-lol-blue-medium text-lol-gold-light p-8 rounded-xl shadow-lg w-full border-2 border-lol-gold-dark">
           <h2 className="text-3xl font-display font-bold text-lol-blue-accent mb-6 text-center">Plan de Acción para {currentUser.riot_id_name}</h2>
-          {/* ... (Aquí iría el resto de la UI de resultados, que ya tenías bien) ... */}
-           <button onClick={() => setStatus('idle')} className="w-full mt-8 bg-lol-gold hover:bg-lol-gold-dark text-lol-blue-dark font-display font-bold py-3 px-4 rounded-lg">Realizar otro Análisis</button>
+          
+          <div className="space-y-6">
+            {/* Análisis de Estilo de Juego */}
+            <div className="bg-lol-blue-dark p-6 rounded-lg border-2 border-lol-gold-dark">
+              <h3 className="text-xl font-display font-bold text-lol-gold mb-2">{recommendation.playstyleAnalysis.title}</h3>
+              <p className="text-lol-gold-light/90 mb-2">
+                <strong className="text-lol-blue-accent">{recommendation.playstyleAnalysis.style}</strong>
+              </p>
+              <p className="text-sm text-lol-gold-light/70">{recommendation.playstyleAnalysis.description}</p>
+            </div>
+
+            {/* Sinergia Astro-Táctica */}
+            <div className="bg-lol-blue-dark p-6 rounded-lg border-2 border-lol-gold-dark">
+              <h3 className="text-xl font-display font-bold text-lol-gold mb-2">{recommendation.astroTacticSynergy.title}</h3>
+              <p className="text-sm text-lol-gold-light/70">{recommendation.astroTacticSynergy.description}</p>
+            </div>
+            
+            {/* Coaching de Arsenal */}
+            {recommendation.masteryCoaching && (
+              <div className="bg-lol-blue-dark p-6 rounded-lg border-2 border-lol-gold-dark">
+                <h3 className="text-xl font-display font-bold text-lol-gold mb-2">{recommendation.masteryCoaching.title}</h3>
+                <ul className="space-y-2">
+                  {recommendation.masteryCoaching.tips.map((tip, index) => (
+                    <li key={index} className="flex items-start">
+                      <FaStar className="text-yellow-400 mr-2 flex-shrink-0" />
+                      <p className="text-sm text-lol-gold-light/90">
+                        <strong className="text-lol-blue-accent">{tip.championName}:</strong> {tip.advice}
+                      </p>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+            
+            {/* Expansión de Arsenal */}
+            <div className="bg-lol-blue-dark p-6 rounded-lg border-2 border-lol-gold-dark">
+              <h3 className="text-xl font-display font-bold text-lol-gold mb-2">{recommendation.newChampionRecommendations.title}</h3>
+              <p className="text-sm text-lol-gold-light/90 mb-2">
+                <strong className="text-lol-blue-accent">Sinergia:</strong> {recommendation.newChampionRecommendations.synergy.champion}
+                <span className="block text-lol-gold-light/70">"{recommendation.newChampionRecommendations.synergy.reason}"</span>
+              </p>
+              <p className="text-sm text-lol-gold-light/90">
+                <strong className="text-lol-blue-accent">Desarrollo:</strong> {recommendation.newChampionRecommendations.development.champion}
+                <span className="block text-lol-gold-light/70">"{recommendation.newChampionRecommendations.development.reason}"</span>
+              </p>
+            </div>
+          </div>
+          
+          <button onClick={() => setStatus('idle')} className="w-full mt-8 bg-lol-gold hover:bg-lol-gold-dark text-lol-blue-dark font-display font-bold py-3 px-4 rounded-lg">Realizar otro Análisis</button>
         </motion.div>
       );
     }
@@ -128,10 +176,15 @@ export default function ProfileFlowForm({ hasProfile, onProfileUpdate, currentUs
             </select>
             {zodiacErrors.zodiacSign && <p className="text-red-500 text-xs mt-1">{zodiacErrors.zodiacSign.message}</p>}
           </div>
-          <button type="submit" disabled={isSubmittingZodiac} className="w-full bg-lol-gold hover:bg-lol-gold-dark text-lol-blue-dark font-display font-bold py-3 px-4 rounded-lg">
+          <button type="submit" disabled={isSubmittingZodiac || status === 'loading'} className="w-full bg-lol-gold hover:bg-lol-gold-dark text-lol-blue-dark font-display font-bold py-3 px-4 rounded-lg disabled:opacity-50">
             {isSubmittingZodiac ? 'La IA está trabajando...' : 'Obtener Recomendación'}
           </button>
         </form>
+        {status === 'error' && (
+            <div className="mt-4 text-center">
+                <p className="text-sm text-red-300 mb-2">Error al obtener la recomendación de la IA. Inténtalo de nuevo más tarde.</p>
+            </div>
+        )}
       </div>
     );
   }
