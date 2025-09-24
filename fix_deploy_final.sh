@@ -1,17 +1,28 @@
 #!/bin/bash
 
-echo "Corrigiendo dependencias y errores de importación..."
+echo "Corrigiendo errores de importación en el backend..."
 
-# --- Paso 1: Instalar las dependencias que faltan ---
-echo "Instalando @clerk/nextjs y uuid..."
-npm install @clerk/nextjs uuid --save
+# --- Paso 1: Corregir la exportación de la base de datos ---
+echo "Modificando src/lib/db/index.js para usar ES Modules..."
+cat > src/lib/db/index.js << EOL
+const { Pool } = require('pg');
 
-# --- Paso 2: Corregir la importación en el endpoint de la prueba ---
-echo "Corrigiendo la ruta de importación de Clerk en 'activate-trial'..."
+const pool = new Pool({
+  connectionString: process.env.DATABASE_URL,
+});
+
+// Usamos 'export const' para que sea un módulo ES compatible con Next.js
+export const db = {
+  query: (text, params) => pool.query(text, params),
+};
+EOL
+
+# --- Paso 2: Corregir la importación de Clerk ---
+echo "Corrigiendo src/app/api/activate-trial/route.js..."
 cat > src/app/api/activate-trial/route.js << EOL
 import { NextResponse } from 'next/server';
 import { db } from '@/lib/db';
-import { auth } from '@clerk/nextjs'; // RUTA CORREGIDA
+import { auth } from '@clerk/nextjs/server'; // Volvemos a la ruta '/server' que es la correcta
 
 export async function POST(req) {
     try {
@@ -31,7 +42,7 @@ export async function POST(req) {
             return NextResponse.json({ error: 'Este usuario no es elegible para una prueba.' }, { status: 403 });
         }
 
-        const trialEndDate = new Date(Date.now() + 3 * 24 * 60 * 60 * 1000); // 3 días
+        const trialEndDate = new Date(Date.now() + 3 * 24 * 60 * 60 * 1000);
         await db.query(
             'UPDATE users SET "subscription_tier" = \\'TRIAL\\', "trial_ends_at" = $1 WHERE id = $2',
             [trialEndDate, user.id]
@@ -47,8 +58,4 @@ export async function POST(req) {
 EOL
 
 echo "¡Corrección completada!"
-echo "Ahora, sube los cambios a GitHub para que el despliegue funcione."
-echo "Ejecuta los siguientes comandos:"
-echo "1. git add ."
-echo "2. git commit -m \"Fix: add missing clerk/uuid dependencies and correct import path\""
-echo "3. git push"
+echo "Sube los cambios a GitHub (add, commit, push) para que Vercel/Render se actualicen."

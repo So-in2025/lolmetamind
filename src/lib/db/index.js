@@ -1,18 +1,10 @@
-// src/lib/db/index.js
-import { Pool } from 'pg';
+const { Pool } = require('pg');
 
-let pool;
+const pool = new Pool({
+  connectionString: process.env.DATABASE_URL,
+});
 
-// Esta configuración es la correcta para Vercel al conectar a una DB externa
-// que requiere conexiones seguras.
-if (!global._pool) {
-  global._pool = new Pool({
-    connectionString: process.env.DATABASE_URL,
-    ssl: {
-      rejectUnauthorized: false
-    }
-  });
-}
-pool = global._pool;
-
-export default pool;
+// Usamos 'export const' para que sea un módulo ES compatible con Next.js
+export const db = {
+  query: (text, params) => pool.query(text, params),
+};
