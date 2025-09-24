@@ -65,7 +65,7 @@ export default function PricingPlans() {
       if (checkoutUrl) {
         window.location.href = checkoutUrl;
       } else {
-        throw new Error('No se recibió la URL de checkout');
+s          throw new Error('No se recibió la URL de checkout');
       }
     } catch (error) {
       console.error('Error al iniciar el checkout:', error);
@@ -74,10 +74,9 @@ export default function PricingPlans() {
   };
 
   return (
-    // CORRECCIÓN: Se eliminó el padding vertical para evitar el scroll.
-    <div className="w-full max-w-4xl mx-auto p-4 md:p-8">
+    <div className="w-full max-w-4xl mx-auto flex flex-col items-center justify-center p-4 h-full">
       <h2 className="text-4xl font-display font-bold text-center text-lol-gold mb-12">Elige Tu Arsenal</h2>
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-8 overflow-y-auto max-h-full">
         {plans.map((plan) => (
           <div key={plan.name} className={'bg-lol-blue-medium p-8 border-2 ' + (plan.isPopular ? 'border-lol-blue-accent' : 'border-lol-gold-dark') + ' rounded-lg flex flex-col'}>
             {plan.isPopular && <span className="text-center bg-lol-blue-accent text-lol-blue-dark font-bold py-1 px-4 rounded-full self-center -mt-12 mb-4">Más Popular</span>}
