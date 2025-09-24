@@ -51,10 +51,10 @@ export default function DashboardLayout({ children }) {
         } catch (error) {
           console.error("Error al iniciar sesión con token:", error);
           auth.logout();
-          router.push('/login');
+          router.push('/');
         }
       } else if (!auth.isAuthenticated) {
-        router.push('/login');
+        router.push('/');
       }
     };
 

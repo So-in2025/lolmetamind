@@ -5,7 +5,6 @@ const url = require('url');
 const { Pool } = require('pg');
 require('dotenv').config();
 
-// Las rutas ahora apuntan a la carpeta 'dist' que Babel genera.
 const { getLiveGameBySummonerId } = require('./dist/services/riotApiService');
 const { createLiveCoachingPrompt } = require('./dist/lib/ai/prompts');
 const { generateStrategicAnalysis } = require('./dist/lib/ai/strategist');
@@ -57,7 +56,13 @@ wss.on('connection', async (ws, req) => {
     
     clients.set(ws, userDataFromDB);
     console.log(`🔗 Cliente conectado y verificado: ${userDataFromDB.username}`);
-    ws.send('👋 ¡Bienvenido al coach en tiempo real! Buscando tu partida...');
+    
+    const welcomeMessage = JSON.stringify({
+      realtimeAdvice: '👋 ¡Bienvenido! Buscando tu partida...',
+      buildRecommendation: { items: [], runes: [] },
+      strategicAdvice: 'Elige un plan de juego inicial: agresivo o pasivo.',
+    });
+    ws.send(welcomeMessage);
 
     ws.on('close', () => {
       console.log(`💔 Cliente desconectado: ${userDataFromDB.username}`);
@@ -71,7 +76,7 @@ wss.on('connection', async (ws, req) => {
   }
 });
 
-// --- El Motor de Coaching en Tiempo Real ---
+// --- El Motor de Coaching en Tiempo Real (Modificado) ---
 setInterval(async () => {
   if (clients.size === 0) return;
 
@@ -84,17 +89,27 @@ setInterval(async () => {
       const liveGame = await getLiveGameBySummonerId(userData.summoner_id, userData.region);
       
       if (liveGame) {
-        console.log(`[${userData.username}] Partida encontrada. Generando consejo de IA...`);
+        console.log(`[${userData.username}] Partida encontrada. Generando consejos de IA...`);
         
-        const prompt = createLiveCoachingPrompt(liveGame, userData.username);
-        const analysis = await generateStrategicAnalysis({ customPrompt: prompt });
+        // Simulación de los 3 tipos de consejos
+        const realtimeTip = "¡Cuidado! El jungla enemigo está en el río. Juega con cautela.";
+        const buildTip = {
+          items: ["Doran's Ring", "Luden's Companion"],
+          runes: ["Arcane Comet", "Manaflow Band"]
+        };
+        const strategicTip = "En los próximos minutos, enfócate en asegurar el Cangrejo Escurridizo para ganar control de visión.";
         
-        const tip = analysis.candidates[0].content.parts[0].text;
+        // Enviamos un único objeto JSON
+        const messageObject = {
+            realtimeAdvice: `[Minuto ${Math.floor(liveGame.gameLength / 60)}]: ${realtimeTip}`,
+            buildRecommendation: buildTip,
+            strategicAdvice: strategicTip,
+        };
         
-        ws.send(`[Minuto ${Math.floor(liveGame.gameLength / 60)}]: ${tip}`);
+        ws.send(JSON.stringify(messageObject));
       }
     } catch (error) {
       console.error(`Error procesando al cliente ${userData.username}:`, error);
     }
   }
-}, 60000); // Revisa cada 60 segundos
+}, 10000); // Revisa cada 10 segundos

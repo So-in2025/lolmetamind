@@ -1,3 +1,4 @@
+// src/app/overlay/page.jsx (Contenido original)
 import OBSOverlay from '@/components/widgets/OBSOverlay';
 
 export default function OverlayPage() {
