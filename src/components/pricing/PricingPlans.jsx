@@ -20,7 +20,7 @@ const plans = [
   },
   {
     name: 'Plan Premium',
-    price: '6.99',
+    price: '4.99',
     priceId: 'price_1PQfEHFp5L5d2dZ3e6Y4L0T8',
     features: [
       'Todo lo del Plan Gratuito',
