@@ -1,3 +1,14 @@
+#!/bin/bash
+
+echo "Corrigiendo errores de despliegue para Vercel y Render..."
+
+# --- Paso 1: Instalar la dependencia 'uuid' y guardarla en package.json ---
+echo "Instalando la librería 'uuid' y añadiéndola a las dependencias..."
+npm install uuid --save
+
+# --- Paso 2: Corregir el endpoint para activar la prueba ---
+echo "Corrigiendo src/app/api/activate-trial/route.js para usar la importación de Clerk correcta..."
+cat > src/app/api/activate-trial/route.js << EOL
 import { NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { auth } from '@clerk/nextjs'; // RUTA CORREGIDA: Usamos la importación principal
@@ -9,7 +20,7 @@ export async function POST(req) {
             return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
         }
 
-        const userResult = await db.query('SELECT * FROM users WHERE google_id = ', [userId]);
+        const userResult = await db.query('SELECT * FROM users WHERE google_id = $1', [userId]);
         const user = userResult.rows[0];
 
         if (!user) {
@@ -24,7 +35,7 @@ export async function POST(req) {
         // Activar la prueba
         const trialEndDate = new Date(Date.now() + 3 * 24 * 60 * 60 * 1000); // 3 días desde ahora
         await db.query(
-            'UPDATE users SET "subscription_tier" = \'TRIAL\', "trial_ends_at" =  WHERE id = ',
+            'UPDATE users SET "subscription_tier" = \\'TRIAL\\', "trial_ends_at" = $1 WHERE id = $2',
             [trialEndDate, user.id]
         );
 
@@ -35,3 +46,8 @@ export async function POST(req) {
         return NextResponse.json({ error: 'Error interno del servidor' }, { status: 500 });
     }
 }
+EOL
+
+echo "¡Corrección completada!"
+echo "Ahora, haz 'git add .', 'git commit -m \"Fix clerk import path and add uuid dependency\"' y 'git push'."
+echo "Después de subir los cambios, el despliegue debería funcionar."
