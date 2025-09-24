@@ -1,173 +1,162 @@
 #!/bin/bash
 
-echo "Realizando correcciones finales para las importaciones de la base de datos..."
+echo "Configurando el dashboard para mostrar la clave de licencia y el estado de la suscripción..."
 
-# --- Paso 1: Modificar src/lib/db/index.js para usar exportación por defecto ---
-echo "Actualizando src/lib/db/index.js para exportar la base de datos por defecto..."
-cat > src/lib/db/index.js << EOL
-const { Pool } = require('pg');
-
-const pool = new Pool({
-  connectionString: process.env.DATABASE_URL,
-});
-
-// Ahora exportamos el objeto 'db' por defecto
-const db = {
-  query: (text, params) => pool.query(text, params),
-};
-
-export default db; // <-- ¡ESTO ES LO CLAVE!
-EOL
-
-# --- Paso 2: Corregir el endpoint para activar la prueba para importar 'db' por defecto ---
-echo "Corrigiendo src/app/api/activate-trial/route.js para importar 'db' por defecto..."
-cat > src/app/api/activate-trial/route.js << EOL
+# --- Paso 1: Crear un nuevo endpoint para obtener los datos del usuario ---
+echo "Creando el endpoint /api/user/me..."
+# (Este archivo ya existe en tu proyecto, lo vamos a sobrescribir para asegurarnos de que devuelve los nuevos campos)
+cat > src/app/api/user/me/route.js << EOL
 import { NextResponse } from 'next/server';
-import db from '@/lib/db'; // Importación por defecto
-import { auth } from '@clerk/nextjs/server';
+import { auth } from '@clerk/nextjs';
+import { db } from '@/lib/db';
 
-export async function POST(req) {
+export async function GET(req) {
     try {
         const { userId } = auth();
         if (!userId) {
             return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
         }
 
-        const userResult = await db.query('SELECT * FROM users WHERE google_id = $1', [userId]);
-        const user = userResult.rows[0];
-
-        if (!user) {
-            return NextResponse.json({ error: 'Usuario no encontrado' }, { status: 404 });
-        }
-        
-        if (user.subscription_tier !== 'FREE' || user.trial_ends_at) {
-            return NextResponse.json({ error: 'Este usuario no es elegible para una prueba.' }, { status: 403 });
-        }
-
-        const trialEndDate = new Date(Date.now() + 3 * 24 * 60 * 60 * 1000);
-        await db.query(
-            'UPDATE users SET "subscription_tier" = \\'TRIAL\\', "trial_ends_at" = $1 WHERE id = $2',
-            [trialEndDate, user.id]
+        const userResult = await db.query(
+            'SELECT id, name, email, avatar_url, license_key, subscription_tier, trial_ends_at FROM users WHERE google_id = $1',
+            [userId]
         );
 
-        return NextResponse.json({ message: 'Prueba de 3 días activada con éxito.' });
+        if (userResult.rows.length === 0) {
+            return NextResponse.json({ error: 'Usuario no encontrado' }, { status: 404 });
+        }
+
+        return NextResponse.json(userResult.rows[0]);
 
     } catch (error) {
-        console.error('Error al activar la prueba:', error);
+        console.error('Error al obtener los datos del usuario:', error);
         return NextResponse.json({ error: 'Error interno del servidor' }, { status: 500 });
     }
 }
 EOL
 
-# --- Paso 3: Corregir el endpoint del webhook de Hotmart para importar 'db' por defecto ---
-echo "Corrigiendo src/app/api/hotmart-webhook/route.js para importar 'db' por defecto..."
-cat > src/app/api/hotmart-webhook/route.js << EOL
-import { NextResponse } from 'next/server';
-import db from '@/lib/db'; // Importación por defecto
-import { v4 as uuidv4 } from 'uuid';
+# --- Paso 2: Actualizar la página del Dashboard ---
+echo "Actualizando la página src/app/dashboard/page.jsx..."
+cat > src/app/dashboard/page.jsx << EOL
+'use client';
+import { useState, useEffect } from 'react';
+import { FiCopy, FiCheckCircle } from 'react-icons/fi';
 
-export async function POST(req) {
-  try {
-    const formData = await req.formData();
-    const hotmartEvent = Object.fromEntries(formData.entries());
-    console.log('Webhook de Hotmart recibido:', hotmartEvent);
+export default function DashboardPage() {
+    const [userData, setUserData] = useState(null);
+    const [isLoading, setIsLoading] = useState(true);
+    const [error, setError] = useState('');
+    const [copied, setCopied] = useState(false);
 
-    const hotmartToken = req.headers.get('x-hotmart-hottok');
-    if (hotmartToken !== process.env.HOTMART_WEBHOOK_SECRET) {
-      console.warn('Intento de webhook no autorizado.');
-      return NextResponse.json({ message: 'No autorizado' }, { status: 401 });
-    }
+    useEffect(() => {
+        const fetchUserData = async () => {
+            try {
+                const response = await fetch('/api/user/me');
+                if (!response.ok) {
+                    throw new Error('No se pudo cargar la información del usuario.');
+                }
+                const data = await response.json();
+                setUserData(data);
+            } catch (err) {
+                setError(err.message);
+            } finally {
+                setIsLoading(false);
+            }
+        };
 
-    const eventType = hotmartEvent.event;
-    const userEmail = hotmartEvent.email;
-    const subscriptionId = hotmartEvent.sub_id;
+        fetchUserData();
+    }, []);
 
-    if (!userEmail) {
-        return NextResponse.json({ message: 'Email no proporcionado.' }, { status: 400 });
-    }
-
-    const userResult = await db.query('SELECT * FROM users WHERE email = $1', [userEmail]);
-    let user = userResult.rows[0];
-
-    if (eventType === 'PURCHASE_APPROVED' || eventType === 'SUBSCRIPTION_ACTIVATED') {
-        if (user) {
-            await db.query(
-              'UPDATE users SET "subscription_tier" = \\'PREMIUM\\', "hotmart_subscription_id" = $1 WHERE email = $2',
-              [subscriptionId, userEmail]
-            );
-            console.log(\`Usuario \${userEmail} actualizado a PREMIUM.\`);
+    const handleCopyToClipboard = () => {
+        if (userData?.license_key) {
+            navigator.clipboard.writeText(userData.license_key);
+            setCopied(true);
+            setTimeout(() => setCopied(false), 2000); // Reset after 2 seconds
         }
-    } else if (eventType === 'SUBSCRIPTION_CANCELED' || eventType === 'PURCHASE_REFUNDED') {
-        if (user) {
-            await db.query(
-              'UPDATE users SET "subscription_tier" = \\'FREE\\', "hotmart_subscription_id" = NULL WHERE email = $1',
-              [userEmail]
-            );
-            console.log(\`Suscripción de \${userEmail} cancelada.\`);
+    };
+
+    const handleActivateTrial = async () => {
+        try {
+            const response = await fetch('/api/activate-trial', { method: 'POST' });
+            const result = await response.json();
+            if (!response.ok) {
+                throw new Error(result.error || 'No se pudo activar la prueba.');
+            }
+            // Recargar los datos para mostrar el nuevo estado
+            window.location.reload(); 
+        } catch (err) {
+            alert(\`Error: \${err.message}\`);
         }
+    };
+
+    const getStatusInfo = () => {
+        if (!userData) return { text: 'Cargando...', color: 'text-gray-400' };
+
+        switch (userData.subscription_tier) {
+            case 'PREMIUM':
+                return { text: 'PREMIUM', color: 'text-yellow-400' };
+            case 'TRIAL':
+                const endDate = new Date(userData.trial_ends_at);
+                const now = new Date();
+                const daysRemaining = Math.ceil((endDate - now) / (1000 * 60 * 60 * 24));
+                return { text: \`PRUEBA (quedan \${daysRemaining} días)\`, color: 'text-blue-400' };
+            default:
+                return { text: 'GRATIS', color: 'text-gray-400' };
+        }
+    };
+
+    const statusInfo = getStatusInfo();
+
+    if (isLoading) {
+        return <div className="text-center p-10">Cargando tu dashboard...</div>;
     }
 
-    return NextResponse.json({ message: 'Webhook procesado' }, { status: 200 });
+    if (error) {
+        return <div className="text-center p-10 text-red-500">{error}</div>;
+    }
 
-  } catch (error) {
-    console.error('Error al procesar webhook de Hotmart:', error);
-    return NextResponse.json({ error: 'Error interno del servidor' }, { status: 500 });
-  }
+    return (
+        <div className="container mx-auto p-4 md:p-8">
+            <h1 className="text-3xl md:text-4xl font-bold text-white mb-6">Tu Dashboard</h1>
+            
+            <div className="bg-gray-800 bg-opacity-50 backdrop-blur-sm rounded-lg shadow-lg p-6 border border-gray-700">
+                <div className="flex flex-col md:flex-row items-center gap-6">
+                    <img src={userData.avatar_url} alt="Avatar" className="w-24 h-24 rounded-full border-2 border-yellow-500" />
+                    <div>
+                        <h2 className="text-2xl font-bold text-white">{userData.name}</h2>
+                        <p className="text-gray-400">{userData.email}</p>
+                        <p className={\`mt-2 text-lg font-bold \${statusInfo.color}\`}>
+                            Estado de la Suscripción: {statusInfo.text}
+                        </p>
+                    </div>
+                </div>
+
+                <div className="mt-8 border-t border-gray-700 pt-6">
+                    <h3 className="text-xl font-semibold text-white mb-4">Tu Clave de Licencia</h3>
+                    {userData.license_key ? (
+                        <div className="flex items-center gap-4 bg-gray-900 p-4 rounded-md">
+                            <span className="text-green-400 font-mono flex-grow overflow-x-auto">{userData.license_key}</span>
+                            <button onClick={handleCopyToClipboard} className="bg-gray-700 hover:bg-gray-600 text-white font-bold py-2 px-4 rounded transition-colors duration-200 flex items-center gap-2">
+                                {copied ? <FiCheckCircle className="text-green-500" /> : <FiCopy />}
+                                {copied ? 'Copiado!' : 'Copiar'}
+                            </button>
+                        </div>
+                    ) : (
+                        <div className="text-center p-4 bg-gray-900 rounded-md">
+                            <p className="text-gray-400 mb-4">Aún no tienes una clave de licencia.</p>
+                            {userData.subscription_tier === 'FREE' && (
+                                <button onClick={handleActivateTrial} className="bg-blue-600 hover:bg-blue-500 text-white font-bold py-2 px-4 rounded transition-colors duration-200">
+                                    Activar Prueba Gratuita de 3 Días
+                                </button>
+                            )}
+                        </div>
+                    )}
+                </div>
+            </div>
+        </div>
+    );
 }
 EOL
 
-# --- Paso 4: Corregir el endpoint de verificación de licencia para importar 'db' por defecto ---
-echo "Corrigiendo src/app/api/license/verify/route.js para importar 'db' por defecto..."
-cat > src/app/api/license/verify/route.js << EOL
-import { NextResponse } from 'next/server';
-import db from '@/lib/db'; // Importación por defecto
-import { v4 as uuidv4 } from 'uuid';
-
-export async function POST(req) {
-  try {
-    const { licenseKey } = await req.json();
-
-    if (!licenseKey) {
-      return NextResponse.json({ error: 'Clave de licencia no proporcionada' }, { status: 400 });
-    }
-
-    const userResult = await db.query('SELECT * FROM users WHERE "license_key" = $1', [licenseKey]);
-
-    if (userResult.rows.length === 0) {
-      return NextResponse.json({ status: 'invalid', message: 'Clave no encontrada' }, { status: 404 });
-    }
-
-    const user = userResult.rows[0];
-
-    if (user.subscription_tier === 'PREMIUM') {
-      return NextResponse.json({ status: 'active', tier: 'premium' });
-    }
-
-    if (user.subscription_tier === 'TRIAL') {
-      const trialEndDate = new Date(user.trial_ends_at);
-      const now = new Date();
-
-      if (trialEndDate > now) {
-        const daysRemaining = Math.ceil((trialEndDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
-        return NextResponse.json({ status: 'active', tier: 'trial', daysRemaining });
-      } else {
-        await db.query('UPDATE users SET "subscription_tier" = \\'FREE\\' WHERE "license_key" = $1', [licenseKey]);
-        return NextResponse.json({ status: 'expired', message: 'La prueba ha expirado' });
-      }
-    }
-    
-    return NextResponse.json({ status: 'inactive', message: 'Tu cuenta no tiene una suscripción activa.' });
-
-  } catch (error) {
-    console.error('Error de verificación de licencia:', error);
-    return NextResponse.json({ error: 'Error interno del servidor' }, { status: 500 });
-  }
-}
-EOL
-
-echo "¡Corrección de importaciones completada!"
-echo "Ahora, sube los cambios a GitHub para que el despliegue funcione correctamente."
-echo "Ejecuta los siguientes comandos:"
-echo "1. git add ."
-echo "2. git commit -m \"Fix: Standardize DB imports as default\""
-echo "3. git push"
+echo "¡Dashboard configurado!"
+echo "Sube los cambios a GitHub (add, commit, push) para que se actualice tu web."
