@@ -75,18 +75,17 @@ export default function PricingPlans() {
   };
 
   return (
-    <div className="w-full max-w-4xl mx-auto flex flex-col items-center justify-center p-4">
-      <h2 className="text-4xl font-display font-bold text-center text-lol-gold mb-12">Elige Tu Arsenal</h2>
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-8 overflow-y-auto max-h-full">
+    <div className="w-full max-w-4xl mx-auto flex flex-col items-center justify-center">
+      <h2 className="text-4xl font-display font-bold text-center text-lol-gold mb-8 md:mb-12">Elige Tu Arsenal</h2>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-8 p-4">
         {plans.map((plan) => (
-          // CAMBIO CLAVE: Agregamos una clase de margen para evitar el desbordamiento al hacer hover.
           <motion.div 
             key={plan.name} 
-            className={'bg-lol-blue-medium p-4 md:p-6 border-2 m-1 ' + (plan.isPopular ? 'border-lol-blue-accent' : 'border-lol-gold-dark') + ' rounded-lg flex flex-col justify-between'}
-            whileHover={{ scale: 1.02 }}
+            className={'bg-lol-blue-medium p-4 md:p-6 border-2 ' + (plan.isPopular ? 'border-lol-blue-accent' : 'border-lol-gold-dark') + ' rounded-lg flex flex-col justify-between'}
+            whileHover={{ scale: 1.01 }}
             transition={{ type: 'spring', stiffness: 400, damping: 10 }}
           >
-            {plan.isPopular && <span className="text-center bg-lol-blue-accent text-lol-blue-dark font-bold py-1 px-4 rounded-full self-center -mt-12 mb-4">Más Popular</span>}
+            {plan.isPopular && <span className="text-center bg-lol-blue-accent text-lol-blue-dark font-bold py-1 px-4 rounded-full self-center -mt-12 mb-4 text-sm">Más Popular</span>}
             <div className="text-center mb-4">
               <h3 className="text-2xl font-display font-bold mb-2">{plan.name}</h3>
               <div className="mb-4">
