@@ -10,7 +10,7 @@ const plans = [
     price: '0',
     features: [
       'Recomendador de Campeón',
-      'Runas Adaptativas',
+      'Runas y Builds Adaptativas',
       'Análisis Pre-Partida',
       'Perfil Zodiacal Básico',
       'Clips con marca de agua'
@@ -20,11 +20,10 @@ const plans = [
   },
   {
     name: 'Plan Premium',
-    price: '6.99',
+    price: '4.99',
     priceId: 'price_1PQfEHFp5L5d2dZ3e6Y4L0T8',
     features: [
       'Todo lo del Plan Gratuito',
-      'Builds Adaptativas',
       'Consejos Estratégicos en Vivo',
       'Análisis Post-Partida',
       'Overlays Inteligentes Animados',
