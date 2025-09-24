@@ -9,7 +9,7 @@ const plans = [
     price: '0',
     features: [
       'Recomendador de Campeón',
-      'Runas & Builds Adaptativas ',
+      'Runas Adaptativas',
       'Análisis Pre-Partida',
       'Perfil Zodiacal Básico',
       'Clips con marca de agua'
@@ -23,6 +23,7 @@ const plans = [
     priceId: 'price_1PQfEHFp5L5d2dZ3e6Y4L0T8',
     features: [
       'Todo lo del Plan Gratuito',
+      'Builds Adaptativas',
       'Consejos Estratégicos en Vivo',
       'Análisis Post-Partida',
       'Overlays Inteligentes Animados',
@@ -42,10 +43,7 @@ export default function PricingPlans() {
 
   const handlePlanClick = (plan) => {
     if (!isAuthenticated) {
-      // --- INICIO DE LA CORRECCIÓN ---
-      // Usamos una ruta relativa para que funcione en local y en producción
       window.location.href = '/api/auth/google';
-      // --- FIN DE LA CORRECCIÓN ---
       return;
     }
     if (plan.priceId) {
@@ -76,7 +74,8 @@ export default function PricingPlans() {
   };
 
   return (
-    <div className="w-full max-w-4xl mx-auto py-12">
+    // CORRECCIÓN: Se eliminó el padding vertical para evitar el scroll.
+    <div className="w-full max-w-4xl mx-auto p-4 md:p-8">
       <h2 className="text-4xl font-display font-bold text-center text-lol-gold mb-12">Elige Tu Arsenal</h2>
       <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
         {plans.map((plan) => (
