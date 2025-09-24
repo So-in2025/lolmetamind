@@ -65,7 +65,7 @@ export default function PricingPlans() {
       if (checkoutUrl) {
         window.location.href = checkoutUrl;
       } else {
-s          throw new Error('No se recibió la URL de checkout');
+          throw new Error('No se recibió la URL de checkout');
       }
     } catch (error) {
       console.error('Error al iniciar el checkout:', error);
