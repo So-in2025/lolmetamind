@@ -2,6 +2,7 @@
 import { useAuth } from '@/context/AuthContext';
 import { useRouter } from 'next/navigation';
 import { useEffect } from 'react';
+import EpicButton from '@/components/landing/EpicButton';
 
 function UserProfile() {
     const auth = useAuth();
@@ -9,7 +10,6 @@ function UserProfile() {
 
     const handleLogout = () => {
         auth.logout();
-        // CAMBIO CLAVE: Redirigir a la página principal en lugar de /login
         router.push('/');
     };
 
@@ -18,12 +18,9 @@ function UserProfile() {
     return (
         <div className="flex items-center space-x-4">
             <span className="text-lol-gold-light">Bienvenido, <strong className="font-bold text-lol-blue-accent">{auth.user.username}</strong></span>
-            <button
-                onClick={handleLogout}
-                className="bg-lol-gold-dark hover:bg-red-700 text-white text-xs font-bold py-1 px-3 rounded-lg"
-            >
+            <EpicButton onClick={handleLogout} className="text-xs py-1 px-3">
                 Salir
-            </button>
+            </EpicButton>
         </div>
     );
 }
