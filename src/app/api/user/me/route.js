@@ -3,18 +3,18 @@ import jwt from 'jsonwebtoken';
 import db from '@/lib/db'; 
 
 const JWT_SECRET = process.env.JWT_SECRET;
-export const dynamic = 'force-dynamic'; // CRÍTICO: Soluciona el error de Vercel
+export const dynamic = 'force-dynamic'; 
 
 export async function GET(req) {
     try {
         const token = req.headers.get('authorization')?.split(' ')[1];
         if (!token) return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
         
-        const decoded = jwt.verify(token, JWT_SECRET); // Verifica el token con el secreto
+        const decoded = jwt.verify(token, JWT_SECRET); 
         const userId = decoded.userId;
 
+        // CRÍTICO: SE QUITARÁN LAS COMILLAS DOBLES DEL SELECT para evitar errores de mayúsculas/minúsculas
         const userResult = await db.query(
-            // Busca al usuario por su ID
             'SELECT id, username, email, avatar_url, license_key, subscription_tier, trial_ends_at, riot_id_name, riot_id_tagline, region, puuid FROM users WHERE id = $1',
             [userId]
         );
@@ -23,12 +23,11 @@ export async function GET(req) {
             return NextResponse.json({ error: 'Usuario no encontrado' }, { status: 404 });
         }
         
-        // ¡Verificación exitosa!
         return NextResponse.json(userResult.rows[0]);
 
     } catch (error) {
-        // Esto captura cualquier fallo de JWT_SECRET o problema de DB
-        console.error('Error al obtener los datos del usuario:', error);
-        return NextResponse.json({ error: 'Error interno del servidor o token inválido.' }, { status: 500 });
+        console.error('Error CRÍTICO al obtener los datos del usuario:', error);
+        // Si la columna "avatar_url" no existe, este catch aún se activa.
+        return NextResponse.json({ error: 'Error interno del servidor. (Verifique el log: es un fallo de DB/JWT)' }, { status: 500 });
     }
 }
