@@ -1,11 +1,11 @@
-// websocket-server.js
 const WebSocket = require('ws');
 const jwt = require('jsonwebtoken');
 const url = require('url');
 const { Pool } = require('pg');
 require('dotenv').config();
 
-const { getLiveGameBySummonerId } = require('./dist/services/riotApiService');
+// Imports de la distribución compilada
+// Asegúrate de que prompts.js y strategist.js se transpilen antes de correr este server
 const { createLiveCoachingPrompt } = require('./dist/lib/ai/prompts');
 const { generateStrategicAnalysis } = require('./dist/lib/ai/strategist');
 
@@ -25,9 +25,10 @@ const clients = new Map();
 
 console.log(`✅ Servidor WebSocket de Producción iniciado en el puerto ${port}.`);
 
+// Función para obtener datos del usuario, incluyendo live_game_data y zodiacSign
 const fetchUserData = async (userId) => {
   try {
-    const res = await pool.query('SELECT id, username, summoner_id, region FROM users WHERE id = $1', [userId]);
+    const res = await pool.query('SELECT id, username, summoner_id, region, zodiac_sign, live_game_data FROM users WHERE id = $1', [userId]);
     return res.rows[0];
   } catch (error) {
     console.error(`Error al buscar usuario ${userId} en la DB:`, error);
@@ -35,81 +36,80 @@ const fetchUserData = async (userId) => {
   }
 };
 
-wss.on('connection', async (ws, req) => {
-  const parameters = new URLSearchParams(url.parse(req.url).search);
-  const token = parameters.get('token');
-
-  if (!token) {
-    ws.close(1008, "Token no proporcionado");
-    return;
-  }
+wss.on('connection', (ws, req) => {
+  const parameters = url.parse(req.url, true).query;
+  const token = parameters.token;
 
   try {
     const decoded = jwt.verify(token, JWT_SECRET);
-    const userDataFromDB = await fetchUserData(decoded.userId);
-
-    if (!userDataFromDB) {
-      console.log(`Usuario con ID ${decoded.userId} no encontrado en la DB. Conexión rechazada.`);
-      ws.close(1008, "Usuario no encontrado");
-      return;
-    }
+    // Usamos el ID del usuario como clave
+    ws.userId = decoded.userId;
+    clients.set(ws, { id: decoded.userId });
+    console.log(`[CONEXIÓN] Usuario ${decoded.userId} conectado. Clientes activos: ${clients.size}`);
     
-    clients.set(ws, userDataFromDB);
-    console.log(`🔗 Cliente conectado y verificado: ${userDataFromDB.username}`);
-    
-    const welcomeMessage = JSON.stringify({
-      realtimeAdvice: '👋 ¡Bienvenido! Buscando tu partida...',
-      buildRecommendation: { items: [], runes: [] },
-      strategicAdvice: 'Elige un plan de juego inicial: agresivo o pasivo.',
-    });
-    ws.send(welcomeMessage);
-
-    ws.on('close', () => {
-      console.log(`💔 Cliente desconectado: ${userDataFromDB.username}`);
-      clients.delete(ws);
-    });
-    
-    ws.on('error', (error) => console.error(`Error en la conexión de ${userDataFromDB.username}:`, error));
+    // Informar al cliente que la conexión fue exitosa
+    ws.send(JSON.stringify({ status: 'connected', message: 'Conectado al Coach MetaMind. Esperando inicio de partida.' }));
 
   } catch (err) {
-    ws.close(1008, "Token inválido");
+    console.log('[ERROR] Conexión rechazada: Token JWT inválido.', err.message);
+    ws.close(1008, 'Token JWT inválido');
+    return;
   }
+
+  ws.on('close', () => {
+    clients.delete(ws);
+    console.log(`[DESCONEXIÓN] Usuario ${ws.userId} desconectado. Clientes activos: ${clients.size}`);
+  });
 });
 
-// --- El Motor de Coaching en Tiempo Real (Modificado) ---
+
+// --- EL MOTOR DE COACHING DE ÉLITE EN TIEMPO REAL ---
+// Verifica el estado del juego de los usuarios Premium cada 10 segundos
 setInterval(async () => {
   if (clients.size === 0) return;
 
-  console.log(`\n🔎 Verificando partidas activas para ${clients.size} cliente(s)...`);
+  for (const [ws, clientData] of clients.entries()) {
+    if (ws.readyState !== WebSocket.OPEN) continue;
 
-  for (const [ws, userData] of clients.entries()) {
-    if (ws.readyState !== WebSocket.OPEN || !userData.summoner_id || !userData.region) continue;
-
-    try {
-      const liveGame = await getLiveGameBySummonerId(userData.summoner_id, userData.region);
-      
-      if (liveGame) {
-        console.log(`[${userData.username}] Partida encontrada. Generando consejos de IA...`);
+    // 1. OBTENER DATOS DE LA DB (live_game_data)
+    const freshUserData = await fetchUserData(clientData.id); 
+    
+    // Debe existir liveGameData Y el usuario debe ser Premium
+    if (freshUserData && freshUserData.live_game_data && freshUserData.subscription_tier === 'PREMIUM') {
         
-        // Simulación de los 3 tipos de consejos
-        const realtimeTip = "¡Cuidado! El jungla enemigo está en el río. Juega con cautela.";
-        const buildTip = {
-          items: ["Doran's Ring", "Luden's Companion"],
-          runes: ["Arcane Comet", "Manaflow Band"]
-        };
-        const strategicTip = "En los próximos minutos, enfócate en asegurar el Cangrejo Escurridizo para ganar control de visión.";
+        const liveGameData = freshUserData.live_game_data;
         
-        // Enviamos un único objeto JSON
-        const messageObject = {
-            realtimeAdvice: `[Minuto ${Math.floor(liveGame.gameLength / 60)}]: ${realtimeTip}`,
-            buildRecommendation: buildTip,
-            strategicAdvice: strategicTip,
-        };
+        try {
+            // 2. GENERAR EL CONSEJO ELITE CON LA IA (usando el nuevo prompt)
+            // Se usa liveGameData y zodiac_sign
+            const analysisResult = await generateStrategicAnalysis({ 
+                liveGameData: liveGameData, 
+                zodiacSign: freshUserData.zodiac_sign 
+            });
+            
+            // 3. ENVIAR EL CONSEJO ESTRUCTURADO Y TÁCTICO
+            const messageObject = {
+                // El error de la IA se manejará como un mensaje CRÍTICO, no genérico
+                realtimeAdvice: analysisResult.realtimeAdvice, 
+                priorityAction: analysisResult.priorityAction || 'ANALYSIS',
+                gameTime: liveGameData.gameTime 
+            };
+            
+            ws.send(JSON.stringify(messageObject));
+            
+        } catch (error) {
+            console.error(`Error al generar o enviar consejo ÉLITE para ${freshUserData.username}:`, error);
+            // En caso de fallo de IA, se envia el mensaje de error definido en strategist.js
+            ws.send(JSON.stringify({ realtimeAdvice: "ERROR CRÍTICO: El enlace táctico con la IA se ha cortado. Concentración manual." }));
+        }
         
-        ws.send(JSON.stringify(messageObject));
-      }
-    } catch (error) {
-      console.error(`Error procesando al cliente ${userData.username}:`, error);
+    } else {
+        // Si no hay datos de partida o el usuario no es Premium, enviar mensaje de estado
+        const message = freshUserData && freshUserData.subscription_tier !== 'PREMIUM'
+          ? 'Acceso limitado. Coach en tiempo real es Premium.'
+          : 'Coach inactivo. Inicia una partida con la App de escritorio.';
+          
+        ws.send(JSON.stringify({ realtimeAdvice: message, priorityAction: 'STATUS' }));
     }
   }
 }, 10000); // Revisa cada 10 segundos
