@@ -1,109 +1,65 @@
 #!/bin/bash
 
 # =========================================================================================
-# SCRIPT DEFINITIVO DE CORRECCIÓN CJS/ESM (SOLUCIONA 'require is not defined')
-# Objetivo: Eliminar la ambigüedad de módulos para que el servidor WebSocket se inicie.
+# SCRIPT DE CORRECCIÓN FINAL (MODO CJS FORZADO)
+# Objetivo: Forzar la resolución de src/lib/db/index.js a CommonJS usando la extensión .cjs.
 # =========================================================================================
 
 REPO_PATH="so-in2025/lolmetamind/lolmetamind-4c93b36005431c7bc42c809ecd76beefdf126f70"
 LIB_PATH="${REPO_PATH}/src/lib"
-SERVICES_PATH="${REPO_PATH}/src/services"
 
-echo "--- 1. Aplicando la corrección estricta de CommonJS a los módulos de librería ---"
+echo "--- 1. Renombrando src/lib/db/index.js a src/lib/db/index.cjs ---"
+mv "${LIB_PATH}/db/index.js" "${LIB_PATH}/db/index.cjs"
+echo "Archivo renombrado. Node.js ahora lo ejecutará como CommonJS."
 
-# --- src/lib/db/index.js (CJS estricto) ---
-cat > "${LIB_PATH}/db/index.js" << 'EOL'
-const { Pool } = require('pg');
 
-let pool;
-
-if (!global._pool) {
-  global._pool = new Pool({
-    connectionString: process.env.DATABASE_URL,
-    ssl: {
-      rejectUnauthorized: false
-    }
-  });
-}
-pool = global._pool;
-
-const db = {
-  query: (text, params) => pool.query(text, params),
-  pool: pool,
-};
-
-module.exports = db;
-EOL
-
-# --- src/lib/auth/utils.js (CJS estricto) ---
-cat > "${LIB_PATH}/auth/utils.js" << 'EOL'
-const bcrypt = require('bcryptjs');
-const jwt = require('jsonwebtoken');
-
-const JWT_SECRET = process.env.JWT_SECRET;
-
-exports.hashPassword = (password) => {
-  return bcrypt.hash(password, 10);
-};
-
-exports.comparePassword = (password, hash) => {
-  return bcrypt.compare(password, hash);
-};
-
-exports.createToken = (user) => {
-  if (!JWT_SECRET) {
-    throw new Error('La clave secreta JWT no está definida en las variables de entorno.');
-  }
-  return jwt.sign({ userId: user.id, username: user.username }, JWT_SECRET, {
-    expiresIn: '7d',
-  });
-};
-
-exports.verifyAuth = async (req) => {
-    const token = req.headers.get('authorization')?.split(' ')[1];
-    if (!token) return { error: 'No autorizado' };
-    
-    try {
-        const decoded = jwt.verify(token, JWT_SECRET);
-        return { userId: decoded.userId };
-    } catch (error) {
-        return { error: 'Token inválido' };
-    }
-};
-EOL
-
-# --- src/services/apiConfig.js (CJS estricto) ---
-cat > "${SERVICES_PATH}/apiConfig.js" << 'EOL'
-// src/services/apiConfig.js
-require('dotenv/config');
-
-const RIOT_API_KEY = process.env.RIOT_API_KEY;
-const TWITCH_CLIENT_ID = process.env.TWITCH_CLIENT_ID;
-const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
-
-const RIOT_API_BASE_URL = 'https://las.api.riotgames.com';
-const TWITCH_AUTH_BASE_URL = 'https://id.twitch.tv/oauth2';
-
+echo "--- 2. Actualizando babel.config.server.js para incluir el nuevo archivo .cjs ---"
+# El archivo original solo incluía 'js', ahora agregamos 'cjs'.
+cat > "${REPO_PATH}/babel.config.server.js" << 'EOL'
+// babel.config.server.js
+// Configuración de Babel para el servidor de WebSockets (Render)
 module.exports = {
-  RIOT_API_KEY,
-  TWITCH_CLIENT_ID,
-  GEMINI_API_KEY,
-  RIOT_API_BASE_URL,
-  TWITCH_AUTH_BASE_URL
+  "presets": [
+    [
+      "@babel/preset-env",
+      {
+        "targets": {
+          "node": "current"
+        }
+      }
+    ]
+  ],
+  "plugins": [
+    [
+      "module-resolver",
+      {
+        "root": ["./src"],
+        "alias": {
+          "@": "./src"
+        }
+      }
+    ]
+  ],
+  // CRÍTICO: Aseguramos que Babel también transpile archivos .cjs
+  "extensions": [".js", ".jsx", ".cjs"] 
 };
 EOL
+echo "babel.config.server.js actualizado para manejar .cjs."
 
-echo "--- 2. Ajustando websocket-server.js para usar CommonJS seguro y Coach de Élite ---"
+
+echo "--- 3. Corrigiendo websocket-server.js para importar el nuevo archivo .cjs compilado ---"
+# Se mantiene la lógica del Coach de Élite y el bypass de Premium.
+
 cat > "${REPO_PATH}/websocket-server.js" << 'EOL'
 const WebSocket = require('ws');
 const jwt = require('jsonwebtoken');
 const url = require('url');
 require('dotenv').config();
 
-// Imports de la distribución compilada (CommonJS - sin desestructuración directa)
+// Imports de la distribución compilada (CRÍTICO: apunto al nuevo archivo .cjs compilado)
 const prompts = require('./dist/lib/ai/prompts');
 const strategist = require('./dist/lib/ai/strategist');
-const db = require('./dist/lib/db'); 
+const db = require('./dist/lib/db/index.cjs'); // <--- CORRECCIÓN A .cjs
 
 // Extraemos las funciones para usarlas fácilmente
 const { createLiveCoachingPrompt } = prompts;
@@ -189,7 +145,7 @@ setInterval(async () => {
         }
         
     } else {
-        // Mensaje de estado
+        // Mensaje de estado (mantenido)
         const statusMessage = freshUserData && freshUserData.subscription_tier !== 'PREMIUM'
           ? 'Acceso limitado. Coach en tiempo real es Premium.'
           : 'Coach inactivo. Inicia una partida con la App de escritorio.'; 
@@ -202,10 +158,10 @@ EOL
 
 echo ""
 echo "=========================================================="
-echo "    ✅ CORRECCIÓN DEFINITIVA CJS/ESM APLICADA"
+echo "    ✅ SOLUCIÓN DEFINITIVA A 'require is not defined'"
 echo "=========================================================="
-echo "Esta versión del script debería eliminar el error 'require is not defined'."
+echo "Hemos forzado el archivo problemático al modo CJS (.cjs)."
 echo ""
 echo "Acciones requeridas:"
 echo "1. **Ejecuta este nuevo script de Bash en tu proyecto web local.**"
-echo "2. **Haz un nuevo commit y deploy a Render.** (Esto re-ejecutará 'npm run build:server' y usará los archivos CommonJS corregidos)."
+echo "2. **Haz un nuevo commit y deploy a Render.** (Esto debería resolver el problema al forzar el modo de módulo correcto)."
