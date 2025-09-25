@@ -40,17 +40,21 @@ export default function DashboardLayout({ children }) {
           const response = await fetch('/api/user/me', {
             headers: { 'Authorization': `Bearer ${tokenFromUrl}` }
           });
-          if (!response.ok) throw new Error('No se pudo verificar el token');
+          
+          if (!response.ok) throw new Error('No se pudo verificar el token o el usuario.');
           
           const userData = await response.json();
-          auth.login(userData, tokenFromUrl);
-          router.replace('/dashboard', undefined, { shallow: true });
+          auth.login(userData, tokenFromUrl); 
+          
+          router.replace('/dashboard', undefined, { shallow: true }); 
+          
         } catch (error) {
           console.error("Error al iniciar sesión con token:", error);
           auth.logout();
           router.push('/');
         }
-      } else if (!auth.isAuthenticated) {
+      } 
+      else if (!auth.isAuthenticated) {
         router.push('/');
       }
     };

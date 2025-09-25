@@ -33,4 +33,35 @@ export async function POST(request) {
         }
 
         const { rows: activeChallenges } = await db.query(
-            "SELECT * FROM user_challenges WHERE user_id =
+            "SELECT * FROM user_challenges WHERE user_id = $1 AND expires_at > NOW() AND is_completed = FALSE",
+            [userId]
+        ); // <-- ¡CADENA DE TEXTO DE SQL CORREGIDA!
+
+        let updates = [];
+        for (const challenge of activeChallenges) {
+            let progressMade = 0;
+            const metric = challenge.metric;
+
+            if (metric === 'csPerMinute') {
+                progressMade = (participant.totalMinionsKilled / (matchDetails.info.gameDuration / 60));
+            } else if (participant.hasOwnProperty(metric)) {
+                progressMade = participant[metric];
+            }
+
+            const newProgress = Math.min(challenge.goal, challenge.progress + progressMade);
+            const isCompleted = newProgress >= challenge.goal;
+
+            await db.query(
+                "UPDATE user_challenges SET progress = $1, is_completed = $2 WHERE id = $3",
+                [newProgress, isCompleted, challenge.id]
+            );
+            updates.push({ title: challenge.title, newProgress, isCompleted });
+        }
+
+        return NextResponse.json({ message: "Progreso de desafíos actualizado.", updates });
+
+    } catch (error) {
+        console.error("Error al procesar progreso:", error);
+        return NextResponse.json({ error: 'Error interno del servidor.' }, { status: 500 });
+    }
+}

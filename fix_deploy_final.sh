@@ -1,6 +1,6 @@
 #!/bin/bash
 
-echo "APLICANDO FIX CRÍTICO FINAL: Forzando rutas dinámicas (Vercel) y asegurando la autenticación JWT (Login Flow)..."
+echo "APLICANDO CORRECCIÓN CRÍTICA FINAL: Fix Syntax, Dynamic Route y Auth Flow..."
 
 # --- FIX 1: src/app/api/user/me/route.js (Dynamic Route, Auth JWT) ---
 echo "1. Corrigiendo src/app/api/user/me/route.js..."
@@ -10,7 +10,7 @@ import jwt from 'jsonwebtoken';
 import db from '@/lib/db'; 
 
 const JWT_SECRET = process.env.JWT_SECRET;
-export const dynamic = 'force-dynamic'; // SOLUCIONA EL ERROR DE VERCEL (request.headers)
+export const dynamic = 'force-dynamic'; 
 
 export async function GET(req) {
     try {
@@ -46,7 +46,7 @@ import db from '@/lib/db';
 import jwt from 'jsonwebtoken';
 
 const JWT_SECRET = process.env.JWT_SECRET;
-export const dynamic = 'force-dynamic'; // Necesario para rutas con JWT/Headers
+export const dynamic = 'force-dynamic';
 
 export async function POST(req) {
     try {
@@ -175,7 +175,7 @@ import { generateStrategicAnalysis } from '@/lib/ai/strategist';
 import { createChallengeGenerationPrompt } from '@/lib/ai/prompts';
 
 const JWT_SECRET = process.env.JWT_SECRET;
-export const dynamic = 'force-dynamic'; // Asegura la lectura del token
+export const dynamic = 'force-dynamic';
 
 async function generateAndStoreChallenges(userId, userData) {
     let recentMatchesPerformance = [];
@@ -276,8 +276,8 @@ export async function GET(request) {
 }
 EOL
 
-# --- FIX 5: src/app/api/challenges/progress/route.js (Dynamic Route) ---
-echo "5. Corrigiendo src/app/api/challenges/progress/route.js..."
+# --- FIX 5: src/app/api/challenges/progress/route.js (Syntax Fix & Dynamic Route) ---
+echo "5. Corrigiendo src/app/api/challenges/progress/route.js (FIX DE SINTAXIS CRÍTICO)..."
 cat > src/app/api/challenges/progress/route.js << 'EOL'
 import { NextResponse } from 'next/server';
 import jwt from 'jsonwebtoken';
@@ -314,4 +314,250 @@ export async function POST(request) {
         }
 
         const { rows: activeChallenges } = await db.query(
-            "SELECT * FROM user_challenges WHERE user_id =
+            "SELECT * FROM user_challenges WHERE user_id = $1 AND expires_at > NOW() AND is_completed = FALSE",
+            [userId]
+        ); // <-- ¡CADENA DE TEXTO DE SQL CORREGIDA!
+
+        let updates = [];
+        for (const challenge of activeChallenges) {
+            let progressMade = 0;
+            const metric = challenge.metric;
+
+            if (metric === 'csPerMinute') {
+                progressMade = (participant.totalMinionsKilled / (matchDetails.info.gameDuration / 60));
+            } else if (participant.hasOwnProperty(metric)) {
+                progressMade = participant[metric];
+            }
+
+            const newProgress = Math.min(challenge.goal, challenge.progress + progressMade);
+            const isCompleted = newProgress >= challenge.goal;
+
+            await db.query(
+                "UPDATE user_challenges SET progress = $1, is_completed = $2 WHERE id = $3",
+                [newProgress, isCompleted, challenge.id]
+            );
+            updates.push({ title: challenge.title, newProgress, isCompleted });
+        }
+
+        return NextResponse.json({ message: "Progreso de desafíos actualizado.", updates });
+
+    } catch (error) {
+        console.error("Error al procesar progreso:", error);
+        return NextResponse.json({ error: 'Error interno del servidor.' }, { status: 500 });
+    }
+}
+EOL
+
+# --- FIX 6: src/app/api/user/profile/route.js (Dynamic Route) ---
+echo "6. Corrigiendo src/app/api/user/profile/route.js..."
+cat > src/app/api/user/profile/route.js << 'EOL'
+import { NextResponse } from 'next/server';
+import jwt from 'jsonwebtoken';
+import db from '@/lib/db';
+import { getAccountByRiotId, getSummonerByName } from '@/services/riotApiService';
+
+const JWT_SECRET = process.env.JWT_SECRET;
+export const dynamic = 'force-dynamic'; 
+
+export async function POST(request) {
+  try {
+    const token = request.headers.get('authorization')?.split(' ')[1];
+    if (!token) return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
+    
+    const decoded = jwt.verify(token, JWT_SECRET);
+    const userId = decoded.userId;
+
+    const { gameName, tagLine, region } = await request.json();
+    if (!gameName || !tagLine || !region) {
+      return NextResponse.json({ error: 'Nombre de juego, tagline y región son requeridos' }, { status: 400 });
+    }
+
+    const accountData = await getAccountByRiotId(gameName, tagLine, region);
+    const officialPuuid = accountData.puuid;
+
+    const summonerData = await getSummonerByName(gameName, region);
+    const { id: summoner_id, puuid: summonerPuuid } = summonerData;
+
+    if (officialPuuid !== summonerPuuid) {
+        throw new Error("Inconsistencia de datos en la API de Riot. El PUUID del Riot ID no coincide con el del Invocador.");
+    }
+
+    const result = await db.query(
+      `UPDATE users 
+       SET riot_id_name = $1, riot_id_tagline = $2, region = $3, puuid = $4, summoner_id = $5, updated_at = NOW() 
+       WHERE id = $6 
+       RETURNING id, username, email, riot_id_name, riot_id_tagline, region, puuid`,
+      [gameName, tagLine, region, officialPuuid, summoner_id, userId]
+    );
+
+    return NextResponse.json({ message: 'Perfil actualizado con éxito', user: result.rows[0] });
+
+  } catch (error) {
+    console.error('Error al actualizar perfil:', error.message);
+    return NextResponse.json({ error: `No se pudo vincular el perfil. Razón: ${error.message}` }, { status: 500 });
+  }
+}
+EOL
+
+# --- FIX 7: src/app/api/user/profile/simulate/route.js (Dynamic Route) ---
+echo "7. Corrigiendo src/app/api/user/profile/simulate/route.js..."
+cat > src/app/api/user/profile/simulate/route.js << 'EOL'
+import { NextResponse } from 'next/server';
+import jwt from 'jsonwebtoken';
+import db from '@/lib/db';
+
+const JWT_SECRET = process.env.JWT_SECRET;
+export const dynamic = 'force-dynamic'; 
+
+export async function POST(request) {
+  try {
+    const token = request.headers.get('authorization')?.split(' ')[1];
+    if (!token) return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
+    
+    const decoded = jwt.verify(token, JWT_SECRET);
+    const userId = decoded.userId;
+
+    const { gameName, tagLine, region } = await request.json();
+    if (!gameName || !tagLine || !region) {
+      return NextResponse.json({ error: 'Faltan datos para la simulación' }, { status: 400 });
+    }
+
+    const mockPuuid = `simulated-puuid-${userId}-${gameName}`;
+    const mockSummonerId = `simulated-summoner-id-${userId}-${gameName}`;
+
+    const result = await db.query(
+      `UPDATE users 
+       SET riot_id_name = $1, riot_id_tagline = $2, region = $3, puuid = $4, summoner_id = $5, updated_at = NOW() 
+       WHERE id = $6 
+       RETURNING id, username, email, riot_id_name, riot_id_tagline, region, puuid`,
+      [gameName, tagLine, region, mockPuuid, mockSummonerId, userId]
+    );
+
+    return NextResponse.json({ message: 'Perfil simulado con éxito', user: result.rows[0] });
+
+  } catch (error) {
+    console.error('Error al simular perfil:', error.message);
+    return NextResponse.json({ error: 'No se pudo crear el perfil simulado.' }, { status: 500 });
+  }
+}
+EOL
+
+# --- FIX 8: src/app/dashboard/layout.jsx (Flow de Login de Cliente) ---
+echo "8. Corrigiendo src/app/dashboard/layout.jsx (Flow de Login de Cliente para asegurar redirección)..."
+cat > src/app/dashboard/layout.jsx << 'EOL'
+'use client';
+import { useAuth } from '@/context/AuthContext';
+import { useRouter } from 'next/navigation';
+import { useEffect } from 'react';
+import EpicButton from '@/components/landing/EpicButton';
+
+function UserProfile() {
+    const auth = useAuth();
+    const router = useRouter();
+
+    const handleLogout = () => {
+        auth.logout();
+        router.push('/');
+    };
+
+    if (!auth || !auth.user) return null;
+
+    return (
+        <div className="flex items-center space-x-4">
+            <span className="text-lol-gold-light">Bienvenido, <strong className="font-bold text-lol-blue-accent">{auth.user.username}</strong></span>
+            <EpicButton onClick={handleLogout} className="text-xs py-1 px-3">
+                Salir
+            </EpicButton>
+        </div>
+    );
+}
+
+export default function DashboardLayout({ children }) {
+  const auth = useAuth();
+  const router = useRouter();
+
+  useEffect(() => {
+    const processLogin = async () => {
+      const urlParams = new URLSearchParams(window.location.search);
+      const tokenFromUrl = urlParams.get('token');
+
+      if (tokenFromUrl && !auth.isAuthenticated) {
+        console.log('Token encontrado en la URL. Obteniendo datos reales del usuario...');
+        try {
+          const response = await fetch('/api/user/me', {
+            headers: { 'Authorization': `Bearer ${tokenFromUrl}` }
+          });
+          
+          if (!response.ok) throw new Error('No se pudo verificar el token o el usuario.');
+          
+          const userData = await response.json();
+          auth.login(userData, tokenFromUrl); 
+          
+          router.replace('/dashboard', undefined, { shallow: true }); 
+          
+        } catch (error) {
+          console.error("Error al iniciar sesión con token:", error);
+          auth.logout();
+          router.push('/');
+        }
+      } 
+      else if (!auth.isAuthenticated) {
+        router.push('/');
+      }
+    };
+
+    if (!auth.loading) {
+      processLogin();
+    }
+  }, [auth, router]);
+
+  if (auth.loading || !auth.isAuthenticated) {
+    return (
+      <div className="min-h-screen w-full bg-lol-blue-dark text-lol-gold-light flex items-center justify-center">
+        <p className="animate-pulse">Verificando sesión...</p>
+      </div>
+    );
+  }
+
+  return (
+    <section className="min-h-screen w-full bg-lol-blue-dark text-lol-gold-light font-body">
+      <header className="bg-lol-blue-medium p-4 border-b-2 border-lol-gold-dark flex justify-between items-center">
+        <h1 className="text-2xl font-display text-lol-gold text-center">
+          LoL MetaMind Dashboard
+        </h1>
+        <UserProfile />
+      </header>
+      <main className="p-4 sm:p-8">
+        {children}
+      </main>
+    </section>
+  );
+}
+EOL
+
+# --- FIX 9: src/lib/db/index.js (Asegura Pool para Transacciones/SSL) ---
+echo "9. Corrigiendo src/lib/db/index.js (Asegura Pool export para transacciones y SSL)..."
+cat > src/lib/db/index.js << 'EOL'
+const { Pool } = require('pg');
+
+let pool;
+
+if (!global._pool) {
+  global._pool = new Pool({
+    connectionString: process.env.DATABASE_URL,
+    ssl: {
+      rejectUnauthorized: false
+    }
+  });
+}
+pool = global._pool;
+
+const db = {
+  query: (text, params) => pool.query(text, params),
+  pool: pool,
+};
+
+export default db;
+EOL
+
+echo "¡Corrección aplicada! Por favor, verifica que todos los archivos listados arriba se hayan modificado correctamente en tu sistema local antes de subir."

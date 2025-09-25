@@ -3,7 +3,7 @@ import jwt from 'jsonwebtoken';
 import db from '@/lib/db'; 
 
 const JWT_SECRET = process.env.JWT_SECRET;
-export const dynamic = 'force-dynamic'; // SOLUCIONA EL ERROR DE VERCEL (request.headers)
+export const dynamic = 'force-dynamic'; 
 
 export async function GET(req) {
     try {

@@ -1,11 +1,10 @@
 import { NextResponse } from 'next/server';
 import jwt from 'jsonwebtoken';
-import pool from '@/lib/db';
+import db from '@/lib/db';
 
 const JWT_SECRET = process.env.JWT_SECRET;
-export const dynamic = 'force-dynamic';
+export const dynamic = 'force-dynamic'; 
 
-// Esta es la nueva ruta para manejar la vinculación simulada
 export async function POST(request) {
   try {
     const token = request.headers.get('authorization')?.split(' ')[1];
@@ -19,11 +18,10 @@ export async function POST(request) {
       return NextResponse.json({ error: 'Faltan datos para la simulación' }, { status: 400 });
     }
 
-    // Generamos datos falsos pero consistentes para la simulación
     const mockPuuid = `simulated-puuid-${userId}-${gameName}`;
     const mockSummonerId = `simulated-summoner-id-${userId}-${gameName}`;
 
-    const result = await pool.query(
+    const result = await db.query(
       `UPDATE users 
        SET riot_id_name = $1, riot_id_tagline = $2, region = $3, puuid = $4, summoner_id = $5, updated_at = NOW() 
        WHERE id = $6 

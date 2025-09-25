@@ -6,7 +6,7 @@ import { generateStrategicAnalysis } from '@/lib/ai/strategist';
 import { createChallengeGenerationPrompt } from '@/lib/ai/prompts';
 
 const JWT_SECRET = process.env.JWT_SECRET;
-export const dynamic = 'force-dynamic'; // Asegura la lectura del token
+export const dynamic = 'force-dynamic';
 
 async function generateAndStoreChallenges(userId, userData) {
     let recentMatchesPerformance = [];

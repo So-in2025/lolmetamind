@@ -3,7 +3,7 @@ import db from '@/lib/db';
 import jwt from 'jsonwebtoken';
 
 const JWT_SECRET = process.env.JWT_SECRET;
-export const dynamic = 'force-dynamic'; // Necesario para rutas con JWT/Headers
+export const dynamic = 'force-dynamic';
 
 export async function POST(req) {
     try {
