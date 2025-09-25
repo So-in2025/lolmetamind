@@ -4,6 +4,7 @@ import { useRouter } from 'next/navigation';
 import { useEffect } from 'react';
 import EpicButton from '@/components/landing/EpicButton';
 
+// ... (UserProfile componente se mantiene igual)
 function UserProfile() {
     const auth = useAuth();
     const router = useRouter();
@@ -34,45 +35,54 @@ export default function DashboardLayout({ children }) {
       const urlParams = new URLSearchParams(window.location.search);
       const tokenFromUrl = urlParams.get('token');
 
-      // 1. Caso principal: Recibir token de la URL e intentar autenticar
+      // 1. Recibir token de la URL e intentar autenticar
       if (tokenFromUrl && !auth.isAuthenticated) {
-        console.log('Token encontrado en la URL. Obteniendo datos reales del usuario...');
+        console.log('Token encontrado en la URL. Intentando autenticar...');
+        
         try {
           const response = await fetch('/api/user/me', {
             headers: { 'Authorization': `Bearer ${tokenFromUrl}` }
           });
           
-          if (!response.ok) throw new Error('No se pudo verificar el token o el usuario. Redirigiendo al login.');
+          if (!response.ok) {
+            // Si la API devuelve un error (ej. 401 Token Inválido), lo lanzamos.
+            throw new Error(`Error de verificación de token: ${response.status}`);
+          }
           
           const userData = await response.json();
-          // Llama a login, lo que guarda el token y el usuario en el contexto/localStorage
           auth.login(userData, tokenFromUrl); 
           
-          // Limpiar la URL sin recargar, manteniendo al usuario en /dashboard
-          router.replace('/dashboard', undefined, { shallow: true }); 
+          // Autenticación exitosa: Limpiar la URL sin recargar.
+          router.replace('/dashboard', { shallow: true }); 
           
         } catch (error) {
-          console.error("Error al iniciar sesión con token:", error);
-          // Si la verificación falla (e.g., token caducado o inválido), redirige al inicio
-          router.push('/'); 
+          console.error("Error al iniciar sesión con token:", error.message);
+          
+          // **ESTE ES EL CAMBIO CLAVE:** // 1. Limpiamos la URL primero para quitar el token que falló.
+          router.replace('/', { shallow: true }); 
+          
+          // 2. Redirigimos forzosamente al inicio para reintentar el login.
+          // Lo hacemos después de limpiar la URL, aunque router.push('/') es suficiente.
+          // En este caso, si ya estamos en /, el replace lo mantiene.
         }
       } 
-      // 2. Caso de limpieza: Si hay token en URL, pero ya estoy autenticado, limpio la URL.
+      // 2. Si ya estoy autenticado y hay un token en la URL (p.ej. después de un refresh)
       else if (tokenFromUrl && auth.isAuthenticated) {
-         router.replace('/dashboard', undefined, { shallow: true });
+         router.replace('/dashboard', { shallow: true });
       }
-      // 3. Caso de fallback: Si no hay token en la URL y NO estoy autenticado (ej. usuario escribe la URL /dashboard)
+      // 3. Fallback: Si no hay token en la URL y NO estoy autenticado, redirigir a inicio
       else if (!tokenFromUrl && !auth.isAuthenticated) {
         router.push('/');
       }
     };
 
+    // Solo se ejecuta si el estado de AuthContext ha terminado de cargar su estado inicial
     if (!auth.loading) {
       processLogin();
     }
   }, [auth, router]);
 
-  // Esto hace que la página muestre "Verificando sesión..." si el proceso no ha terminado.
+  // ... (El manejo del estado de carga se mantiene igual)
   if (auth.loading || (!auth.isAuthenticated && new URLSearchParams(window.location.search).get('token'))) {
     return (
       <div className="min-h-screen w-full bg-lol-blue-dark text-lol-gold-light flex items-center justify-center">
@@ -81,6 +91,7 @@ export default function DashboardLayout({ children }) {
     );
   }
 
+  // Cargar Dashboard
   return (
     <section className="min-h-screen w-full bg-lol-blue-dark text-lol-gold-light font-body">
       <header className="bg-lol-blue-medium p-4 border-b-2 border-lol-gold-dark flex justify-between items-center">
