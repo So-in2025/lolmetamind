@@ -1,13 +1,13 @@
 import { NextResponse } from 'next/server';
 import jwt from 'jsonwebtoken';
-import pool from '@/lib/db';
+import db from '@/lib/db';
 import { getChampionMastery } from '@/services/riotApiService';
 import { getChampionNameById } from '@/services/dataDragonService';
 import { generateStrategicAnalysis } from '@/lib/ai/strategist';
 import { createInitialAnalysisPrompt } from '@/lib/ai/prompts';
 
 const JWT_SECRET = process.env.JWT_SECRET;
-export const dynamic = 'force-dynamic';
+export const dynamic = 'force-dynamic'; 
 
 const dailyForecasts = [
   "Hoy, Marte favorece la agresión calculada.",
@@ -26,7 +26,7 @@ export async function POST(request) {
     const { zodiacSign } = await request.json();
     if (!zodiacSign) return NextResponse.json({ error: 'Signo zodiacal es requerido.' }, { status: 400 });
     
-    const userResult = await pool.query('SELECT riot_id_name, region, puuid FROM users WHERE id = $1', [userId]);
+    const userResult = await db.query('SELECT riot_id_name, region, puuid FROM users WHERE id = $1', [userId]);
     if (userResult.rows.length === 0 || !userResult.rows[0].puuid) {
       return NextResponse.json({ error: 'Perfil de invocador no vinculado.' }, { status: 404 });
     }
@@ -34,7 +34,7 @@ export async function POST(request) {
 
     let championMasteryWithNames = [];
 
-    // --- INICIO DE LA LÓGICA DE SIMULACIÓN ---
+    // --- LÓGICA DE MAESTRÍA (Mantenida) ---
     if (userData.puuid.startsWith('simulated-')) {
       console.log('Modo Simulación: Usando datos de maestría de campeones falsos.');
       championMasteryWithNames = [
@@ -45,7 +45,6 @@ export async function POST(request) {
         { name: 'Lee Sin', points: 75000 },
       ];
     } else {
-      // Lógica original para usuarios reales
       const championMasteryData = await getChampionMastery(userData.puuid, userData.region);
       championMasteryWithNames = await Promise.all(
         championMasteryData.map(async (mastery) => ({
@@ -54,7 +53,7 @@ export async function POST(request) {
         }))
       );
     }
-    // --- FIN DE LA LÓGICA DE SIMULACIÓN ---
+    // ------------------------------------
     
     const dayOfYear = Math.floor((new Date() - new Date(new Date().getFullYear(), 0, 0)) / 1000 / 60 / 60 / 24);
     const dailyAstrologicalForecast = dailyForecasts[dayOfYear % dailyForecasts.length];

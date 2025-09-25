@@ -1,15 +1,16 @@
 #!/bin/bash
 
-echo "Corrigiendo errores de autenticación (JWT/DB inconsistency) y restaurando la funcionalidad..."
+echo "APLICANDO FIX CRÍTICO FINAL: Forzando rutas dinámicas (Vercel) y asegurando la autenticación JWT (Login Flow)..."
 
-# --- ARREREGLO CRÍTICO: Modificar src/app/api/user/me/route.js (Eliminar Clerk) ---
-echo "1. Corrigiendo src/app/api/user/me/route.js para usar JWT y DB default import..."
+# --- FIX 1: src/app/api/user/me/route.js (Dynamic Route, Auth JWT) ---
+echo "1. Corrigiendo src/app/api/user/me/route.js..."
 cat > src/app/api/user/me/route.js << 'EOL'
 import { NextResponse } from 'next/server';
 import jwt from 'jsonwebtoken';
-import db from '@/lib/db'; // Importación correcta (exportación por defecto)
+import db from '@/lib/db'; 
 
 const JWT_SECRET = process.env.JWT_SECRET;
+export const dynamic = 'force-dynamic'; // SOLUCIONA EL ERROR DE VERCEL (request.headers)
 
 export async function GET(req) {
     try {
@@ -20,7 +21,6 @@ export async function GET(req) {
         const userId = decoded.userId;
 
         const userResult = await db.query(
-            // La autenticación ahora usa el ID de la tabla users obtenido del JWT.
             'SELECT id, username, email, avatar_url, license_key, subscription_tier, trial_ends_at, riot_id_name, riot_id_tagline, region, puuid FROM users WHERE id = $1',
             [userId]
         );
@@ -38,18 +38,19 @@ export async function GET(req) {
 }
 EOL
 
-# --- ARREGLO 2: Modificar src/app/api/activate-trial/route.js (Eliminar Clerk) ---
-echo "2. Corrigiendo src/app/api/activate-trial/route.js para usar JWT y DB default import..."
+# --- FIX 2: src/app/api/activate-trial/route.js (Dynamic Route) ---
+echo "2. Corrigiendo src/app/api/activate-trial/route.js..."
 cat > src/app/api/activate-trial/route.js << 'EOL'
 import { NextResponse } from 'next/server';
-import db from '@/lib/db'; // Importación correcta (exportación por defecto)
+import db from '@/lib/db'; 
 import jwt from 'jsonwebtoken';
 
 const JWT_SECRET = process.env.JWT_SECRET;
+export const dynamic = 'force-dynamic'; // Necesario para rutas con JWT/Headers
 
 export async function POST(req) {
     try {
-        const token = req.headers.get('authorization')?.split(' ')[1];
+        const token = req.headers.get('authorization')?.split(' ')[1]; 
         if (!token) return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
         
         const decoded = jwt.verify(token, JWT_SECRET);
@@ -81,214 +82,105 @@ export async function POST(req) {
 }
 EOL
 
-# --- ARREGLO 3: Modificar src/app/api/auth/google/route.js (Claridad y consistencia) ---
-echo "3. Corrigiendo src/app/api/auth/google/route.js: Refactorizando el import de DB a 'db' para claridad."
-cat > src/app/api/auth/google/route.js << 'EOL'
+# --- FIX 3: src/app/api/recommendation/route.js (Dynamic Route) ---
+echo "3. Corrigiendo src/app/api/recommendation/route.js..."
+cat > src/app/api/recommendation/route.js << 'EOL'
 import { NextResponse } from 'next/server';
-import { google } from 'googleapis';
-import db from '@/lib/db'; // Cambiado de 'pool' a 'db' para consistencia
-import { createToken } from '@/lib/auth/utils';
+import jwt from 'jsonwebtoken';
+import db from '@/lib/db';
+import { getChampionMastery } from '@/services/riotApiService';
+import { getChampionNameById } from '@/services/dataDragonService';
+import { generateStrategicAnalysis } from '@/lib/ai/strategist';
+import { createInitialAnalysisPrompt } from '@/lib/ai/prompts';
 
-const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID;
-const GOOGLE_CLIENT_SECRET = process.env.GOOGLE_CLIENT_SECRET;
-const GOOGLE_REDIRECT_URI = process.env.GOOGLE_REDIRECT_URI;
+const JWT_SECRET = process.env.JWT_SECRET;
+export const dynamic = 'force-dynamic'; 
 
-const oauth2Client = new google.auth.OAuth2(
-  GOOGLE_CLIENT_ID,
-  GOOGLE_CLIENT_SECRET,
-  GOOGLE_REDIRECT_URI
-);
+const dailyForecasts = [
+  "Hoy, Marte favorece la agresión calculada.",
+  "La influencia de la Luna pide un enfoque en el control de la visión.",
+  "Mercurio está retrógrado; la comunicación y el engaño son tus mejores armas."
+];
 
-export async function GET(request) {
-  const url = new URL(request.url);
-  const code = url.searchParams.get('code');
-  
-  // Novedad: Leer el parámetro 'redirect_to' de la URL
-  const redirectTo = url.searchParams.get('redirect_to');
-
-  if (!code) {
-    const authUrl = oauth2Client.generateAuthUrl({
-      access_type: 'offline',
-      scope: ['https://www.googleapis.com/auth/userinfo.email', 'https://www.googleapis.com/auth/userinfo.profile'],
-      prompt: 'consent',
-      // Novedad: Asegurar que el parámetro 'redirect_to' se mantenga
-      state: redirectTo ? `redirect_to=${encodeURIComponent(redirectTo)}` : undefined,
-    });
-    return NextResponse.redirect(authUrl);
-  }
-
+export async function POST(request) {
   try {
-    const { tokens } = await oauth2Client.getToken(code);
-    oauth2Client.setCredentials(tokens);
+    const token = request.headers.get('authorization')?.split(' ')[1];
+    if (!token) return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
 
-    const oauth2 = google.oauth2({
-      auth: oauth2Client,
-      version: 'v2'
-    });
-    const userInfo = await oauth2.userinfo.get();
+    const decoded = jwt.verify(token, JWT_SECRET);
+    const userId = decoded.userId;
 
-    let user = null;
-    // Usamos db.query
-    const existingUser = await db.query('SELECT * FROM users WHERE email = $1', [userInfo.data.email]);
+    const { zodiacSign } = await request.json();
+    if (!zodiacSign) return NextResponse.json({ error: 'Signo zodiacal es requerido.' }, { status: 400 });
     
-    if (existingUser.rows.length > 0) {
-      user = existingUser.rows[0];
+    const userResult = await db.query('SELECT riot_id_name, region, puuid FROM users WHERE id = $1', [userId]);
+    if (userResult.rows.length === 0 || !userResult.rows[0].puuid) {
+      return NextResponse.json({ error: 'Perfil de invocador no vinculado.' }, { status: 404 });
+    }
+    const userData = userResult.rows[0];
+
+    let championMasteryWithNames = [];
+
+    // --- LÓGICA DE MAESTRÍA (Mantenida) ---
+    if (userData.puuid.startsWith('simulated-')) {
+      console.log('Modo Simulación: Usando datos de maestría de campeones falsos.');
+      championMasteryWithNames = [
+        { name: 'Yasuo', points: 150000 },
+        { name: 'Lux', points: 120000 },
+        { name: 'Zed', points: 95000 },
+        { name: 'Jhin', points: 80000 },
+        { name: 'Lee Sin', points: 75000 },
+      ];
     } else {
-      // Usamos db.query
-      const newUserResult = await db.query(
-        'INSERT INTO users (username, email, google_id) VALUES ($1, $2, $3) RETURNING *',
-        [userInfo.data.name, userInfo.data.email, userInfo.data.id]
+      const championMasteryData = await getChampionMastery(userData.puuid, userData.region);
+      championMasteryWithNames = await Promise.all(
+        championMasteryData.map(async (mastery) => ({
+          name: await getChampionNameById(mastery.championId),
+          points: mastery.championPoints,
+        }))
       );
-      user = newUserResult.rows[0];
     }
-
-    const token = createToken(user);
+    // ------------------------------------
     
-    // Novedad: Redirigir a la URL especificada o al dashboard por defecto
-    const finalRedirectPath = url.searchParams.get('state')?.includes('redirect_to=')
-      ? decodeURIComponent(url.searchParams.get('state').split('redirect_to=')[1])
-      : '/dashboard';
+    const dayOfYear = Math.floor((new Date() - new Date(new Date().getFullYear(), 0, 0)) / 1000 / 60 / 60 / 24);
+    const dailyAstrologicalForecast = dailyForecasts[dayOfYear % dailyForecasts.length];
 
-    const redirectUrl = new URL(finalRedirectPath, url.origin);
-    redirectUrl.searchParams.set('token', token);
-    return NextResponse.redirect(redirectUrl);
+    const analysisData = {
+      summonerName: userData.riot_id_name,
+      zodiacSign: zodiacSign,
+      championMastery: championMasteryWithNames,
+      dailyAstrologicalForecast: dailyAstrologicalForecast
+    };
+
+    const prompt = createInitialAnalysisPrompt(analysisData);
+    const analysisResult = await generateStrategicAnalysis({ customPrompt: prompt });
+
+    return NextResponse.json(analysisResult);
 
   } catch (error) {
-    console.error('Error al procesar el login de Google:', error);
-    // Este es el error que ve el usuario. Lo mantenemos para el fallback.
-    return NextResponse.json({ error: 'Hubo un error con la autenticación de Google.' }, { status: 500 });
+    console.error("Error CRÍTICO E INESPERADO en /api/recommendation:", error);
+    return NextResponse.json({ error: 'Un error fatal ocurrió en el servidor.' }, { status: 500 });
   }
 }
 EOL
 
-# --- ARREGLO 4: Modificar src/app/api/license/verify/route.js DB import y consultas SQL ---
-echo "4. Corrigiendo src/app/api/license/verify/route.js: Arreglando importación de DB y consultas SQL."
-cat > src/app/api/license/verify/route.js << 'EOL'
-import { NextResponse } from 'next/server';
-import db from '@/lib/db'; // Importación corregida a default
-import { v4 as uuidv4 } from 'uuid'; // Mantener por si se usa en el futuro
-
-export async function POST(req) {
-  try {
-    const { licenseKey } = await req.json();
-
-    if (!licenseKey) {
-      return NextResponse.json({ error: 'Clave de licencia no proporcionada' }, { status: 400 });
-    }
-
-    // CORRECCIÓN DE QUERY: añadir $1 para la interpolación
-    const userResult = await db.query('SELECT * FROM users WHERE "license_key" = $1', [licenseKey]);
-
-    if (userResult.rows.length === 0) {
-      return NextResponse.json({ status: 'invalid', message: 'Clave no encontrada' }, { status: 404 });
-    }
-
-    const user = userResult.rows[0];
-
-    if (user.subscription_tier === 'PREMIUM') {
-      return NextResponse.json({ status: 'active', tier: 'premium' });
-    }
-
-    if (user.subscription_tier === 'TRIAL') {
-      const trialEndDate = new Date(user.trial_ends_at);
-      const now = new Date();
-
-      if (trialEndDate > now) {
-        const daysRemaining = Math.ceil((trialEndDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
-        return NextResponse.json({ status: 'active', tier: 'trial', daysRemaining });
-      } else {
-        // CORRECCIÓN DE QUERY: añadir $1 y $2 para la interpolación
-        await db.query('UPDATE users SET "subscription_tier" = $1 WHERE "license_key" = $2', ['FREE', licenseKey]);
-        return NextResponse.json({ status: 'expired', message: 'La prueba ha expirado' });
-      }
-    }
-    
-    return NextResponse.json({ status: 'inactive', message: 'Tu cuenta no tiene una suscripción activa.' });
-
-  } catch (error) {
-    console.error('Error de verificación de licencia:', error);
-    return NextResponse.json({ error: 'Error interno del servidor' }, { status: 500 });
-  }
-}
-EOL
-
-# --- ARREGLO 5: Modificar src/app/api/hotmart-webhook/route.js DB query ---
-echo "5. Corrigiendo src/app/api/hotmart-webhook/route.js: Arreglando consultas SQL."
-cat > src/app/api/hotmart-webhook/route.js << 'EOL'
-import { NextResponse } from 'next/server';
-import db from '@/lib/db'; // Importación por defecto
-import { v4 as uuidv4 } from 'uuid';
-
-export async function POST(req) {
-  try {
-    const formData = await req.formData();
-    const hotmartEvent = Object.fromEntries(formData.entries());
-    console.log('Webhook de Hotmart recibido:', hotmartEvent);
-
-    const hotmartToken = req.headers.get('x-hotmart-hottok');
-    if (hotmartToken !== process.env.HOTMART_WEBHOOK_SECRET) {
-      console.warn('Intento de webhook no autorizado.');
-      return NextResponse.json({ message: 'No autorizado' }, { status: 401 });
-    }
-
-    const eventType = hotmartEvent.event;
-    const userEmail = hotmartEvent.email;
-    const subscriptionId = hotmartEvent.sub_id || hotmartEvent.subscription; // Asumiendo 'sub_id' o 'subscription'
-
-    if (!userEmail) {
-        return NextResponse.json({ message: 'Email no proporcionado.' }, { status: 400 });
-    }
-
-    // CORRECCIÓN DE QUERY: Añadir $1
-    const userResult = await db.query('SELECT * FROM users WHERE email = $1', [userEmail]);
-    let user = userResult.rows[0];
-
-    if (eventType === 'PURCHASE_APPROVED' || eventType === 'SUBSCRIPTION_ACTIVATED') {
-        if (user) {
-            // CORRECCIÓN DE QUERY: Añadir $1, $2 y $3
-            await db.query(
-              'UPDATE users SET "subscription_tier" = $1, "hotmart_subscription_id" = $2 WHERE email = $3',
-              ['PREMIUM', subscriptionId, userEmail]
-            );
-            console.log(`Usuario ${userEmail} actualizado a PREMIUM.`);
-        }
-    } else if (eventType === 'SUBSCRIPTION_CANCELED' || eventType === 'PURCHASE_REFUNDED') {
-        if (user) {
-            // CORRECCIÓN DE QUERY: Añadir $1 y $2
-            await db.query(
-              'UPDATE users SET "subscription_tier" = $1, "hotmart_subscription_id" = NULL WHERE email = $2',
-              ['FREE', userEmail]
-            );
-            console.log(`Suscripción de ${userEmail} cancelada.`);
-        }
-    }
-
-    return NextResponse.json({ message: 'Webhook procesado' }, { status: 200 });
-
-  } catch (error) {
-    console.error('Error al procesar webhook de Hotmart:', error);
-    return NextResponse.json({ error: 'Error interno del servidor' }, { status: 500 });
-  }
-}
-EOL
-
-# --- ARREGLO 6: Modificar src/app/api/challenges/weekly/route.js (Claridad y consistencia) ---
-echo "6. Corrigiendo src/app/api/challenges/weekly/route.js: Refactorizando el import de DB a 'db' para claridad."
+# --- FIX 4: src/app/api/challenges/weekly/route.js (Dynamic Route) ---
+echo "4. Corrigiendo src/app/api/challenges/weekly/route.js..."
 cat > src/app/api/challenges/weekly/route.js << 'EOL'
 import { NextResponse } from 'next/server';
 import jwt from 'jsonwebtoken';
-import db from '@/lib/db'; // Cambiado de 'pool' a 'db' para consistencia
+import db from '@/lib/db'; 
 import { getMatchHistoryIds, getMatchDetails } from '@/services/riotApiService';
 import { generateStrategicAnalysis } from '@/lib/ai/strategist';
 import { createChallengeGenerationPrompt } from '@/lib/ai/prompts';
 
 const JWT_SECRET = process.env.JWT_SECRET;
-export const dynamic = 'force-dynamic';
+export const dynamic = 'force-dynamic'; // Asegura la lectura del token
 
 async function generateAndStoreChallenges(userId, userData) {
     let recentMatchesPerformance = [];
 
-    // --- INICIO DE LA LÓGICA DE SIMULACIÓN ---
+    // --- LÓGICA DE SIMULACIÓN (Mantenida) ---
     if (userData.puuid.startsWith('simulated-')) {
         console.log('Modo Simulación: Usando datos de historial de partidas falsos.');
         recentMatchesPerformance = [
@@ -299,7 +191,6 @@ async function generateAndStoreChallenges(userId, userData) {
             { win: false, kills: 4, deaths: 10, assists: 3, visionScore: 20, csPerMinute: 5.5 },
         ];
     } else {
-        // Lógica original para usuarios reales
         const matchIds = await getMatchHistoryIds(userData.puuid, userData.region);
         if (matchIds.length === 0) return [];
         
@@ -318,7 +209,7 @@ async function generateAndStoreChallenges(userId, userData) {
             }
         }
     }
-    // --- FIN DE LA LÓGICA DE SIMULACIÓN ---
+    // ------------------------------------
 
     if (recentMatchesPerformance.length === 0) return [];
 
@@ -330,11 +221,10 @@ async function generateAndStoreChallenges(userId, userData) {
         return [];
     }
     
-    // Obtenemos el Pool para la transacción
+    // Transacción usando la pool exportada de db
     const client = await db.pool.connect(); 
     try {
         await client.query('BEGIN');
-        // Limpiar desafíos antiguos antes de insertar nuevos para evitar duplicados
         await client.query('DELETE FROM user_challenges WHERE user_id = $1', [userId]);
         for (const challenge of challengesFromAI) {
             const expires_at = new Date();
@@ -386,17 +276,15 @@ export async function GET(request) {
 }
 EOL
 
-# --- ARREGLO 7: Modificar src/app/api/challenges/progress/route.js (Claridad y consistencia) ---
-echo "7. Corrigiendo src/app/api/challenges/progress/route.js: Refactorizando el import de DB a 'db' para claridad."
+# --- FIX 5: src/app/api/challenges/progress/route.js (Dynamic Route) ---
+echo "5. Corrigiendo src/app/api/challenges/progress/route.js..."
 cat > src/app/api/challenges/progress/route.js << 'EOL'
 import { NextResponse } from 'next/server';
 import jwt from 'jsonwebtoken';
-import db from '@/lib/db'; // Cambiado de 'pool' a 'db' para consistencia
+import db from '@/lib/db'; 
 import { getMatchHistoryIds, getMatchDetails } from '@/services/riotApiService';
 
 const JWT_SECRET = process.env.JWT_SECRET;
-
-// SOLUCIÓN: Forzar el renderizado dinámico para esta ruta
 export const dynamic = 'force-dynamic';
 
 export async function POST(request) {
@@ -426,67 +314,4 @@ export async function POST(request) {
         }
 
         const { rows: activeChallenges } = await db.query(
-            "SELECT * FROM user_challenges WHERE user_id = $1 AND expires_at > NOW() AND is_completed = FALSE",
-            [userId]
-        );
-
-        let updates = [];
-        for (const challenge of activeChallenges) {
-            let progressMade = 0;
-            const metric = challenge.metric;
-
-            if (metric === 'csPerMinute') {
-                progressMade = (participant.totalMinionsKilled / (matchDetails.info.gameDuration / 60));
-            } else if (participant.hasOwnProperty(metric)) {
-                progressMade = participant[metric];
-            }
-
-            const newProgress = Math.min(challenge.goal, challenge.progress + progressMade);
-            const isCompleted = newProgress >= challenge.goal;
-
-            await db.query(
-                "UPDATE user_challenges SET progress = $1, is_completed = $2 WHERE id = $3",
-                [newProgress, isCompleted, challenge.id]
-            );
-            updates.push({ title: challenge.title, newProgress, isCompleted });
-        }
-
-        return NextResponse.json({ message: "Progreso de desafíos actualizado.", updates });
-
-    } catch (error) {
-        console.error("Error al procesar progreso:", error);
-        return NextResponse.json({ error: 'Error interno del servidor.' }, { status: 500 });
-    }
-}
-EOL
-
-
-# --- ARREGLO 8: Asegurar que src/lib/db/index.js exporta el pool para conexiones seguras y transacciones (RENDER) ---
-echo "8. Corrigiendo src/lib/db/index.js para exportar la Pool instance para conexiones seguras y transacciones..."
-cat > src/lib/db/index.js << 'EOL'
-const { Pool } = require('pg');
-
-let pool;
-
-// Usamos un singleton global para mantener una sola Pool de conexiones.
-if (!global._pool) {
-  // Configuración para permitir conexiones seguras necesarias en Vercel/Render
-  global._pool = new Pool({
-    connectionString: process.env.DATABASE_URL,
-    ssl: {
-      rejectUnauthorized: false
-    }
-  });
-}
-pool = global._pool;
-
-// Exportamos un objeto con el método query (para compatibilidad) y la pool raw.
-const db = {
-  query: (text, params) => pool.query(text, params),
-  pool: pool, // Exponemos el pool para usar .connect() en transacciones
-};
-
-export default db; // Exportamos el objeto 'db' por defecto
-EOL
-
-echo "¡Corrección completada! Sube estos archivos a tu repositorio para desplegar."
+            "SELECT * FROM user_challenges WHERE user_id =

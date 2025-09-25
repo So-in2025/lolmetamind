@@ -1,17 +1,17 @@
 import { NextResponse } from 'next/server';
 import jwt from 'jsonwebtoken';
-import db from '@/lib/db'; // Cambiado de 'pool' a 'db' para consistencia
+import db from '@/lib/db'; 
 import { getMatchHistoryIds, getMatchDetails } from '@/services/riotApiService';
 import { generateStrategicAnalysis } from '@/lib/ai/strategist';
 import { createChallengeGenerationPrompt } from '@/lib/ai/prompts';
 
 const JWT_SECRET = process.env.JWT_SECRET;
-export const dynamic = 'force-dynamic';
+export const dynamic = 'force-dynamic'; // Asegura la lectura del token
 
 async function generateAndStoreChallenges(userId, userData) {
     let recentMatchesPerformance = [];
 
-    // --- INICIO DE LA LÓGICA DE SIMULACIÓN ---
+    // --- LÓGICA DE SIMULACIÓN (Mantenida) ---
     if (userData.puuid.startsWith('simulated-')) {
         console.log('Modo Simulación: Usando datos de historial de partidas falsos.');
         recentMatchesPerformance = [
@@ -22,7 +22,6 @@ async function generateAndStoreChallenges(userId, userData) {
             { win: false, kills: 4, deaths: 10, assists: 3, visionScore: 20, csPerMinute: 5.5 },
         ];
     } else {
-        // Lógica original para usuarios reales
         const matchIds = await getMatchHistoryIds(userData.puuid, userData.region);
         if (matchIds.length === 0) return [];
         
@@ -41,7 +40,7 @@ async function generateAndStoreChallenges(userId, userData) {
             }
         }
     }
-    // --- FIN DE LA LÓGICA DE SIMULACIÓN ---
+    // ------------------------------------
 
     if (recentMatchesPerformance.length === 0) return [];
 
@@ -53,11 +52,10 @@ async function generateAndStoreChallenges(userId, userData) {
         return [];
     }
     
-    // Obtenemos el Pool para la transacción
+    // Transacción usando la pool exportada de db
     const client = await db.pool.connect(); 
     try {
         await client.query('BEGIN');
-        // Limpiar desafíos antiguos antes de insertar nuevos para evitar duplicados
         await client.query('DELETE FROM user_challenges WHERE user_id = $1', [userId]);
         for (const challenge of challengesFromAI) {
             const expires_at = new Date();

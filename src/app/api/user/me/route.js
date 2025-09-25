@@ -1,8 +1,9 @@
 import { NextResponse } from 'next/server';
 import jwt from 'jsonwebtoken';
-import db from '@/lib/db'; // Importación correcta (exportación por defecto)
+import db from '@/lib/db'; 
 
 const JWT_SECRET = process.env.JWT_SECRET;
+export const dynamic = 'force-dynamic'; // SOLUCIONA EL ERROR DE VERCEL (request.headers)
 
 export async function GET(req) {
     try {
@@ -13,7 +14,6 @@ export async function GET(req) {
         const userId = decoded.userId;
 
         const userResult = await db.query(
-            // La autenticación ahora usa el ID de la tabla users obtenido del JWT.
             'SELECT id, username, email, avatar_url, license_key, subscription_tier, trial_ends_at, riot_id_name, riot_id_tagline, region, puuid FROM users WHERE id = $1',
             [userId]
         );

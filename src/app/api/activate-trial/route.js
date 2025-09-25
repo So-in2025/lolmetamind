@@ -1,12 +1,13 @@
 import { NextResponse } from 'next/server';
-import db from '@/lib/db'; // Importación correcta (exportación por defecto)
+import db from '@/lib/db'; 
 import jwt from 'jsonwebtoken';
 
 const JWT_SECRET = process.env.JWT_SECRET;
+export const dynamic = 'force-dynamic'; // Necesario para rutas con JWT/Headers
 
 export async function POST(req) {
     try {
-        const token = req.headers.get('authorization')?.split(' ')[1];
+        const token = req.headers.get('authorization')?.split(' ')[1]; 
         if (!token) return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
         
         const decoded = jwt.verify(token, JWT_SECRET);
