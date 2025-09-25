@@ -1,95 +1,82 @@
-const WebSocket = require('ws');
-const jwt = require('jsonwebtoken');
-const url = require('url');
-const { Pool } = require('pg');
 require('dotenv').config();
+const { Server } = require('socket.io');
+const jwt = require('jsonwebtoken');
+const db = require('./src/lib/db').default;
 
-// Imports de la distribución compilada
-const { createLiveCoachingPrompt } = require('./dist/lib/ai/prompts');
-const { generateStrategicAnalysis } = require('./dist/lib/ai/strategist');
+const PORT = process.env.PORT || 10000;
 
-const port = process.env.PORT || 8080;
-const JWT_SECRET = process.env.JWT_SECRET;
-const DATABASE_URL = process.env.DATABASE_URL;
-
-const pool = new Pool({
-  connectionString: DATABASE_URL,
-  ssl: {
-    rejectUnauthorized: false
+const io = new Server(PORT, {
+  cors: {
+    origin: "*", // En producción, deberías restringir esto a tu dominio
   }
 });
 
-const wss = new WebSocket.Server({ port });
-const clients = new Map();
+let activeClients = new Map();
 
-console.log(`✅ Servidor WebSocket de Producción iniciado en el puerto ${port}.`);
-
-// --- CORRECCIÓN FINAL: Se ajustó la consulta SQL para que no tenga errores de sintaxis ---
-const fetchUserData = async (userId) => {
+async function fetchUserData(userId) {
   try {
-    // Usamos las columnas que SÍ existen, sin comas extras.
-    const res = await pool.query('SELECT id, username, summoner_id, region FROM users WHERE id = $1', [userId]);
-    return res.rows[0];
+    const query = 'SELECT id, username FROM users WHERE id = $1';
+    const result = await db.query(query, [userId]);
+    return result.rows[0];
   } catch (error) {
     console.error(`Error al buscar usuario ${userId} en la DB:`, error);
     return null;
   }
-};
-// --- FIN DE LA CORRECCIÓN ---
+}
 
-wss.on('connection', (ws, req) => {
-  const parameters = url.parse(req.url, true).query;
-  const token = parameters.token;
-
+io.use((socket, next) => {
+  const token = socket.handshake.query.token;
   if (!token) {
-    ws.close(1008, 'Token no proporcionado');
-    return;
+    return next(new Error('Token no proporcionado'));
   }
-
-  jwt.verify(token, JWT_SECRET, (err, decoded) => {
+  jwt.verify(token, process.env.JWT_SECRET, (err, decoded) => {
     if (err) {
-      ws.close(1008, 'Token inválido');
-      return;
+      return next(new Error('Token inválido'));
     }
-
-    const userId = decoded.userId;
-    clients.set(userId, { ws });
-    console.log(`[CONEXIÓN ESTABLE] Usuario ${userId} conectado. Clientes activos: ${clients.size}`);
-
-    ws.on('close', () => {
-      clients.delete(userId);
-      console.log(`[DESCONEXIÓN] Usuario ${userId} desconectado. Clientes activos: ${clients.size}`);
-    });
-
-    ws.on('error', (error) => {
-      console.error(`[ERROR] WebSocket para usuario ${userId}:`, error);
-    });
+    socket.decoded = decoded;
+    next();
   });
 });
 
-// El intervalo que envía los consejos (ahora no debería crashear)
-setInterval(async () => {
-  if (clients.size === 0) return;
+io.on('connection', (socket) => {
+  const userId = socket.decoded.userId;
+  console.log(`[CONEXIÓN ESTABLE] Usuario ${userId} conectado. Clientes activos: ${activeClients.size + 1}`);
+  activeClients.set(socket.id, userId);
 
-  for (const [userId, clientData] of clients.entries()) {
-    const { ws } = clientData;
-    if (ws.readyState !== WebSocket.OPEN) continue;
-
-    const userData = await fetchUserData(userId);
-    if (!userData) {
-      continue;
-    };
-
-    // A futuro, aquí se integra la lógica de la IA.
-    // Por ahora, enviamos un consejo de prueba para confirmar que la conexión funciona.
-    try {
-        const messageObject = {
-            realtimeAdvice: `¡Conexión exitosa, ${userData.username}! El coach está activo.`,
-            priorityAction: 'STATUS',
-        };
-        ws.send(JSON.stringify(messageObject));
-    } catch (error) {
-        console.error(`Error al enviar consejo para ${userData.username}:`, error);
+  const intervalId = setInterval(async () => {
+    // Verificamos que la conexión siga abierta
+    if (socket.readyState !== 'open' && !socket.connected) {
+        clearInterval(intervalId);
+        return;
     }
-  }
-}, 10000); // Revisa cada 10 segundos
+
+    let userData;
+
+    // --- CORRECCIÓN FINAL Y DEFINITIVA ---
+    // Si el usuario es 'master-user', no lo buscamos en la base de datos.
+    // Creamos un objeto de usuario falso para que el resto del código funcione.
+    if (userId === 'master-user') {
+        userData = { id: 'master-user', username: 'Jh0wner' };
+    } else {
+        // Si es un usuario normal, lo buscamos en la base de datos.
+        userData = await fetchUserData(userId);
+    }
+    // --- FIN DE LA CORRECCIÓN ---
+
+    if (userData) {
+      // Ahora la lógica de los consejos funcionará para ambos casos
+      socket.emit('game_event', {
+        time: new Date().toLocaleTimeString(),
+        message: `¡Conexión exitosa, ${userData.username}! El coach está activo y listo.`
+      });
+    }
+  }, 15000);
+
+  socket.on('disconnect', () => {
+    activeClients.delete(socket.id);
+    clearInterval(intervalId);
+    console.log(`[DESCONEXIÓN] Usuario ${userId} desconectado. Clientes activos: ${activeClients.size}`);
+  });
+});
+
+console.log(`✅ Servidor WebSocket de Producción iniciado en el puerto ${PORT}.`);
