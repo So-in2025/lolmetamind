@@ -13,9 +13,9 @@ export async function GET(req) {
         const decoded = jwt.verify(token, JWT_SECRET); 
         const userId = decoded.userId;
 
-        // CRÍTICO: SE QUITARÁN LAS COMILLAS DOBLES DEL SELECT para evitar errores de mayúsculas/minúsculas
+        // CRÍTICO: Consulta ajustada a las COLUMNAS REALES en tu DB (usando 'plan_status' en lugar de 'subscription_tier')
         const userResult = await db.query(
-            'SELECT id, username, email, avatar_url, license_key, subscription_tier, trial_ends_at, riot_id_name, riot_id_tagline, region, puuid FROM users WHERE id = $1',
+            'SELECT id, username, email, avatar_url, plan_status AS subscription_tier, riot_id_name, riot_id_tagline, region, puuid FROM users WHERE id = $1',
             [userId]
         );
 
@@ -23,11 +23,12 @@ export async function GET(req) {
             return NextResponse.json({ error: 'Usuario no encontrado' }, { status: 404 });
         }
         
+        // El alias 'plan_status AS subscription_tier' asegura que el frontend reciba el campo que espera.
         return NextResponse.json(userResult.rows[0]);
 
     } catch (error) {
-        console.error('Error CRÍTICO al obtener los datos del usuario:', error);
-        // Si la columna "avatar_url" no existe, este catch aún se activa.
-        return NextResponse.json({ error: 'Error interno del servidor. (Verifique el log: es un fallo de DB/JWT)' }, { status: 500 });
+        console.error('Error CRÍTICO al obtener los datos del usuario (FALLO FINAL):', error);
+        // Si el 500 persiste, el único campo que queda es JWT_SECRET.
+        return NextResponse.json({ error: 'Error interno del servidor. (Fallo de datos o de token)' }, { status: 500 });
     }
 }
