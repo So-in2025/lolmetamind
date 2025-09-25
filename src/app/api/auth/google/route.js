@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { google } from 'googleapis';
-import db from '@/lib/db'; // Cambiado de 'pool' a 'db' para consistencia
+import db from '@/lib/db'; 
 import { createToken } from '@/lib/auth/utils';
 
 const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID;
@@ -17,7 +17,6 @@ export async function GET(request) {
   const url = new URL(request.url);
   const code = url.searchParams.get('code');
   
-  // Novedad: Leer el parámetro 'redirect_to' de la URL
   const redirectTo = url.searchParams.get('redirect_to');
 
   if (!code) {
@@ -25,7 +24,6 @@ export async function GET(request) {
       access_type: 'offline',
       scope: ['https://www.googleapis.com/auth/userinfo.email', 'https://www.googleapis.com/auth/userinfo.profile'],
       prompt: 'consent',
-      // Novedad: Asegurar que el parámetro 'redirect_to' se mantenga
       state: redirectTo ? `redirect_to=${encodeURIComponent(redirectTo)}` : undefined,
     });
     return NextResponse.redirect(authUrl);
@@ -42,23 +40,26 @@ export async function GET(request) {
     const userInfo = await oauth2.userinfo.get();
 
     let user = null;
-    // Usamos db.query
     const existingUser = await db.query('SELECT * FROM users WHERE email = $1', [userInfo.data.email]);
     
     if (existingUser.rows.length > 0) {
       user = existingUser.rows[0];
+      // Actualizar el avatar_url por si ha cambiado
+      await db.query(
+        'UPDATE users SET avatar_url = $1 WHERE id = $2',
+        [userInfo.data.picture, user.id]
+      );
     } else {
-      // Usamos db.query
+      // Guardar el avatar_url en la creación del usuario
       const newUserResult = await db.query(
-        'INSERT INTO users (username, email, google_id) VALUES ($1, $2, $3) RETURNING *',
-        [userInfo.data.name, userInfo.data.email, userInfo.data.id]
+        'INSERT INTO users (username, email, google_id, avatar_url) VALUES ($1, $2, $3, $4) RETURNING *',
+        [userInfo.data.name, userInfo.data.email, userInfo.data.id, userInfo.data.picture]
       );
       user = newUserResult.rows[0];
     }
 
     const token = createToken(user);
     
-    // Novedad: Redirigir a la URL especificada o al dashboard por defecto
     const finalRedirectPath = url.searchParams.get('state')?.includes('redirect_to=')
       ? decodeURIComponent(url.searchParams.get('state').split('redirect_to=')[1])
       : '/dashboard';
@@ -69,7 +70,6 @@ export async function GET(request) {
 
   } catch (error) {
     console.error('Error al procesar el login de Google:', error);
-    // Este es el error que ve el usuario. Lo mantenemos para el fallback.
     return NextResponse.json({ error: 'Hubo un error con la autenticación de Google.' }, { status: 500 });
   }
 }
