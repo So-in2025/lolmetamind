@@ -4,7 +4,6 @@ import { useRouter } from 'next/navigation';
 import { useEffect } from 'react';
 import EpicButton from '@/components/landing/EpicButton';
 
-// ... (UserProfile componente se mantiene igual)
 function UserProfile() {
     const auth = useAuth();
     const router = useRouter();
@@ -37,52 +36,42 @@ export default function DashboardLayout({ children }) {
 
       // 1. Recibir token de la URL e intentar autenticar
       if (tokenFromUrl && !auth.isAuthenticated) {
-        console.log('Token encontrado en la URL. Intentando autenticar...');
-        
+        console.log('Token encontrado en la URL. Obteniendo datos reales del usuario...');
         try {
           const response = await fetch('/api/user/me', {
             headers: { 'Authorization': `Bearer ${tokenFromUrl}` }
           });
           
-          if (!response.ok) {
-            // Si la API devuelve un error (ej. 401 Token Inválido), lo lanzamos.
-            throw new Error(`Error de verificación de token: ${response.status}`);
-          }
+          if (!response.ok) throw new Error('No se pudo verificar el token o el usuario.');
           
           const userData = await response.json();
           auth.login(userData, tokenFromUrl); 
           
-          // Autenticación exitosa: Limpiar la URL sin recargar.
+          // FIX: Limpiar la URL y quedarse en el dashboard
           router.replace('/dashboard', { shallow: true }); 
           
         } catch (error) {
-          console.error("Error al iniciar sesión con token:", error.message);
-          
-          // **ESTE ES EL CAMBIO CLAVE:** // 1. Limpiamos la URL primero para quitar el token que falló.
-          router.replace('/', { shallow: true }); 
-          
-          // 2. Redirigimos forzosamente al inicio para reintentar el login.
-          // Lo hacemos después de limpiar la URL, aunque router.push('/') es suficiente.
-          // En este caso, si ya estamos en /, el replace lo mantiene.
+          console.error("Error al iniciar sesión con token:", error);
+          auth.logout();
+          router.push('/'); // Redirige a inicio si la verificación falla
         }
       } 
-      // 2. Si ya estoy autenticado y hay un token en la URL (p.ej. después de un refresh)
+      // 2. Si ya estoy autenticado y estoy en la URL de token, limpiar el token
       else if (tokenFromUrl && auth.isAuthenticated) {
          router.replace('/dashboard', { shallow: true });
       }
-      // 3. Fallback: Si no hay token en la URL y NO estoy autenticado, redirigir a inicio
+      // 3. Fallback: Si no hay token Y no estoy autenticado, redirigir al inicio
       else if (!tokenFromUrl && !auth.isAuthenticated) {
         router.push('/');
       }
     };
 
-    // Solo se ejecuta si el estado de AuthContext ha terminado de cargar su estado inicial
     if (!auth.loading) {
       processLogin();
     }
   }, [auth, router]);
 
-  // ... (El manejo del estado de carga se mantiene igual)
+  // Si auth.loading es true, o no está autenticado PERO hay un token en la URL (estado "Verificando sesión")
   if (auth.loading || (!auth.isAuthenticated && new URLSearchParams(window.location.search).get('token'))) {
     return (
       <div className="min-h-screen w-full bg-lol-blue-dark text-lol-gold-light flex items-center justify-center">
@@ -91,7 +80,6 @@ export default function DashboardLayout({ children }) {
     );
   }
 
-  // Cargar Dashboard
   return (
     <section className="min-h-screen w-full bg-lol-blue-dark text-lol-gold-light font-body">
       <header className="bg-lol-blue-medium p-4 border-b-2 border-lol-gold-dark flex justify-between items-center">

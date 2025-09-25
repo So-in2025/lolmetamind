@@ -3,17 +3,18 @@ import jwt from 'jsonwebtoken';
 import db from '@/lib/db'; 
 
 const JWT_SECRET = process.env.JWT_SECRET;
-export const dynamic = 'force-dynamic'; 
+export const dynamic = 'force-dynamic'; // CRÍTICO: Soluciona el error de Vercel
 
 export async function GET(req) {
     try {
         const token = req.headers.get('authorization')?.split(' ')[1];
         if (!token) return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
         
-        const decoded = jwt.verify(token, JWT_SECRET);
+        const decoded = jwt.verify(token, JWT_SECRET); // Verifica el token con el secreto
         const userId = decoded.userId;
 
         const userResult = await db.query(
+            // Busca al usuario por su ID
             'SELECT id, username, email, avatar_url, license_key, subscription_tier, trial_ends_at, riot_id_name, riot_id_tagline, region, puuid FROM users WHERE id = $1',
             [userId]
         );
@@ -22,10 +23,12 @@ export async function GET(req) {
             return NextResponse.json({ error: 'Usuario no encontrado' }, { status: 404 });
         }
         
+        // ¡Verificación exitosa!
         return NextResponse.json(userResult.rows[0]);
 
     } catch (error) {
+        // Esto captura cualquier fallo de JWT_SECRET o problema de DB
         console.error('Error al obtener los datos del usuario:', error);
-        return NextResponse.json({ error: 'Error interno del servidor' }, { status: 500 });
+        return NextResponse.json({ error: 'Error interno del servidor o token inválido.' }, { status: 500 });
     }
 }

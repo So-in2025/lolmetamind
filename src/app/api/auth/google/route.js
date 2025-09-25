@@ -44,13 +44,13 @@ export async function GET(request) {
     
     if (existingUser.rows.length > 0) {
       user = existingUser.rows[0];
-      // Actualizar el avatar_url por si ha cambiado
+      // Actualizar el avatar_url
       await db.query(
         'UPDATE users SET avatar_url = $1 WHERE id = $2',
         [userInfo.data.picture, user.id]
       );
     } else {
-      // Guardar el avatar_url en la creación del usuario
+      // INSERTANDO NUEVO USUARIO con avatar_url
       const newUserResult = await db.query(
         'INSERT INTO users (username, email, google_id, avatar_url) VALUES ($1, $2, $3, $4) RETURNING *',
         [userInfo.data.name, userInfo.data.email, userInfo.data.id, userInfo.data.picture]
@@ -69,7 +69,7 @@ export async function GET(request) {
     return NextResponse.redirect(redirectUrl);
 
   } catch (error) {
-    console.error('Error al procesar el login de Google:', error);
+    console.error('Error CRÍTICO en Google Auth API:', error);
     return NextResponse.json({ error: 'Hubo un error con la autenticación de Google.' }, { status: 500 });
   }
 }
