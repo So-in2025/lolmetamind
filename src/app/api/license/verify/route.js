@@ -1,16 +1,23 @@
 import { NextResponse } from 'next/server';
-import db from '@/lib/db'; // Importación corregida a default
-import { v4 as uuidv4 } from 'uuid'; // Mantener por si se usa en el futuro
+import db from '@/lib/db';
+import { v4 as uuidv4 } from 'uuid';
 
 export async function POST(req) {
   try {
     const { licenseKey } = await req.json();
 
+    // --- INICIO DE LA MODIFICACIÓN: KEY MAESTRA ---
+    // Si la clave es la KEY MAESTRA, aprueba la licencia inmediatamente.
+    if (licenseKey === 'SO-IN-MASTER-KEY-2025') {
+      console.log('Master Key access granted.');
+      return NextResponse.json({ status: 'active', tier: 'premium' });
+    }
+    // --- FIN DE LA MODIFICACIÓN ---
+
     if (!licenseKey) {
       return NextResponse.json({ error: 'Clave de licencia no proporcionada' }, { status: 400 });
     }
 
-    // CORRECCIÓN DE QUERY: añadir $1 para la interpolación
     const userResult = await db.query('SELECT * FROM users WHERE "license_key" = $1', [licenseKey]);
 
     if (userResult.rows.length === 0) {
@@ -31,7 +38,6 @@ export async function POST(req) {
         const daysRemaining = Math.ceil((trialEndDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
         return NextResponse.json({ status: 'active', tier: 'trial', daysRemaining });
       } else {
-        // CORRECCIÓN DE QUERY: añadir $1 y $2 para la interpolación
         await db.query('UPDATE users SET "subscription_tier" = $1 WHERE "license_key" = $2', ['FREE', licenseKey]);
         return NextResponse.json({ status: 'expired', message: 'La prueba ha expirado' });
       }
