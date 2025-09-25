@@ -28,7 +28,8 @@ console.log(`✅ Servidor WebSocket de Producción iniciado en el puerto ${port}
 const fetchUserData = async (userId) => {
   try {
     // Seleccionamos las columnas correctas de la lista que me proporcionaste.
-    const res = await pool.query('SELECT id, username, summoner_id, region FROM users WHERE id = $1', [userId]);
+    // Ya no pedimos 'live_game_data' ni 'zodiac_sign'.
+    const res = await pool.query('SELECT id, username, summoner_id, region, subscription_tier FROM users WHERE id = $1', [userId]);
     return res.rows[0];
   } catch (error) {
     console.error(`Error al buscar usuario ${userId} en la DB:`, error);
@@ -77,19 +78,12 @@ setInterval(async () => {
 
     const userData = await fetchUserData(userId);
     if (!userData) {
-        // Si no encontramos al usuario, no podemos continuar.
-        // Esto puede pasar si el usuario fue borrado pero el token sigue activo.
-        continue;
+      continue;
     };
 
-    // NOTA: La lógica original usaba 'live_game_data', que no existe.
-    // La app de escritorio ahora envía los datos del juego a una API REST,
-    // y el WebSocket se usa para enviar los consejos de vuelta.
-    // Vamos a enviar un consejo genérico por ahora para confirmar que la conexión funciona.
-
-    // A futuro, aquí deberías leer los datos del juego que la app de escritorio guarda
-    // en la base de datos a través de una API REST.
-
+    // NOTA: La lógica para obtener los datos del juego y generar consejos con la IA
+    // se debe implementar aquí, leyendo los datos que la app de escritorio guarde
+    // en la base de datos. Por ahora, enviamos un consejo de prueba para confirmar que la conexión funciona.
     try {
         const messageObject = {
             realtimeAdvice: `Consejo para ${userData.username}: ¡La conexión con el coach está funcionando!`,
@@ -101,3 +95,4 @@ setInterval(async () => {
     }
   }
 }, 10000); // Revisa cada 10 segundos
+
