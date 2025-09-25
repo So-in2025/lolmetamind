@@ -1,18 +1,18 @@
 import { NextResponse } from 'next/server';
 import db from '@/lib/db';
-import { v4 as uuidv4 } from 'uuid';
+import jwt from 'jsonwebtoken'; // Importamos la librería JWT
 
 export async function POST(req) {
   try {
     const { licenseKey } = await req.json();
-
-    // --- INICIO DE LA MODIFICACIÓN: KEY MAESTRA ---
-    // Si la clave es la KEY MAESTRA, aprueba la licencia inmediatamente.
+    
+    // Añadimos la key maestra para desarrollo
     if (licenseKey === 'SO-IN-MASTER-KEY-2025') {
-      console.log('Master Key access granted.');
-      return NextResponse.json({ status: 'active', tier: 'premium' });
+        console.log('Master Key access granted.');
+        // Creamos un token para el usuario maestro
+        const token = jwt.sign({ userId: 'master-user', licenseKey: 'master-key', tier: 'PREMIUM' }, process.env.JWT_SECRET, { expiresIn: '1d' });
+        return NextResponse.json({ status: 'active', tier: 'premium', token: token }); // Devolvemos el token
     }
-    // --- FIN DE LA MODIFICACIÓN ---
 
     if (!licenseKey) {
       return NextResponse.json({ error: 'Clave de licencia no proporcionada' }, { status: 400 });
@@ -25,9 +25,12 @@ export async function POST(req) {
     }
 
     const user = userResult.rows[0];
+    let tokenPayload = { userId: user.id, licenseKey: user.license_key, tier: user.subscription_tier };
+    let token;
 
     if (user.subscription_tier === 'PREMIUM') {
-      return NextResponse.json({ status: 'active', tier: 'premium' });
+      token = jwt.sign(tokenPayload, process.env.JWT_SECRET, { expiresIn: '30d' }); // Token dura 30 días
+      return NextResponse.json({ status: 'active', tier: 'premium', token: token }); // Devolvemos el token
     }
 
     if (user.subscription_tier === 'TRIAL') {
@@ -36,7 +39,8 @@ export async function POST(req) {
 
       if (trialEndDate > now) {
         const daysRemaining = Math.ceil((trialEndDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
-        return NextResponse.json({ status: 'active', tier: 'trial', daysRemaining });
+        token = jwt.sign(tokenPayload, process.env.JWT_SECRET, { expiresIn: `${daysRemaining}d` }); // Token dura lo que quede del trial
+        return NextResponse.json({ status: 'active', tier: 'trial', daysRemaining, token: token }); // Devolvemos el token
       } else {
         await db.query('UPDATE users SET "subscription_tier" = $1 WHERE "license_key" = $2', ['FREE', licenseKey]);
         return NextResponse.json({ status: 'expired', message: 'La prueba ha expirado' });
