@@ -1,15 +1,18 @@
 import { NextResponse } from 'next/server';
-import db from '@/lib/db'; // Importación por defecto
-import { auth } from '@clerk/nextjs/server';
+import db from '@/lib/db'; // Importación correcta (exportación por defecto)
+import jwt from 'jsonwebtoken';
+
+const JWT_SECRET = process.env.JWT_SECRET;
 
 export async function POST(req) {
     try {
-        const { userId } = auth();
-        if (!userId) {
-            return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
-        }
+        const token = req.headers.get('authorization')?.split(' ')[1];
+        if (!token) return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
+        
+        const decoded = jwt.verify(token, JWT_SECRET);
+        const userId = decoded.userId;
 
-        const userResult = await db.query('SELECT * FROM users WHERE google_id = ', [userId]);
+        const userResult = await db.query('SELECT * FROM users WHERE id = $1', [userId]);
         const user = userResult.rows[0];
 
         if (!user) {
@@ -22,8 +25,8 @@ export async function POST(req) {
 
         const trialEndDate = new Date(Date.now() + 3 * 24 * 60 * 60 * 1000);
         await db.query(
-            'UPDATE users SET "subscription_tier" = \'TRIAL\', "trial_ends_at" =  WHERE id = ',
-            [trialEndDate, user.id]
+            'UPDATE users SET "subscription_tier" = $1, "trial_ends_at" = $2 WHERE id = $3',
+            ['TRIAL', trialEndDate, user.id]
         );
 
         return NextResponse.json({ message: 'Prueba de 3 días activada con éxito.' });

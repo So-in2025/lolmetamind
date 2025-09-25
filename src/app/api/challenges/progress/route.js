@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import jwt from 'jsonwebtoken';
-import pool from '@/lib/db';
+import db from '@/lib/db'; // Cambiado de 'pool' a 'db' para consistencia
 import { getMatchHistoryIds, getMatchDetails } from '@/services/riotApiService';
 
 const JWT_SECRET = process.env.JWT_SECRET;
@@ -16,7 +16,7 @@ export async function POST(request) {
         const decoded = jwt.verify(token, JWT_SECRET);
         const userId = decoded.userId;
 
-        const userResult = await pool.query('SELECT puuid, region FROM users WHERE id = $1', [userId]);
+        const userResult = await db.query('SELECT puuid, region FROM users WHERE id = $1', [userId]);
         if (userResult.rows.length === 0 || !userResult.rows[0].puuid) {
             return NextResponse.json({ error: 'Perfil de Riot no vinculado.' }, { status: 404 });
         }
@@ -34,7 +34,7 @@ export async function POST(request) {
             return NextResponse.json({ error: "No se encontraron datos del jugador en la última partida." }, { status: 404 });
         }
 
-        const { rows: activeChallenges } = await pool.query(
+        const { rows: activeChallenges } = await db.query(
             "SELECT * FROM user_challenges WHERE user_id = $1 AND expires_at > NOW() AND is_completed = FALSE",
             [userId]
         );
@@ -53,7 +53,7 @@ export async function POST(request) {
             const newProgress = Math.min(challenge.goal, challenge.progress + progressMade);
             const isCompleted = newProgress >= challenge.goal;
 
-            await pool.query(
+            await db.query(
                 "UPDATE user_challenges SET progress = $1, is_completed = $2 WHERE id = $3",
                 [newProgress, isCompleted, challenge.id]
             );

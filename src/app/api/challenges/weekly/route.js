@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import jwt from 'jsonwebtoken';
-import pool from '@/lib/db';
+import db from '@/lib/db'; // Cambiado de 'pool' a 'db' para consistencia
 import { getMatchHistoryIds, getMatchDetails } from '@/services/riotApiService';
 import { generateStrategicAnalysis } from '@/lib/ai/strategist';
 import { createChallengeGenerationPrompt } from '@/lib/ai/prompts';
@@ -52,8 +52,9 @@ async function generateAndStoreChallenges(userId, userData) {
         console.error("La IA no devolvió un array de desafíos. Se recibió:", challengesFromAI);
         return [];
     }
-
-    const client = await pool.connect();
+    
+    // Obtenemos el Pool para la transacción
+    const client = await db.pool.connect(); 
     try {
         await client.query('BEGIN');
         // Limpiar desafíos antiguos antes de insertar nuevos para evitar duplicados
@@ -85,7 +86,7 @@ export async function GET(request) {
         const decoded = jwt.verify(token, JWT_SECRET);
         const userId = decoded.userId;
 
-        const { rows: activeChallenges } = await pool.query(
+        const { rows: activeChallenges } = await db.query(
             "SELECT * FROM user_challenges WHERE user_id = $1 AND expires_at > NOW() AND is_completed = FALSE",
             [userId]
         );
@@ -94,7 +95,7 @@ export async function GET(request) {
             return NextResponse.json(activeChallenges);
         }
 
-        const userResult = await pool.query('SELECT riot_id_name, region, puuid FROM users WHERE id = $1', [userId]);
+        const userResult = await db.query('SELECT riot_id_name, region, puuid FROM users WHERE id = $1', [userId]);
         if (userResult.rows.length === 0 || !userResult.rows[0].puuid) {
             return NextResponse.json([]);
         }

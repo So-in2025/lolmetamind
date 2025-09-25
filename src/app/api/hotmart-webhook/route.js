@@ -16,28 +16,31 @@ export async function POST(req) {
 
     const eventType = hotmartEvent.event;
     const userEmail = hotmartEvent.email;
-    const subscriptionId = hotmartEvent.sub_id;
+    const subscriptionId = hotmartEvent.sub_id || hotmartEvent.subscription; // Asumiendo 'sub_id' o 'subscription'
 
     if (!userEmail) {
         return NextResponse.json({ message: 'Email no proporcionado.' }, { status: 400 });
     }
 
-    const userResult = await db.query('SELECT * FROM users WHERE email = ', [userEmail]);
+    // CORRECCIÓN DE QUERY: Añadir $1
+    const userResult = await db.query('SELECT * FROM users WHERE email = $1', [userEmail]);
     let user = userResult.rows[0];
 
     if (eventType === 'PURCHASE_APPROVED' || eventType === 'SUBSCRIPTION_ACTIVATED') {
         if (user) {
+            // CORRECCIÓN DE QUERY: Añadir $1, $2 y $3
             await db.query(
-              'UPDATE users SET "subscription_tier" = \'PREMIUM\', "hotmart_subscription_id" =  WHERE email = ',
-              [subscriptionId, userEmail]
+              'UPDATE users SET "subscription_tier" = $1, "hotmart_subscription_id" = $2 WHERE email = $3',
+              ['PREMIUM', subscriptionId, userEmail]
             );
             console.log(`Usuario ${userEmail} actualizado a PREMIUM.`);
         }
     } else if (eventType === 'SUBSCRIPTION_CANCELED' || eventType === 'PURCHASE_REFUNDED') {
         if (user) {
+            // CORRECCIÓN DE QUERY: Añadir $1 y $2
             await db.query(
-              'UPDATE users SET "subscription_tier" = \'FREE\', "hotmart_subscription_id" = NULL WHERE email = ',
-              [userEmail]
+              'UPDATE users SET "subscription_tier" = $1, "hotmart_subscription_id" = NULL WHERE email = $2',
+              ['FREE', userEmail]
             );
             console.log(`Suscripción de ${userEmail} cancelada.`);
         }

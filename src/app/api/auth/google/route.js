@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { google } from 'googleapis';
-import pool from '@/lib/db';
+import db from '@/lib/db'; // Cambiado de 'pool' a 'db' para consistencia
 import { createToken } from '@/lib/auth/utils';
 
 const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID;
@@ -42,12 +42,14 @@ export async function GET(request) {
     const userInfo = await oauth2.userinfo.get();
 
     let user = null;
-    const existingUser = await pool.query('SELECT * FROM users WHERE email = $1', [userInfo.data.email]);
+    // Usamos db.query
+    const existingUser = await db.query('SELECT * FROM users WHERE email = $1', [userInfo.data.email]);
     
     if (existingUser.rows.length > 0) {
       user = existingUser.rows[0];
     } else {
-      const newUserResult = await pool.query(
+      // Usamos db.query
+      const newUserResult = await db.query(
         'INSERT INTO users (username, email, google_id) VALUES ($1, $2, $3) RETURNING *',
         [userInfo.data.name, userInfo.data.email, userInfo.data.id]
       );
@@ -67,6 +69,7 @@ export async function GET(request) {
 
   } catch (error) {
     console.error('Error al procesar el login de Google:', error);
+    // Este es el error que ve el usuario. Lo mantenemos para el fallback.
     return NextResponse.json({ error: 'Hubo un error con la autenticación de Google.' }, { status: 500 });
   }
 }
