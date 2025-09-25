@@ -3,6 +3,7 @@
 
 -- Se eliminan las tablas existentes para asegurar un esquema limpio.
 DROP TABLE IF EXISTS users CASCADE;
+DROP TABLE IF EXISTS user_challenges CASCADE;
 
 -- Tabla de Usuarios actualizada para Riot ID y Paddle
 CREATE TABLE users (
@@ -10,6 +11,7 @@ CREATE TABLE users (
     username VARCHAR(255) UNIQUE,
     email VARCHAR(255) UNIQUE,
     google_id VARCHAR(255) UNIQUE,
+    avatar_url VARCHAR(255), -- <--- ¡COLUMNA AÑADIDA!
     
     -- Campos para el Riot ID y datos de League
     riot_id_name VARCHAR(255),
@@ -23,7 +25,13 @@ CREATE TABLE users (
     paddle_customer_id VARCHAR(255) UNIQUE,
 
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+
+    -- Campos para Hotmart y suscripción (corregidos para consistencia)
+    subscription_tier VARCHAR(50) DEFAULT 'FREE',
+    trial_ends_at TIMESTAMP WITH TIME ZONE,
+    license_key VARCHAR(255) UNIQUE,
+    hotmart_subscription_id VARCHAR(255)
 );
 
 -- Tabla para almacenar los desafíos activos de los usuarios
