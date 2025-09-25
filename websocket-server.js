@@ -1,69 +1,111 @@
-require('dotenv').config();
-const { Server } = require('socket.io');
+const WebSocket = require('ws');
 const jwt = require('jsonwebtoken');
-const db = require('./src/lib/db').default;
+const url = require('url');
+const { Pool } = require('pg');
+require('dotenv').config();
 
-const PORT = process.env.PORT || 10000;
+// Imports de la distribución compilada
+const { createLiveCoachingPrompt } = require('./dist/lib/ai/prompts');
+const { generateStrategicAnalysis } = require('./dist/lib/ai/strategist');
 
-const io = new Server(PORT, {
-  cors: {
-    origin: "*",
-    methods: ["GET", "POST"]
+const port = process.env.PORT || 8080;
+const JWT_SECRET = process.env.JWT_SECRET;
+const DATABASE_URL = process.env.DATABASE_URL;
+
+const pool = new Pool({
+  connectionString: DATABASE_URL,
+  ssl: {
+    rejectUnauthorized: false
   }
 });
 
-let activeClients = new Map();
+const wss = new WebSocket.Server({ port });
+const clients = new Map();
 
-// Función para buscar datos del usuario en la DB (SIN ZODIACO)
-async function fetchUserData(userId) {
+console.log(`✅ Servidor WebSocket de Producción iniciado en el puerto ${port}.`);
+
+// --- CORRECCIÓN: Eliminada la columna "zodiac_sign" de la consulta ---
+const fetchUserData = async (userId) => {
   try {
-    // --- CORRECCIÓN: Eliminada la columna "zodiac_sign" ---
-    const query = 'SELECT id, name, subscription_tier FROM users WHERE id = $1';
-    const result = await db.query(query, [userId]);
-    return result.rows[0];
+    // Ya no pedimos la columna 'zodiac_sign'
+    const res = await pool.query('SELECT id, username, summoner_id, region, live_game_data FROM users WHERE id = $1', [userId]);
+    return res.rows[0];
   } catch (error) {
     console.error(`Error al buscar usuario ${userId} en la DB:`, error);
     return null;
   }
-}
+};
+// --- FIN DE LA CORRECCIÓN ---
 
-// Middleware de autenticación (sin cambios)
-io.use((socket, next) => {
-  const token = socket.handshake.query.token;
+wss.on('connection', (ws, req) => {
+  const parameters = url.parse(req.url, true).query;
+  const token = parameters.token;
+
   if (!token) {
-    return next(new Error('[ERROR] Conexión rechazada: Token JWT no proporcionado.'));
+    ws.close(1008, 'Token no proporcionado');
+    return;
   }
-  jwt.verify(token, process.env.JWT_SECRET, (err, decoded) => {
+
+  jwt.verify(token, JWT_SECRET, (err, decoded) => {
     if (err) {
-      return next(new Error('[ERROR] Conexión rechazada: Token JWT inválido.'));
+      ws.close(1008, 'Token inválido');
+      return;
     }
-    socket.decoded = decoded;
-    next();
+
+    const userId = decoded.userId;
+    clients.set(userId, { ws });
+    console.log(`[CONEXIÓN] Usuario ${userId} conectado. Clientes activos: ${clients.size}`);
+
+    ws.on('close', () => {
+      clients.delete(userId);
+      console.log(`[DESCONEXIÓN] Usuario ${userId} desconectado. Clientes activos: ${clients.size}`);
+    });
+
+    ws.on('error', (error) => {
+      console.error(`[ERROR] WebSocket para usuario ${userId}:`, error);
+    });
   });
 });
 
-io.on('connection', (socket) => {
-  const userId = socket.decoded.userId;
-  console.log(`[CONEXIÓN] Usuario ${userId} conectado. Clientes activos: ${activeClients.size + 1}`);
-  activeClients.set(socket.id, userId);
+setInterval(async () => {
+  if (clients.size === 0) return;
 
-  // Intervalo para enviar eventos
-  const intervalId = setInterval(async () => {
-    const userData = await fetchUserData(userId);
-    if (userData) {
-      socket.emit('game_event', {
-        time: new Date().toLocaleTimeString(),
-        message: `Consejo para ${userData.name || userId}: ¡Concéntrate en farmear!`,
-        tier: userData.subscription_tier
-      });
+  for (const [userId, clientData] of clients.entries()) {
+    const { ws } = clientData;
+    if (ws.readyState !== WebSocket.OPEN) continue;
+
+    const freshUserData = await fetchUserData(userId);
+    if (!freshUserData) continue;
+
+    const liveGameData = freshUserData.live_game_data;
+
+    if (liveGameData && freshUserData.subscription_tier === 'PREMIUM') {
+        try {
+            // --- CORRECCIÓN: Eliminado el envío de "zodiacSign" a la IA ---
+            const analysisResult = await generateStrategicAnalysis({
+                liveGameData: liveGameData
+            });
+            // --- FIN DE LA CORRECCIÓN ---
+
+            const messageObject = {
+                realtimeAdvice: analysisResult.realtimeAdvice,
+                priorityAction: analysisResult.priorityAction || 'ANALYSIS',
+                gameTime: liveGameData.gameTime
+            };
+            
+            ws.send(JSON.stringify(messageObject));
+            
+        } catch (error) {
+            console.error(`Error al generar o enviar consejo ÉLITE para ${freshUserData.username}:`, error);
+            ws.send(JSON.stringify({ realtimeAdvice: "ERROR CRÍTICO: El enlace táctico con la IA se ha cortado. Concentración manual." }));
+        }
+        
+    } else {
+        const message = freshUserData && freshUserData.subscription_tier !== 'PREMIUM'
+          ? 'Acceso limitado. Coach en tiempo real es Premium.'
+          : 'Coach inactivo. Inicia una partida con la App de escritorio.';
+          
+        ws.send(JSON.stringify({ realtimeAdvice: message, priorityAction: 'STATUS' }));
     }
-  }, 15000);
-
-  socket.on('disconnect', () => {
-    activeClients.delete(socket.id);
-    clearInterval(intervalId);
-    console.log(`[DESCONEXIÓN] Usuario ${userId} desconectado. Clientes activos: ${activeClients.size}`);
-  });
-});
-
-console.log(`✅ Servidor WebSocket de Producción iniciado en el puerto ${PORT}.`);
+  }
+}, 10000); // Revisa cada 10 segundos
