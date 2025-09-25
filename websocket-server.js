@@ -29,7 +29,7 @@ const fetchUserData = async (userId) => {
   try {
     // Seleccionamos las columnas correctas de la lista que me proporcionaste.
     // Ya no pedimos 'live_game_data' ni 'zodiac_sign'.
-    const res = await pool.query('SELECT id, username, summoner_id, region, subscription_tier FROM users WHERE id = $1', [userId]);
+    const res = await pool.query('SELECT id, username, summoner_id, region, FROM users WHERE id = $1', [userId]);
     return res.rows[0];
   } catch (error) {
     console.error(`Error al buscar usuario ${userId} en la DB:`, error);
