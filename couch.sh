@@ -1,30 +1,37 @@
+#!/bin/bash
+
 # =========================================================================================
-# SOLUCIÓN DE RAÍZ: CONVERSIÓN A ES MODULES (ESM) DE FORMA DEFINITIVA
-# El flujo correcto para Node v22.
+# SOLUCIÓN DEFINITIVA PARA TypeError: WebSocket.Server IS NOT A CONSTRUCTOR
+# Objetivo: Corregir la forma en que el archivo ESM (.mjs) importa la librería 'ws'.
 # =========================================================================================
 
 BASE_DIR="." 
 
-echo "--- 1. Renombrando websocket-server.js a websocket-server.mjs (La solución de raíz) ---"
-mv "${BASE_DIR}/websocket-server.js" "${BASE_DIR}/websocket-server.mjs"
-echo "Archivo de entrada renombrado a websocket-server.mjs."
+echo "--- 1. Corrigiendo websocket-server.mjs: Usando importación segura para 'ws' ---"
+# Esto es CRÍTICO para que Node reconozca correctamente el constructor.
 
-
-echo "--- 2. Convirtiendo websocket-server.mjs a sintaxis ESM pura ---"
-# Reescritura completa del archivo de entrada para usar sintaxis 'import'
 cat > "${BASE_DIR}/websocket-server.mjs" << 'EOL'
-import WebSocket from 'ws';
+import * as wsModule from 'ws'; // Importa el módulo completo
 import jwt from 'jsonwebtoken';
 import url from 'url'; 
 import 'dotenv/config';
 
-// Importación de las distribuciones compiladas (Usando import nativo)
+// Importación de las distribuciones compiladas 
 import * as prompts from './dist/lib/ai/prompts.js';
 import * as strategist from './dist/lib/ai/strategist.js';
-import db from './dist/lib/db/index.js'; // Importación ESM del módulo de DB
+import db from './dist/lib/db/index.js'; 
 
 const { createLiveCoachingPrompt } = prompts;
 const { generateStrategicAnalysis } = strategist;
+
+// 🟢 CORRECCIÓN: Extraer la clase 'Server' del objeto importado (wsModule)
+// El constructor de WebSocket se encuentra en wsModule.default.Server o directamente en wsModule.Server,
+// dependiendo de la versión de Node y cómo Babel lo empaquetó. 
+const WebSocketServer = wsModule.Server || (wsModule.default ? wsModule.default.Server : null);
+
+if (!WebSocketServer) {
+    throw new Error("CRÍTICO: No se pudo encontrar el constructor de WebSocket.Server en el módulo 'ws'.");
+}
 
 
 const port = process.env.PORT || 8080;
@@ -32,7 +39,8 @@ const JWT_SECRET = process.env.JWT_SECRET;
 
 const pool = db.pool;
 
-const wss = new WebSocket.Server({ port });
+// Usamos el constructor extraído correctamente
+const wss = new WebSocketServer({ port }); 
 const clients = new Map();
 
 console.log(`✅ Servidor WebSocket de Producción iniciado en el puerto ${port}.`);
@@ -57,6 +65,7 @@ wss.on('connection', (ws, req) => {
     clients.set(ws, { id: decoded.userId });
     console.log(`[CONEXIÓN] Usuario ${decoded.userId} conectado. Clientes activos: ${clients.size}`);
     
+    // ws.send está aquí y está bien, pero falta 'ws.OPEN' en el intervalo.
     ws.send(JSON.stringify({ realtimeAdvice: 'Conectado al Coach MetaMind. Esperando inicio de partida.', priorityAction: 'STATUS' }));
 
   } catch (err) {
@@ -77,7 +86,8 @@ setInterval(async () => {
   if (clients.size === 0) return;
 
   for (const [ws, clientData] of clients.entries()) {
-    if (ws.readyState !== WebSocket.OPEN) continue;
+    // 🟢 CORRECCIÓN MENOR: ws.OPEN es una constante de la clase WebSocket.
+    if (ws.readyState !== 1 /* OPEN */) continue; 
 
     const freshUserData = await fetchUserData(clientData.id); 
     
@@ -115,37 +125,15 @@ setInterval(async () => {
   }
 }, 10000); 
 EOL
-echo "websocket-server.mjs convertido a ESM."
+echo "websocket-server.mjs corregido para el constructor de WebSocket."
 
 
-echo "--- 3. Ajustando el archivo de DB a exportación ESM (necesario para el nuevo flujo) ---"
-cat > "${BASE_DIR}/src/lib/db/index.js" << 'EOL'
-const { Pool } = require('pg');
-
-let pool;
-
-if (!global._pool) {
-  global._pool = new Pool({
-    connectionString: process.env.DATABASE_URL,
-    ssl: {
-      rejectUnauthorized: false
-    }
-  });
-}
-pool = global._pool;
-
-const db = {
-  query: (text, params) => pool.query(text, params),
-  pool: pool,
-};
-
-export default db;
-EOL
-echo "src/lib/db/index.js asegurado con exportación 'export default'."
-
-
-echo "--- 4. ADVERTENCIA FINAL (PASO MANUAL) ---"
-echo "🚨 ADVERTENCIA: Debe cambiar manualmente la línea 'start:server' en package.json"
-echo "DE: \"start:server\": \"npm run build:server && node websocket-server.js\""
-echo "A: \"start:server\": \"npm run build:server && node websocket-server.mjs\""
-echo "Una vez hecho esto, haz commit y deploy. ¡Esta es la solución de raíz!"
+echo ""
+echo "=========================================================="
+echo "    ✅ FIX DE EJECUCIÓN FINAL APLICADO"
+echo "=========================================================="
+echo "Este fix resuelve el último error de ejecución (TypeError: WebSocket.Server is not a constructor). Ahora, el servidor debería iniciar sin problemas."
+echo ""
+echo "Acciones requeridas:"
+echo "1. **Ejecuta este script en la carpeta raíz de tu proyecto web local.**"
+echo "2. **Haz un commit y deploy a Render.**"
