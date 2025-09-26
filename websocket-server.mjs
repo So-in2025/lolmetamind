@@ -5,7 +5,7 @@ import 'dotenv/config';
 
 // Importación de las distribuciones compiladas (Sintaxis ESM correcta)
 import * as prompts from './dist/lib/ai/prompts.js';
-import *s strategist from './dist/lib/ai/strategist.js'; 
+import * as strategist from './dist/lib/ai/strategist.js'; // SINTAXIS CORREGIDA
 import db from './dist/lib/db/index.js'; 
 
 const { createLiveCoachingPrompt } = prompts;

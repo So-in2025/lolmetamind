@@ -1,15 +1,14 @@
 #!/bin/bash
 
 # =========================================================================================
-# SOLUCIÓN DE SINTAXIS FINAL (ELIMINAR CARACTERES INVÁLIDOS Y ASEGURAR ESM)
-# Objetivo: Eliminar el 'SyntaxError' y asegurar que el servidor inicie.
+# SOLUCIÓN DE SINTAXIS DEFINITIVA Y ARRANQUE DEL SERVIDOR
+# Objetivo: Eliminar el 'SyntaxError' (import *s) y asegurar el inicio.
 # =========================================================================================
 
 BASE_DIR="." 
 
-echo "--- 1. Corrigiendo websocket-server.mjs: ELIMINANDO CARACTERES DE COMENTARIO ERRÓNEOS ---"
-# Esto corrige el SyntaxError al asegurar que solo haya comentarios válidos (//) y sintaxis de importación correcta.
-
+echo "--- 1. Corrigiendo websocket-server.mjs: Arreglo de SyntaxError ('*s' -> '* as') ---"
+# Esto corrige el error de sintaxis y permite que el servidor inicie bajo el flujo ESM.
 cat > "${BASE_DIR}/websocket-server.mjs" << 'EOL'
 import ws from 'ws'; 
 import jwt from 'jsonwebtoken';
@@ -18,7 +17,7 @@ import 'dotenv/config';
 
 // Importación de las distribuciones compiladas (Sintaxis ESM correcta)
 import * as prompts from './dist/lib/ai/prompts.js';
-import *s strategist from './dist/lib/ai/strategist.js'; 
+import * as strategist from './dist/lib/ai/strategist.js'; // SINTAXIS CORREGIDA
 import db from './dist/lib/db/index.js'; 
 
 const { createLiveCoachingPrompt } = prompts;
@@ -123,7 +122,6 @@ EOL
 echo "websocket-server.mjs corregido."
 
 echo "--- 2. Recreando el archivo de DB index.js (ESM) para la compilación ---"
-# Aseguramos que este archivo tenga la exportación ESM que espera el nuevo flujo.
 cat > "${BASE_DIR}/src/lib/db/index.js" << 'EOL'
 const { Pool } = require('pg');
 
@@ -150,9 +148,9 @@ echo "src/lib/db/index.js asegurado con exportación 'export default'."
 
 echo ""
 echo "=========================================================="
-echo "    ✅ SERVIDOR LISTO PARA INICIAR (ERRORES DE SINTAXIS ELIMINADOS)"
+echo "    ✅ SERVIDOR LISTO PARA INICIAR (Sintaxis Corregida)"
 echo "=========================================================="
-echo "El error de sintaxis ha sido eliminado, lo que debería permitir que el servidor se inicie correctamente en Render."
+echo "El error de sintaxis ha sido eliminado. Este es el último paso que necesita tu servidor para arrancar."
 echo ""
 echo "Acciones requeridas:"
 echo "1. **Ejecuta este script en la carpeta raíz de tu proyecto web local.**"
