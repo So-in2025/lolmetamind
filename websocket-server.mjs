@@ -3,7 +3,7 @@ import jwt from 'jsonwebtoken';
 import url from 'url'; 
 import 'dotenv/config';
 
-// Importación de las distribuciones compiladas (Sintaxis ESM correcta)
+// Importación de las distribuciones compiladas 
 import * as prompts from './dist/lib/ai/prompts.js';
 import * as strategist from './dist/lib/ai/strategist.js'; 
 import db from './dist/lib/db/index.js'; 
@@ -12,20 +12,18 @@ const { createLiveCoachingPrompt } = prompts;
 const { generateStrategicAnalysis } = strategist;
 
 
-// Lógica de extracción universal para constructor WS
-// Usamos ws.Server directamente, lo cual es la forma esperada.
+// 🟢 SOLUCIÓN FINAL DE CONSTRUCTOR: Extraer el constructor del servidor
+// En contextos ESM (incluso con interop CJS), la clase Server se encuentra en ws.Server.
+// Usamos el import nominado que es el estándar más limpio.
 const WebSocketServer = ws.Server; 
 
-if (typeof WebSocketServer !== 'function') {
-    // Esto solo se activa si Node 18 no puede resolver la clase.
-    throw new Error("CRÍTICO: El constructor de WebSocket.Server no se resolvió correctamente. Error de interop CJS/ESM.");
-}
 
 const port = process.env.PORT || 8080;
 const JWT_SECRET = process.env.JWT_SECRET;
 
 const pool = db.pool;
 
+// La inicialización debe ser con el constructor Server
 const wss = new WebSocketServer({ port }); 
 const clients = new Map();
 
@@ -66,7 +64,7 @@ wss.on('connection', (ws, req) => {
 });
 
 
-// --- EL MOTOR DE COACHING DE ÉLITE EN TIEMPO REAL (BYPASS ACTIVO) ---
+// --- EL MOTOR DE COACHING DE ÉLITE EN TIEMPO REAL (LÓGICA PREMIUM) ---
 setInterval(async () => {
   if (clients.size === 0) return;
 
@@ -75,8 +73,10 @@ setInterval(async () => {
 
     const freshUserData = await fetchUserData(clientData.id); 
     
-    // BYPASS PREMIUM
-    if (freshUserData && freshUserData.live_game_data) {
+    // VERIFICACIÓN DE LÓGICA PREMIUM/TRIAL
+    const isElite = freshUserData && (freshUserData.subscription_tier === 'PREMIUM' || freshUserData.subscription_tier === 'TRIAL');
+
+    if (freshUserData && freshUserData.live_game_data && isElite) {
         
         const liveGameData = freshUserData.live_game_data;
         
@@ -100,8 +100,8 @@ setInterval(async () => {
         }
         
     } else {
-        const statusMessage = freshUserData && freshUserData.subscription_tier !== 'PREMIUM'
-          ? 'Acceso limitado. Coach en tiempo real es Premium.'
+        const statusMessage = freshUserData && freshUserData.subscription_tier !== 'PREMIUM' && freshUserData.subscription_tier !== 'TRIAL'
+          ? 'Acceso limitado. Coach en tiempo real es Premium/Trial.'
           : 'Coach inactivo. Inicia una partida con la App de escritorio.'; 
 
         ws.send(JSON.stringify({ realtimeAdvice: statusMessage, priorityAction: 'STATUS' }));
