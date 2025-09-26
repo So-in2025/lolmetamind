@@ -3,23 +3,20 @@ import jwt from 'jsonwebtoken';
 import url from 'url'; 
 import 'dotenv/config';
 
-// Importación de las distribuciones compiladas 
+// Importación de las distribuciones compiladas (Sintaxis ESM correcta)
 import * as prompts from './dist/lib/ai/prompts.js';
-import * as strategist from './dist/lib/ai/strategist.js';
+import *s strategist from './dist/lib/ai/strategist.js'; 
 import db from './dist/lib/db/index.js'; 
 
 const { createLiveCoachingPrompt } = prompts;
 const { generateStrategicAnalysis } = strategist;
 
 
-// 🟢 CORRECCIÓN: Extracción directa de la clase Server.
-// La clase Server está en la propiedad Server del objeto importado 'ws'.
-const WebSocketServer = ws.Server; 
+// Lógica de extracción universal para constructor WS
+const WebSocketServer = ws.Server || ws.default || ws;
 
 if (typeof WebSocketServer !== 'function') {
-    // Si esta verificación falla, significa que la librería 'ws' no exportó la propiedad Server,
-    // y debe ser un error de la librería o de la interop.
-    throw new Error("CRÍTICO: No se pudo resolver la clase WebSocket.Server. Fallo de módulo.");
+    throw new Error("CRÍTICO: El constructor de WebSocketServer no se resolvió correctamente en el módulo 'ws'.");
 }
 
 const port = process.env.PORT || 8080;

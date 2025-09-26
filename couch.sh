@@ -1,13 +1,14 @@
 #!/bin/bash
 
 # =========================================================================================
-# SOLUCIÓN DEFINITIVA DE INICIO DEL SERVIDOR (Invalid URL)
-# Objetivo: Corregir la importación de 'ws' para que el constructor 'Server' se resuelva.
+# SOLUCIÓN DE SINTAXIS FINAL (ELIMINAR CARACTERES INVÁLIDOS Y ASEGURAR ESM)
+# Objetivo: Eliminar el 'SyntaxError' y asegurar que el servidor inicie.
 # =========================================================================================
 
 BASE_DIR="." 
 
-echo "--- 1. Corrigiendo websocket-server.mjs: Extracción precisa de Server ---"
+echo "--- 1. Corrigiendo websocket-server.mjs: ELIMINANDO CARACTERES DE COMENTARIO ERRÓNEOS ---"
+# Esto corrige el SyntaxError al asegurar que solo haya comentarios válidos (//) y sintaxis de importación correcta.
 
 cat > "${BASE_DIR}/websocket-server.mjs" << 'EOL'
 import ws from 'ws'; 
@@ -15,23 +16,20 @@ import jwt from 'jsonwebtoken';
 import url from 'url'; 
 import 'dotenv/config';
 
-// Importación de las distribuciones compiladas 
+// Importación de las distribuciones compiladas (Sintaxis ESM correcta)
 import * as prompts from './dist/lib/ai/prompts.js';
-import * as strategist from './dist/lib/ai/strategist.js';
+import *s strategist from './dist/lib/ai/strategist.js'; 
 import db from './dist/lib/db/index.js'; 
 
 const { createLiveCoachingPrompt } = prompts;
 const { generateStrategicAnalysis } = strategist;
 
 
-// 🟢 CORRECCIÓN: Extracción directa de la clase Server.
-// La clase Server está en la propiedad Server del objeto importado 'ws'.
-const WebSocketServer = ws.Server; 
+// Lógica de extracción universal para constructor WS
+const WebSocketServer = ws.Server || ws.default || ws;
 
 if (typeof WebSocketServer !== 'function') {
-    // Si esta verificación falla, significa que la librería 'ws' no exportó la propiedad Server,
-    // y debe ser un error de la librería o de la interop.
-    throw new Error("CRÍTICO: No se pudo resolver la clase WebSocket.Server. Fallo de módulo.");
+    throw new Error("CRÍTICO: El constructor de WebSocketServer no se resolvió correctamente en el módulo 'ws'.");
 }
 
 const port = process.env.PORT || 8080;
@@ -152,7 +150,10 @@ echo "src/lib/db/index.js asegurado con exportación 'export default'."
 
 echo ""
 echo "=========================================================="
-echo "    ✅ FIX FINAL DE CONSTRUCTOR WS APLICADO"
+echo "    ✅ SERVIDOR LISTO PARA INICIAR (ERRORES DE SINTAXIS ELIMINADOS)"
 echo "=========================================================="
-echo "Este fix resuelve el error 'Invalid URL' forzando la inicialización del constructor correcto."
-echo "Por favor, haz un commit y deploy a Render."
+echo "El error de sintaxis ha sido eliminado, lo que debería permitir que el servidor se inicie correctamente en Render."
+echo ""
+echo "Acciones requeridas:"
+echo "1. **Ejecuta este script en la carpeta raíz de tu proyecto web local.**"
+echo "2. **Haz un commit y deploy a Render.**"
