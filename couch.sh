@@ -2,13 +2,13 @@
 
 # =========================================================================================
 # SOLUCIÓN DE SINTAXIS DEFINITIVA Y ARRANQUE DEL SERVIDOR
-# Objetivo: Eliminar el 'SyntaxError' (import *s) y asegurar el inicio.
+# Objetivo: Corregir el 'SyntaxError' (import *s) para el inicio.
 # =========================================================================================
 
 BASE_DIR="." 
 
 echo "--- 1. Corrigiendo websocket-server.mjs: Arreglo de SyntaxError ('*s' -> '* as') ---"
-# Esto corrige el error de sintaxis y permite que el servidor inicie bajo el flujo ESM.
+# Se corrige el error de sintaxis en la importación de strategist.
 cat > "${BASE_DIR}/websocket-server.mjs" << 'EOL'
 import ws from 'ws'; 
 import jwt from 'jsonwebtoken';
@@ -148,10 +148,6 @@ echo "src/lib/db/index.js asegurado con exportación 'export default'."
 
 echo ""
 echo "=========================================================="
-echo "    ✅ SERVIDOR LISTO PARA INICIAR (Sintaxis Corregida)"
+echo "    ✅ SERVIDOR LISTO PARA INICIAR (SINTAXIS FINAL CORREGIDA)"
 echo "=========================================================="
-echo "El error de sintaxis ha sido eliminado. Este es el último paso que necesita tu servidor para arrancar."
-echo ""
-echo "Acciones requeridas:"
-echo "1. **Ejecuta este script en la carpeta raíz de tu proyecto web local.**"
-echo "2. **Haz un commit y deploy a Render.**"
+echo "El servidor DEBE iniciar ahora. Por favor, haz un commit y deploy a Render."
