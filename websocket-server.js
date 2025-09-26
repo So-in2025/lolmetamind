@@ -1,12 +1,13 @@
-import { Server as WebSocketServer } from 'ws'; // FIX FINAL: Importación nombrada para SERVER
-import jwt from 'jsonwebtoken';
-import url from 'url'; 
-import 'dotenv/config';
+const WebSocket = require('ws');
+const jwt = require('jsonwebtoken');
+const url = require('url');
+const { Pool } = require('pg');
+require('dotenv').config();
 
-// Importación de las distribuciones compiladas 
-import * as prompts from './dist/lib/ai/prompts.js';
-import * as strategist from './dist/lib/ai/strategist.js'; 
-import db from './dist/lib/db/index.js'; 
+// Imports de la distribución compilada (CJS)
+const prompts = require('./dist/lib/ai/prompts');
+const strategist = require('./dist/lib/ai/strategist');
+const db = require('./dist/lib/db/index.js'); // Usamos require para CJS
 
 const { createLiveCoachingPrompt } = prompts;
 const { generateStrategicAnalysis } = strategist;
@@ -17,14 +18,15 @@ const JWT_SECRET = process.env.JWT_SECRET;
 
 const pool = db.pool;
 
-// La inicialización debe ser con el constructor Server
-const wss = new WebSocketServer({ port }); 
+// El constructor WebSocket Server se importa correctamente en CJS
+const wss = new WebSocket.Server({ port }); 
 const clients = new Map();
 
 console.log(`✅ Servidor WebSocket de Producción iniciado en el puerto ${port}.`);
 
 const fetchUserData = async (userId) => {
   try {
+    // Se asegura que se busque live_game_data y subscription_tier (la discrepancia original)
     const res = await pool.query('SELECT id, username, zodiac_sign, live_game_data, subscription_tier FROM users WHERE id = $1', [userId]);
     return res.rows[0];
   } catch (error) {
