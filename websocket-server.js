@@ -25,20 +25,10 @@ const clients = new Map();
 
 console.log(`✅ Servidor WebSocket de Producción iniciado en el puerto ${SERVER_PORT}.`);
 
+
 const fetchUserData = async (userId) => {
   try {
-    // Si es el ID anónimo, devolvemos un objeto base para evitar error SQL
-    if (userId === ANONYMOUS_USER_ID) {
-        return { 
-            id: ANONYMOUS_USER_ID, 
-            username: 'Anon', 
-            zodiac_sign: 'Aries', 
-            live_game_data: null, 
-            subscription_tier: 'FREE' 
-        };
-    }
-    
-    // Consulta para usuarios logueados
+    // FIX DB: Alias para plan_status y COALESCE para zodiac_sign
     const res = await pool.query('SELECT id, username, COALESCE(zodiac_sign, \'Aries\') as zodiac_sign, live_game_data, plan_status AS subscription_tier FROM users WHERE id = $1', [userId]);
     return res.rows[0];
   } catch (error) {
@@ -47,28 +37,18 @@ const fetchUserData = async (userId) => {
   }
 };
 
-wss.on('connection', (ws, req) => {
-  const parameters = url.parse(req.url, true).query;
-  const token = parameters.token;
 
-  try {
-    // 1. Verificar si se proporcionó un token y si es válido
-    if (!token || token === 'null' || token === 'undefined') throw new Error('No token provided');
-    
-    const decoded = jwt.verify(token, JWT_SECRET);
-    ws.userId = decoded.userId;
-    clients.set(ws, { id: decoded.userId }); 
-    console.log(`[CONEXIÓN] Usuario ${decoded.userId} conectado. Clientes activos: ${clients.size}`);
-    
-  } catch (err) {
-    // 2. Si el token falla (porque no existe o es malformado), asignamos ID anónimo.
-    ws.userId = ANONYMOUS_USER_ID;
-    clients.set(ws, { id: ANONYMOUS_USER_ID });
-    console.warn(`[CONEXIÓN] Usuario anónimo conectado. Razón: ${err.message}.`);
-  }
+wss.on('connection', (ws, req) => {
+  // --- BYPASS DE SEGURIDAD PARA USO PERSONAL/PRUEBA ---
+  const userId = 1; 
+  // ----------------------------------------------------
+  
+  ws.userId = userId;
+  clients.set(ws, { id: userId }); 
+  
+  console.log(`[CONEXIÓN] Usuario SIMULADO (ID ${userId}) conectado. Clientes activos: ${clients.size}`);
   
   ws.send(JSON.stringify({ realtimeAdvice: 'Conectado al Coach MetaMind. Esperando inicio de partida.', priorityAction: 'STATUS' }));
-
 
   ws.on('close', () => {
     clients.delete(ws);
