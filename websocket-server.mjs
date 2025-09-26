@@ -5,7 +5,7 @@ import 'dotenv/config';
 
 // Importación de las distribuciones compiladas (Sintaxis ESM correcta)
 import * as prompts from './dist/lib/ai/prompts.js';
-import * as strategist from './dist/lib/ai/strategist.js'; // SINTAXIS CORREGIDA
+import * as strategist from './dist/lib/ai/strategist.js'; 
 import db from './dist/lib/db/index.js'; 
 
 const { createLiveCoachingPrompt } = prompts;
@@ -13,10 +13,12 @@ const { generateStrategicAnalysis } = strategist;
 
 
 // Lógica de extracción universal para constructor WS
-const WebSocketServer = ws.Server || ws.default || ws;
+// Usamos ws.Server directamente, lo cual es la forma esperada.
+const WebSocketServer = ws.Server; 
 
 if (typeof WebSocketServer !== 'function') {
-    throw new Error("CRÍTICO: El constructor de WebSocketServer no se resolvió correctamente en el módulo 'ws'.");
+    // Esto solo se activa si Node 18 no puede resolver la clase.
+    throw new Error("CRÍTICO: El constructor de WebSocket.Server no se resolvió correctamente. Error de interop CJS/ESM.");
 }
 
 const port = process.env.PORT || 8080;
@@ -105,4 +107,4 @@ setInterval(async () => {
         ws.send(JSON.stringify({ realtimeAdvice: statusMessage, priorityAction: 'STATUS' }));
     }
   }
-}, 10000); 
+}, 10000);
