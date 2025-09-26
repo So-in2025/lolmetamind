@@ -1,82 +1,102 @@
-require('dotenv').config();
-const { Server } = require('socket.io');
+const WebSocket = require('ws');
 const jwt = require('jsonwebtoken');
-const db = require('./src/lib/db').default;
+const url = require('url');
+require('dotenv').config();
 
-const PORT = process.env.PORT || 10000;
+// Imports de la distribución compilada (CJS)
+const prompts = require('./dist/lib/ai/prompts');
+const strategist = require('./dist/lib/ai/strategist');
+// CORRECCIÓN CRÍTICA: Apuntar al archivo CJS renombrado y compilado
+const db = require('./dist/lib/db/index.cjs'); 
 
-const io = new Server(PORT, {
-  cors: {
-    origin: "*", // En producción, deberías restringir esto a tu dominio
-  }
-});
+const { createLiveCoachingPrompt } = prompts;
+const { generateStrategicAnalysis } = strategist;
 
-let activeClients = new Map();
 
-async function fetchUserData(userId) {
+const port = process.env.PORT || 8080;
+const JWT_SECRET = process.env.JWT_SECRET;
+
+const pool = db.pool; 
+
+const wss = new WebSocket.Server({ port });
+const clients = new Map();
+
+console.log(`✅ Servidor WebSocket de Producción iniciado en el puerto ${port}.`);
+
+const fetchUserData = async (userId) => {
   try {
-    const query = 'SELECT id, username FROM users WHERE id = $1';
-    const result = await db.query(query, [userId]);
-    return result.rows[0];
+    const res = await pool.query('SELECT id, username, zodiac_sign, live_game_data, subscription_tier FROM users WHERE id = $1', [userId]);
+    return res.rows[0];
   } catch (error) {
     console.error(`Error al buscar usuario ${userId} en la DB:`, error);
     return null;
   }
-}
+};
 
-io.use((socket, next) => {
-  const token = socket.handshake.query.token;
-  if (!token) {
-    return next(new Error('Token no proporcionado'));
+wss.on('connection', (ws, req) => {
+  const parameters = url.parse(req.url, true).query;
+  const token = parameters.token;
+
+  try {
+    const decoded = jwt.verify(token, JWT_SECRET);
+    ws.userId = decoded.userId;
+    clients.set(ws, { id: decoded.userId });
+    console.log(`[CONEXIÓN] Usuario ${decoded.userId} conectado. Clientes activos: ${clients.size}`);
+    
+    ws.send(JSON.stringify({ realtimeAdvice: 'Conectado al Coach MetaMind. Esperando inicio de partida.', priorityAction: 'STATUS' }));
+
+  } catch (err) {
+    console.log('[ERROR] Conexión rechazada: Token JWT inválido.', err.message);
+    ws.close(1008, 'Token JWT inválido');
+    return;
   }
-  jwt.verify(token, process.env.JWT_SECRET, (err, decoded) => {
-    if (err) {
-      return next(new Error('Token inválido'));
-    }
-    socket.decoded = decoded;
-    next();
+
+  ws.on('close', () => {
+    clients.delete(ws);
+    console.log(`[DESCONEXIÓN] Usuario ${ws.userId} desconectado. Clientes activos: ${clients.size}`);
   });
 });
 
-io.on('connection', (socket) => {
-  const userId = socket.decoded.userId;
-  console.log(`[CONEXIÓN ESTABLE] Usuario ${userId} conectado. Clientes activos: ${activeClients.size + 1}`);
-  activeClients.set(socket.id, userId);
 
-  const intervalId = setInterval(async () => {
-    // Verificamos que la conexión siga abierta
-    if (socket.readyState !== 'open' && !socket.connected) {
-        clearInterval(intervalId);
-        return;
-    }
+// --- EL MOTOR DE COACHING DE ÉLITE EN TIEMPO REAL (BYPASS ACTIVO) ---
+setInterval(async () => {
+  if (clients.size === 0) return;
 
-    let userData;
+  for (const [ws, clientData] of clients.entries()) {
+    if (ws.readyState !== WebSocket.OPEN) continue;
 
-    // --- CORRECCIÓN FINAL Y DEFINITIVA ---
-    // Si el usuario es 'master-user', no lo buscamos en la base de datos.
-    // Creamos un objeto de usuario falso para que el resto del código funcione.
-    if (userId === 'master-user') {
-        userData = { id: 'master-user', username: 'Jh0wner' };
+    const freshUserData = await fetchUserData(clientData.id); 
+    
+    // BYPASS PREMIUM
+    if (freshUserData && freshUserData.live_game_data) {
+        
+        const liveGameData = freshUserData.live_game_data;
+        
+        try {
+            const analysisResult = await generateStrategicAnalysis({ 
+                liveGameData: liveGameData, 
+                zodiacSign: freshUserData.zodiac_sign || 'Aries' 
+            });
+            
+            const messageObject = {
+                realtimeAdvice: analysisResult.realtimeAdvice || analysisResult.message, 
+                priorityAction: analysisResult.priorityAction || 'ANALYSIS',
+                gameTime: liveGameData.gameTime 
+            };
+            
+            ws.send(JSON.stringify({ realtimeAdvice: messageObject.realtimeAdvice, priorityAction: messageObject.priorityAction }));
+            
+        } catch (error) {
+            console.error(`Error al generar o enviar consejo ÉLITE para ${freshUserData.username}:`, error);
+            ws.send(JSON.stringify({ realtimeAdvice: "ERROR CRÍTICO: El enlace táctico con la IA se ha cortado. Concentración manual.", priorityAction: 'ERROR' }));
+        }
+        
     } else {
-        // Si es un usuario normal, lo buscamos en la base de datos.
-        userData = await fetchUserData(userId);
+        const statusMessage = freshUserData && freshUserData.subscription_tier !== 'PREMIUM'
+          ? 'Acceso limitado. Coach en tiempo real es Premium.'
+          : 'Coach inactivo. Inicia una partida con la App de escritorio.'; 
+
+        ws.send(JSON.stringify({ realtimeAdvice: statusMessage, priorityAction: 'STATUS' }));
     }
-    // --- FIN DE LA CORRECCIÓN ---
-
-    if (userData) {
-      // Ahora la lógica de los consejos funcionará para ambos casos
-      socket.emit('game_event', {
-        time: new Date().toLocaleTimeString(),
-        message: `¡Conexión exitosa, ${userData.username}! El coach está activo y listo.`
-      });
-    }
-  }, 15000);
-
-  socket.on('disconnect', () => {
-    activeClients.delete(socket.id);
-    clearInterval(intervalId);
-    console.log(`[DESCONEXIÓN] Usuario ${userId} desconectado. Clientes activos: ${activeClients.size}`);
-  });
-});
-
-console.log(`✅ Servidor WebSocket de Producción iniciado en el puerto ${PORT}.`);
+  }
+}, 10000); 

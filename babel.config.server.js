@@ -1,5 +1,5 @@
 // babel.config.server.js
-// Configuración de Babel para el servidor de WebSockets (Render)
+// Configuración de Babel para el servidor de WebSockets
 module.exports = {
   "presets": [
     [
@@ -7,7 +7,8 @@ module.exports = {
       {
         "targets": {
           "node": "current"
-        }
+        },
+        "modules": "commonjs" 
       }
     ]
   ],
@@ -21,5 +22,7 @@ module.exports = {
         }
       }
     ]
-  ]
+  ],
+  // CRÍTICO: Permitir que Babel procese archivos .cjs
+  "extensions": [".js", ".jsx", ".cjs"] 
 };
