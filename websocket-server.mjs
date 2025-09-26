@@ -1,13 +1,12 @@
-const WebSocket = require('ws');
-const jwt = require('jsonwebtoken');
-const url = require('url');
-require('dotenv').config();
+import WebSocket from 'ws';
+import jwt from 'jsonwebtoken';
+import url from 'url'; 
+import 'dotenv/config';
 
-// Imports de la distribución compilada (CJS)
-const prompts = require('./dist/lib/ai/prompts');
-const strategist = require('./dist/lib/ai/strategist');
-// CORRECCIÓN CRÍTICA: Apuntar al archivo CJS renombrado y compilado
-const db = require('./dist/lib/db/index.cjs'); 
+// Importación de las distribuciones compiladas (Usando import nativo)
+import * as prompts from './dist/lib/ai/prompts.js';
+import * as strategist from './dist/lib/ai/strategist.js';
+import db from './dist/lib/db/index.js'; // Importación ESM del módulo de DB
 
 const { createLiveCoachingPrompt } = prompts;
 const { generateStrategicAnalysis } = strategist;
@@ -16,7 +15,7 @@ const { generateStrategicAnalysis } = strategist;
 const port = process.env.PORT || 8080;
 const JWT_SECRET = process.env.JWT_SECRET;
 
-const pool = db.pool; 
+const pool = db.pool;
 
 const wss = new WebSocket.Server({ port });
 const clients = new Map();

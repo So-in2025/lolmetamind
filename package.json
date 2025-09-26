@@ -12,7 +12,7 @@
     "start": "next start",
     "lint": "next lint",
     "build:server": "rm -rf dist && babel --config-file ./babel.config.server.js src/lib --out-dir dist/lib && babel --config-file ./babel.config.server.js src/services --out-dir dist/services",
-    "start:server": "npm run build:server && node websocket-server.js",
+    "start:server": "npm run build:server && node websocket-server.mjs",
     "electron:dev": "concurrently \"npm run dev\" \"wait-on http://localhost:3000 && electron .\"",
     "electron:package": "npm run build && electron-builder"
   },

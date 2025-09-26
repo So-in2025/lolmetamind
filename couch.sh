@@ -1,89 +1,27 @@
-#!/bin/bash
-
 # =========================================================================================
-# SOLUCIÓN DEFINITIVA DE BABEL Y CJS
-# Objetivo: Arreglar el error de Babel (Unknown option: .extensions) Y forzar CJS.
+# SOLUCIÓN DE RAÍZ: CONVERSIÓN A ES MODULES (ESM) DE FORMA DEFINITIVA
+# El flujo correcto para Node v22.
 # =========================================================================================
 
 BASE_DIR="." 
 
-echo "--- 1. Corrigiendo babel.config.server.js: Eliminando la opción inválida 'extensions' ---"
-# Esto permitirá que el build pase la fase de compilación.
-cat > "${BASE_DIR}/babel.config.server.js" << 'EOL'
-// babel.config.server.js
-// Configuración de Babel para el servidor de WebSockets
-module.exports = {
-  "presets": [
-    [
-      "@babel/preset-env",
-      {
-        "targets": {
-          "node": "current"
-        },
-        "modules": "commonjs" 
-      }
-    ]
-  ],
-  "plugins": [
-    [
-      "module-resolver",
-      {
-        "root": ["./src"],
-        "alias": {
-          "@": "./src"
-        }
-      }
-    ]
-  ]
-};
-EOL
-echo "babel.config.server.js corregido (eliminado 'extensions')."
+echo "--- 1. Renombrando websocket-server.js a websocket-server.mjs (La solución de raíz) ---"
+mv "${BASE_DIR}/websocket-server.js" "${BASE_DIR}/websocket-server.mjs"
+echo "Archivo de entrada renombrado a websocket-server.mjs."
 
 
-echo "--- 2. Renombrando src/lib/db/index.js a src/lib/db/index.cjs (FIX DE Causa Raíz) ---"
-# Si el archivo falló, es porque no existe o está en una ubicación inesperada.
-# Intentaremos moverlo a CJS y recrear su contenido.
-mv "${BASE_DIR}/src/lib/db/index.js" "${BASE_DIR}/src/lib/db/index.cjs" 2>/dev/null || true # Ignoramos error si ya está movido
+echo "--- 2. Convirtiendo websocket-server.mjs a sintaxis ESM pura ---"
+# Reescritura completa del archivo de entrada para usar sintaxis 'import'
+cat > "${BASE_DIR}/websocket-server.mjs" << 'EOL'
+import WebSocket from 'ws';
+import jwt from 'jsonwebtoken';
+import url from 'url'; 
+import 'dotenv/config';
 
-# Recreamos el archivo .cjs con su contenido correcto de CJS
-cat > "${BASE_DIR}/src/lib/db/index.cjs" << 'EOL'
-const { Pool } = require('pg');
-
-let pool;
-
-if (!global._pool) {
-  global._pool = new Pool({
-    connectionString: process.env.DATABASE_URL,
-    ssl: {
-      rejectUnauthorized: false
-    }
-  });
-}
-pool = global._pool;
-
-const db = {
-  query: (text, params) => pool.query(text, params),
-  pool: pool,
-};
-
-module.exports = db;
-EOL
-echo "Archivo de DB forzado a .cjs."
-
-
-echo "--- 3. Corrigiendo websocket-server.js para importar el nuevo archivo .cjs compilado ---"
-# Apuntamos al archivo transpilado, que debería ser dist/lib/db/index.cjs
-cat > "${BASE_DIR}/websocket-server.js" << 'EOL'
-const WebSocket = require('ws');
-const jwt = require('jsonwebtoken');
-const url = require('url');
-require('dotenv').config();
-
-// Imports de la distribución compilada (CJS)
-const prompts = require('./dist/lib/ai/prompts');
-const strategist = require('./dist/lib/ai/strategist');
-// CORRECCIÓN CRÍTICA: Apuntar al archivo CJS renombrado y compilado
-const db = require('./dist/lib/db/index.cjs'); 
+// Importación de las distribuciones compiladas (Usando import nativo)
+import * as prompts from './dist/lib/ai/prompts.js';
+import * as strategist from './dist/lib/ai/strategist.js';
+import db from './dist/lib/db/index.js'; // Importación ESM del módulo de DB
 
 const { createLiveCoachingPrompt } = prompts;
 const { generateStrategicAnalysis } = strategist;
@@ -92,7 +30,7 @@ const { generateStrategicAnalysis } = strategist;
 const port = process.env.PORT || 8080;
 const JWT_SECRET = process.env.JWT_SECRET;
 
-const pool = db.pool; 
+const pool = db.pool;
 
 const wss = new WebSocket.Server({ port });
 const clients = new Map();
@@ -177,10 +115,37 @@ setInterval(async () => {
   }
 }, 10000); 
 EOL
+echo "websocket-server.mjs convertido a ESM."
 
-echo ""
-echo "=========================================================="
-echo "    ✅ FIX FINAL APLICADO: BABEL Y MÓDULOS"
-echo "=========================================================="
-echo "Hemos corregido el archivo de configuración de Babel que causaba el fallo del build y hemos forzado el módulo de la base de datos a .cjs."
-echo "Por favor, haz un commit y deploy a Render. Esta es la solución de configuración más estricta posible."
+
+echo "--- 3. Ajustando el archivo de DB a exportación ESM (necesario para el nuevo flujo) ---"
+cat > "${BASE_DIR}/src/lib/db/index.js" << 'EOL'
+const { Pool } = require('pg');
+
+let pool;
+
+if (!global._pool) {
+  global._pool = new Pool({
+    connectionString: process.env.DATABASE_URL,
+    ssl: {
+      rejectUnauthorized: false
+    }
+  });
+}
+pool = global._pool;
+
+const db = {
+  query: (text, params) => pool.query(text, params),
+  pool: pool,
+};
+
+export default db;
+EOL
+echo "src/lib/db/index.js asegurado con exportación 'export default'."
+
+
+echo "--- 4. ADVERTENCIA FINAL (PASO MANUAL) ---"
+echo "🚨 ADVERTENCIA: Debe cambiar manualmente la línea 'start:server' en package.json"
+echo "DE: \"start:server\": \"npm run build:server && node websocket-server.js\""
+echo "A: \"start:server\": \"npm run build:server && node websocket-server.mjs\""
+echo "Una vez hecho esto, haz commit y deploy. ¡Esta es la solución de raíz!"
