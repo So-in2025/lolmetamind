@@ -2,6 +2,7 @@ const WebSocket = require('ws');
 const url = require('url');
 const { Pool } = require('pg');
 require('dotenv').config();
+const jwt = require('jsonwebtoken'); 
 
 // Imports de la distribución compilada (CJS)
 const prompts = require('./dist/lib/ai/prompts');
@@ -12,35 +13,47 @@ const { createLiveCoachingPrompt } = prompts;
 const { generateStrategicAnalysis } = strategist;
 
 
-// --- CORRECCIÓN CRÍTICA: Prioriza process.env.PORT para Render ---
+const JWT_SECRET = process.env.JWT_SECRET; 
 const SERVER_PORT = process.env.PORT || process.env.WS_PORT || 8080; 
 
 const pool = db.pool;
 
-const wss = new WebSocket.Server({ port: SERVER_PORT }); // Usar la nueva variable SERVER_PORT
+const wss = new WebSocket.Server({ port: SERVER_PORT }); 
 const clients = new Map();
 
-console.log(`✅ Servidor WebSocket de Producción iniciado en el puerto ${SERVER_PORT}.`); // Mensaje de log actualizado
+console.log(`✅ Servidor WebSocket de Producción iniciado en el puerto ${SERVER_PORT}.`);
 
 const fetchUserData = async (userId) => {
   try {
-    const res = await pool.query('SELECT id, username, zodiac_sign, live_game_data, subscription_tier FROM users WHERE id = $1', [userId]);
+    // FIX 1: Alias para plan_status -> subscription_tier
+    // FIX 2: Usar COALESCE para dar un valor por defecto al signo zodiacal
+    const res = await pool.query('SELECT id, username, COALESCE(zodiac_sign, \'Aries\') as zodiac_sign, live_game_data, plan_status AS subscription_tier FROM users WHERE id = $1', [userId]);
     return res.rows[0];
   } catch (error) {
     console.error(`Error al buscar usuario ${userId} en la DB:`, error);
-    return null;
+    // Si la conexión falla, intentamos devolver un objeto mínimo para evitar un crash.
+    return { subscription_tier: 'FREE' };
   }
 };
 
 wss.on('connection', (ws, req) => {
-  // --- FIX: AUTENTICACIÓN DESACTIVADA PARA PRUEBAS ---
-  ws.userId = 1; 
-  clients.set(ws, { id: 1 });
-  // ----------------------------------------------------
+// ... (omitted connection logic, no changes here)
+  const parameters = url.parse(req.url, true).query;
+  const token = parameters.token;
 
-  console.log(`[CONEXIÓN] Usuario SIMULADO (ID 1) conectado. Clientes activos: ${clients.size}`);
-  
-  ws.send(JSON.stringify({ realtimeAdvice: 'Conectado al Coach MetaMind. Esperando inicio de partida.', priorityAction: 'STATUS' }));
+  try {
+    const decoded = jwt.verify(token, JWT_SECRET);
+    ws.userId = decoded.userId;
+    clients.set(ws, { id: decoded.userId }); 
+    console.log(`[CONEXIÓN] Usuario ${decoded.userId} conectado. Clientes activos: ${clients.size}`);
+    
+    ws.send(JSON.stringify({ realtimeAdvice: 'Conectado al Coach MetaMind. Esperando inicio de partida.', priorityAction: 'STATUS' }));
+
+  } catch (err) {
+    console.log('[ERROR] Conexión rechazada: Token JWT inválido.', err.message);
+    ws.close(1008, 'Token JWT inválido');
+    return;
+  }
 
   ws.on('close', () => {
     clients.delete(ws);
@@ -49,15 +62,15 @@ wss.on('connection', (ws, req) => {
 });
 
 
-// --- EL MOTOR DE COACHING DE ÉLITE EN TIEMPO REAL (LÓGICA DE PRUEBA) ---
+// --- EL MOTOR DE COACHING DE ÉLITE EN TIEMPO REAL ---
 setInterval(async () => {
   if (clients.size === 0) return;
 
   for (const [ws, clientData] of clients.entries()) {
     if (ws.readyState !== 1 /* OPEN */) continue; 
 
-    // Usamos el ID 1 fijo
-    const freshUserData = await fetchUserData(1); 
+    // Usamos clientData.id, que ahora proviene del JWT
+    const freshUserData = await fetchUserData(clientData.id); 
     
     if (freshUserData && freshUserData.live_game_data) {
         
@@ -66,7 +79,8 @@ setInterval(async () => {
         try {
             const analysisResult = await generateStrategicAnalysis({ 
                 liveGameData: liveGameData, 
-                zodiacSign: freshUserData.zodiac_sign || 'Aries' 
+                // El valor de freshUserData.zodiac_sign ahora es 'Aries' si era nulo
+                zodiacSign: freshUserData.zodiac_sign
             });
             
             const messageObject = {
@@ -78,12 +92,17 @@ setInterval(async () => {
             ws.send(JSON.stringify({ realtimeAdvice: messageObject.realtimeAdvice, priorityAction: messageObject.priorityAction }));
             
         } catch (error) {
-            console.error(`Error al generar o enviar consejo SIMULADO para ${freshUserData.username}:`, error);
-            ws.send(JSON.stringify({ realtimeAdvice: "ERROR CRÍTICO: Fallo en el análisis de IA simulado.", priorityAction: 'ERROR' }));
+            console.error(`Error al generar o enviar consejo ÉLITE para ${freshUserData.username}:`, error);
+            // El fallback de error ahora está estructurado, resolviendo potencialmente el 'undefined'
+            ws.send(JSON.stringify({ realtimeAdvice: "ERROR CRÍTICO: El análisis de IA falló.", priorityAction: 'ERROR' }));
         }
         
     } else {
-        ws.send(JSON.stringify({ realtimeAdvice: 'Coach activo. Inicia el polling de datos desde el cliente Electron.', priorityAction: 'STATUS' }));
+        const statusMessage = freshUserData && (freshUserData.subscription_tier !== 'PREMIUM' && freshUserData.subscription_tier !== 'TRIAL')
+          ? 'Acceso limitado. Coach en tiempo real es Premium/Trial.'
+          : 'Coach inactivo. Inicia una partida con la App de escritorio.'; 
+
+        ws.send(JSON.stringify({ realtimeAdvice: statusMessage, priorityAction: 'STATUS' }));
     }
   }
 }, 10000);
