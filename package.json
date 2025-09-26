@@ -17,6 +17,8 @@
     "electron:package": "npm run build && electron-builder"
   },
   "dependencies": {
+  },
+  "engines": { "node": "18.x" }
     "@clerk/nextjs": "^6.32.2",
     "@tailwindcss/aspect-ratio": "^0.4.2",
     "autoprefixer": "^10.4.21",
@@ -58,6 +60,7 @@
   }
   "engines": { "node": "18.x" }
 }
+  "engines": { "node": "18.x" }
 
   "name": "lol-metamind",
   "version": "0.1.0",
@@ -77,6 +80,8 @@
     "electron:package": "npm run build && electron-builder"
   },
   "dependencies": {
+  },
+  "engines": { "node": "18.x" }
     "@clerk/nextjs": "^6.32.2",
     "@tailwindcss/aspect-ratio": "^0.4.2",
     "autoprefixer": "^10.4.21",

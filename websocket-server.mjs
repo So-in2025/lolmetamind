@@ -3,20 +3,20 @@ import jwt from 'jsonwebtoken';
 import url from 'url'; 
 import 'dotenv/config';
 
-// Importación de las distribuciones compiladas 
+// Importación de las distribuciones compiladas (Sintaxis ESM correcta)
 import * as prompts from './dist/lib/ai/prompts.js';
-import * as strategist from './dist/lib/ai/strategist.js'; 
+import * as strategist from './dist/lib/ai/strategist.js'; // SINTAXIS CORREGIDA
 import db from './dist/lib/db/index.js'; 
 
 const { createLiveCoachingPrompt } = prompts;
 const { generateStrategicAnalysis } = strategist;
 
 
-// 🟢 CORRECCIÓN DE RAÍZ: Extracción precisa de la clase Server.
-const WebSocketServer = ws.Server; 
+// Lógica de extracción universal para constructor WS
+const WebSocketServer = ws.Server || ws.default || ws;
 
 if (typeof WebSocketServer !== 'function') {
-    throw new Error("CRÍTICO: El constructor de WebSocket.Server no se resolvió correctamente. Error de interop CJS/ESM en Node 18.");
+    throw new Error("CRÍTICO: El constructor de WebSocketServer no se resolvió correctamente en el módulo 'ws'.");
 }
 
 const port = process.env.PORT || 8080;
