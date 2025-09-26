@@ -1,5 +1,4 @@
 const WebSocket = require('ws');
-const jwt = require('jsonwebtoken');
 const url = require('url');
 const { Pool } = require('pg');
 require('dotenv').config();
@@ -7,18 +6,16 @@ require('dotenv').config();
 // Imports de la distribución compilada (CJS)
 const prompts = require('./dist/lib/ai/prompts');
 const strategist = require('./dist/lib/ai/strategist');
-const db = require('./dist/lib/db/index.js'); // Usamos require para CJS
+const db = require('./dist/lib/db/index.js'); 
 
 const { createLiveCoachingPrompt } = prompts;
 const { generateStrategicAnalysis } = strategist;
 
 
 const port = process.env.PORT || 8080;
-const JWT_SECRET = process.env.JWT_SECRET;
 
 const pool = db.pool;
 
-// El constructor WebSocket Server se importa correctamente en CJS
 const wss = new WebSocket.Server({ port }); 
 const clients = new Map();
 
@@ -26,7 +23,6 @@ console.log(`✅ Servidor WebSocket de Producción iniciado en el puerto ${port}
 
 const fetchUserData = async (userId) => {
   try {
-    // Se asegura que se busque live_game_data y subscription_tier (la discrepancia original)
     const res = await pool.query('SELECT id, username, zodiac_sign, live_game_data, subscription_tier FROM users WHERE id = $1', [userId]);
     return res.rows[0];
   } catch (error) {
@@ -36,22 +32,14 @@ const fetchUserData = async (userId) => {
 };
 
 wss.on('connection', (ws, req) => {
-  const parameters = url.parse(req.url, true).query;
-  const token = parameters.token;
+  // --- FIX: AUTENTICACIÓN DESACTIVADA PARA PRUEBAS ---
+  ws.userId = 1; 
+  clients.set(ws, { id: 1 });
+  // ----------------------------------------------------
 
-  try {
-    const decoded = jwt.verify(token, JWT_SECRET);
-    ws.userId = decoded.userId;
-    clients.set(ws, { id: decoded.userId });
-    console.log(`[CONEXIÓN] Usuario ${decoded.userId} conectado. Clientes activos: ${clients.size}`);
-    
-    ws.send(JSON.stringify({ realtimeAdvice: 'Conectado al Coach MetaMind. Esperando inicio de partida.', priorityAction: 'STATUS' }));
-
-  } catch (err) {
-    console.log('[ERROR] Conexión rechazada: Token JWT inválido.', err.message);
-    ws.close(1008, 'Token JWT inválido');
-    return;
-  }
+  console.log(`[CONEXIÓN] Usuario SIMULADO (ID 1) conectado. Clientes activos: ${clients.size}`);
+  
+  ws.send(JSON.stringify({ realtimeAdvice: 'Conectado al Coach MetaMind. Esperando inicio de partida.', priorityAction: 'STATUS' }));
 
   ws.on('close', () => {
     clients.delete(ws);
@@ -60,19 +48,17 @@ wss.on('connection', (ws, req) => {
 });
 
 
-// --- EL MOTOR DE COACHING DE ÉLITE EN TIEMPO REAL (LÓGICA PREMIUM) ---
+// --- EL MOTOR DE COACHING DE ÉLITE EN TIEMPO REAL (LÓGICA DE PRUEBA) ---
 setInterval(async () => {
   if (clients.size === 0) return;
 
   for (const [ws, clientData] of clients.entries()) {
     if (ws.readyState !== 1 /* OPEN */) continue; 
 
-    const freshUserData = await fetchUserData(clientData.id); 
+    // Usamos el ID 1 fijo
+    const freshUserData = await fetchUserData(1); 
     
-    // VERIFICACIÓN DE LÓGICA PREMIUM/TRIAL
-    const isElite = freshUserData && (freshUserData.subscription_tier === 'PREMIUM' || freshUserData.subscription_tier === 'TRIAL');
-
-    if (freshUserData && freshUserData.live_game_data && isElite) {
+    if (freshUserData && freshUserData.live_game_data) {
         
         const liveGameData = freshUserData.live_game_data;
         
@@ -91,16 +77,12 @@ setInterval(async () => {
             ws.send(JSON.stringify({ realtimeAdvice: messageObject.realtimeAdvice, priorityAction: messageObject.priorityAction }));
             
         } catch (error) {
-            console.error(`Error al generar o enviar consejo ÉLITE para ${freshUserData.username}:`, error);
-            ws.send(JSON.stringify({ realtimeAdvice: "ERROR CRÍTICO: El enlace táctico con la IA se ha cortado. Concentración manual.", priorityAction: 'ERROR' }));
+            console.error(`Error al generar o enviar consejo SIMULADO para ${freshUserData.username}:`, error);
+            ws.send(JSON.stringify({ realtimeAdvice: "ERROR CRÍTICO: Fallo en el análisis de IA simulado.", priorityAction: 'ERROR' }));
         }
         
     } else {
-        const statusMessage = freshUserData && freshUserData.subscription_tier !== 'PREMIUM' && freshUserData.subscription_tier !== 'TRIAL'
-          ? 'Acceso limitado. Coach en tiempo real es Premium/Trial.'
-          : 'Coach inactivo. Inicia una partida con la App de escritorio.'; 
-
-        ws.send(JSON.stringify({ realtimeAdvice: statusMessage, priorityAction: 'STATUS' }));
+        ws.send(JSON.stringify({ realtimeAdvice: 'Coach activo. Inicia el polling de datos desde el cliente Electron.', priorityAction: 'STATUS' }));
     }
   }
 }, 10000);
