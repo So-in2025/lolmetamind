@@ -13,6 +13,7 @@
     "lint": "next lint",
     "build:server": "rm -rf dist && babel --config-file ./babel.config.server.js src/lib --out-dir dist/lib && babel --config-file ./babel.config.server.js src/services --out-dir dist/services",
     "start:server": "npm run build:server && node websocket-server.js",
+    "start:combined": "concurrently --kill-others \"npm run start\" \"npm run start:server\"",
     "electron:dev": "concurrently \"npm run dev\" \"wait-on http://localhost:3000 && electron .\"",
     "electron:package": "npm run build && electron-builder"
   },
@@ -55,6 +56,6 @@
     "postcss": "^8.5.6"
   },
   "engines": {
-    "node": "18.x"
+    "node": "22.x"
   }
 }
