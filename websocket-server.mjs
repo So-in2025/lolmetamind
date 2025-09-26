@@ -1,20 +1,26 @@
-// Usamos el import CJS que funcionaba, y luego renombramos para usar la sintaxis limpia de ESM.
-import ws from 'ws';
+// Usamos el import genérico, y luego extraemos el constructor de forma universal.
+import ws from 'ws'; 
 import jwt from 'jsonwebtoken';
 import url from 'url'; 
 import 'dotenv/config';
 
-// Importación de las distribuciones compiladas
+// Importación de las distribuciones compiladas 
 import * as prompts from './dist/lib/ai/prompts.js';
-import * as strategist from './dist/lib/ai/strategist.js';
+import *s strategist from './dist/lib/ai/strategist.js';
 import db from './dist/lib/db/index.js'; 
 
 const { createLiveCoachingPrompt } = prompts;
 const { generateStrategicAnalysis } = strategist;
 
-// 🟢 CORRECCIÓN: ws es un objeto. La clase Server está en la propiedad Server del objeto importado.
-// Extraemos la clase Server (que es el constructor).
-const WebSocketServer = ws.Server; 
+// 🟢 CORRECCIÓN DE RAÍZ: Extracción Universal del Constructor
+// La clase Server puede estar en ws.Server, ws.default.Server, o incluso ser 'ws' mismo.
+const WebSocketServer = ws.Server || ws.default || ws;
+
+// Verificación de seguridad: si no es una función, forzamos un error descriptivo.
+if (typeof WebSocketServer !== 'function') {
+    // Si la librería 'ws' no exporta un constructor, es probable que la importación haya fallado de una forma no prevista.
+    throw new Error("CRÍTICO: No se pudo encontrar el constructor de WebSocket.Server. Verifique la versión de 'ws'.");
+}
 
 
 const port = process.env.PORT || 8080;
@@ -47,7 +53,6 @@ wss.on('connection', (ws, req) => {
     clients.set(ws, { id: decoded.userId });
     console.log(`[CONEXIÓN] Usuario ${decoded.userId} conectado. Clientes activos: ${clients.size}`);
     
-    // ws.send está aquí y está bien, pero falta 'ws.OPEN' en el intervalo.
     ws.send(JSON.stringify({ realtimeAdvice: 'Conectado al Coach MetaMind. Esperando inicio de partida.', priorityAction: 'STATUS' }));
 
   } catch (err) {
@@ -68,8 +73,7 @@ setInterval(async () => {
   if (clients.size === 0) return;
 
   for (const [ws, clientData] of clients.entries()) {
-    // 🟢 CORRECCIÓN MENOR: 1 es el valor numérico para WebSocket.OPEN
-    if (ws.readyState !== 1) continue; 
+    if (ws.readyState !== 1 /* OPEN */) continue; 
 
     const freshUserData = await fetchUserData(clientData.id); 
     
