@@ -1,21 +1,14 @@
 #!/bin/bash
 
 # =========================================================================================
-# SOLUCIÓN DE RAÍZ: MODO CJS FORZADO (USANDO RUTAS RELATIVAS DEL PROYECTO)
-# Objetivo: Resolver el 'require is not defined' forzando la extensión .cjs.
+# SOLUCIÓN DEFINITIVA DE BABEL Y CJS
+# Objetivo: Arreglar el error de Babel (Unknown option: .extensions) Y forzar CJS.
 # =========================================================================================
 
-# Ajustamos la ruta base a la estructura de archivos visible en la foto.
 BASE_DIR="." 
 
-echo "--- 1. Renombrando src/lib/db/index.js a src/lib/db/index.cjs (CAUSA RAÍZ) ---"
-# Esto es para que Node.js v22 deje de interpretarlo como ESM.
-mv "${BASE_DIR}/src/lib/db/index.js" "${BASE_DIR}/src/lib/db/index.cjs"
-echo "Archivo de DB renombrado a src/lib/db/index.cjs."
-
-
-echo "--- 2. Actualizando babel.config.server.js para procesar archivos .cjs ---"
-# Es fundamental que Babel sepa que debe transpilar la nueva extensión.
+echo "--- 1. Corrigiendo babel.config.server.js: Eliminando la opción inválida 'extensions' ---"
+# Esto permitirá que el build pase la fase de compilación.
 cat > "${BASE_DIR}/babel.config.server.js" << 'EOL'
 // babel.config.server.js
 // Configuración de Babel para el servidor de WebSockets
@@ -41,16 +34,45 @@ module.exports = {
         }
       }
     ]
-  ],
-  // CRÍTICO: Permitir que Babel procese archivos .cjs
-  "extensions": [".js", ".jsx", ".cjs"] 
+  ]
 };
 EOL
-echo "babel.config.server.js actualizado."
+echo "babel.config.server.js corregido (eliminado 'extensions')."
+
+
+echo "--- 2. Renombrando src/lib/db/index.js a src/lib/db/index.cjs (FIX DE Causa Raíz) ---"
+# Si el archivo falló, es porque no existe o está en una ubicación inesperada.
+# Intentaremos moverlo a CJS y recrear su contenido.
+mv "${BASE_DIR}/src/lib/db/index.js" "${BASE_DIR}/src/lib/db/index.cjs" 2>/dev/null || true # Ignoramos error si ya está movido
+
+# Recreamos el archivo .cjs con su contenido correcto de CJS
+cat > "${BASE_DIR}/src/lib/db/index.cjs" << 'EOL'
+const { Pool } = require('pg');
+
+let pool;
+
+if (!global._pool) {
+  global._pool = new Pool({
+    connectionString: process.env.DATABASE_URL,
+    ssl: {
+      rejectUnauthorized: false
+    }
+  });
+}
+pool = global._pool;
+
+const db = {
+  query: (text, params) => pool.query(text, params),
+  pool: pool,
+};
+
+module.exports = db;
+EOL
+echo "Archivo de DB forzado a .cjs."
 
 
 echo "--- 3. Corrigiendo websocket-server.js para importar el nuevo archivo .cjs compilado ---"
-# El archivo de entrada debe apuntar explícitamente al archivo transpilado correcto.
+# Apuntamos al archivo transpilado, que debería ser dist/lib/db/index.cjs
 cat > "${BASE_DIR}/websocket-server.js" << 'EOL'
 const WebSocket = require('ws');
 const jwt = require('jsonwebtoken');
@@ -158,6 +180,7 @@ EOL
 
 echo ""
 echo "=========================================================="
-echo "    ✅ SOLUCIÓN DE RAÍZ APLICADA (RUTA ABSOLUTA CORREGIDA)"
+echo "    ✅ FIX FINAL APLICADO: BABEL Y MÓDULOS"
 echo "=========================================================="
-echo "El problema de ruta se resolvió. Por favor, ejecuta este script desde la **carpeta raíz de tu repositorio** y haz un nuevo deploy."
+echo "Hemos corregido el archivo de configuración de Babel que causaba el fallo del build y hemos forzado el módulo de la base de datos a .cjs."
+echo "Por favor, haz un commit y deploy a Render. Esta es la solución de configuración más estricta posible."

@@ -17,4 +17,4 @@ const db = {
   pool: pool,
 };
 
-export default db;
+module.exports = db;

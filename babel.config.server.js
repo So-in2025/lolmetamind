@@ -22,7 +22,5 @@ module.exports = {
         }
       }
     ]
-  ],
-  // CRÍTICO: Permitir que Babel procese archivos .cjs
-  "extensions": [".js", ".jsx", ".cjs"] 
+  ]
 };
