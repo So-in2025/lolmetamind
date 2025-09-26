@@ -117,3 +117,29 @@ export const createChallengeGenerationPrompt = (playerData) => {
     ]
   `;
 };
+
+/**
+ * Generates the prompt for real-time live coaching analysis.
+ * Esta función toma los datos crudos del LCC y genera una solicitud concisa a la IA.
+ * @param {object} liveGameData - Real-time game data from the client.
+ * @param {string} zodiacSign - The user's zodiac sign.
+ * @returns {string} - The full prompt for the IA.
+ */
+export const createLiveCoachingPrompt = (liveGameData, zodiacSign) => {
+  const gameInfo = JSON.stringify(liveGameData, null, 2);
+  
+  return `
+    Eres "MetaMind", un coach de élite de League of Legends. Tu misión es proporcionar un consejo estratégico de alta prioridad para el jugador con signo ${zodiacSign}, en base a la siguiente data de partida en tiempo real.
+    
+    **DATOS DE PARTIDA:**
+    ${gameInfo}
+    
+    **INSTRUCCIONES DE OUTPUT (JSON ESTRICTO):**
+    Genera un JSON con el consejo más relevante en tiempo real.
+    {
+        "realtimeAdvice": "Un consejo táctico conciso (máx. 15 palabras) basado en el tiempo de juego, estado del mapa o rivales.",
+        "priorityAction": "Una palabra clave para el tipo de acción (ej: ROAM, VISION, DEFEND, PUSH, TEAMFIGHT).",
+        "message": "Un mensaje más largo opcional para logs."
+    }
+    `;
+};

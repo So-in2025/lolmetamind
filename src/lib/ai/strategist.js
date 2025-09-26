@@ -1,11 +1,20 @@
 import { GEMINI_API_KEY } from '@/services/apiConfig';
-import { createInitialAnalysisPrompt, createChallengeGenerationPrompt } from './prompts';
+// CRÍTICO: Importar la nueva función para Live Coaching
+import { createInitialAnalysisPrompt, createChallengeGenerationPrompt, createLiveCoachingPrompt } from './prompts';
 
 const API_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key=${GEMINI_API_KEY}`;
 
 export const generateStrategicAnalysis = async (analysisData) => {
-  // Ahora el prompt se crea con los datos reales, incluyendo la maestría.
-  const prompt = analysisData.customPrompt;
+  let prompt;
+  
+  // CRÍTICO: Lógica para decidir qué prompt generar
+  if (analysisData.liveGameData) {
+    // Caso de Live Coaching (llamado desde websocket-server.js)
+    prompt = createLiveCoachingPrompt(analysisData.liveGameData, analysisData.zodiacSign);
+  } else {
+    // Caso de Análisis Inicial o Generación de Desafíos (usando el prompt pre-construido)
+    prompt = analysisData.customPrompt;
+  }
 
   try {
     const response = await fetch(API_URL, {
@@ -20,10 +29,11 @@ export const generateStrategicAnalysis = async (analysisData) => {
       const errorBody = await response.text();
       console.error(`Error de la API de Gemini: ${response.status} ${errorBody}`);
       // Fallback a datos simulados si la API falla
-      return handleSimulatedResponse(prompt);
+      return handleSimulatedResponse(prompt, analysisData);
     }
 
     const data = await response.json();
+    // Limpieza de JSON estándar
     const rawText = data.candidates[0].content.parts[0].text;
     const jsonText = rawText.replace(/\\\`\`\`json/g, '').replace(/\\\`\`\`/g, '').replace(/```json/g, '').replace(/```/g, '').trim();
     
@@ -32,11 +42,22 @@ export const generateStrategicAnalysis = async (analysisData) => {
   } catch (error) {
     console.error('Error al generar análisis estratégico:', error);
     // Fallback a datos simulados si el JSON es inválido
-    return handleSimulatedResponse(prompt);
+    return handleSimulatedResponse(prompt, analysisData);
   }
 };
 
-const handleSimulatedResponse = (prompt) => {
+// Se modificó para aceptar analysisData y usar analysisData.zodiacSign en el fallback del análisis
+const handleSimulatedResponse = (prompt, analysisData) => {
+    
+  if (prompt.includes('Tu misión es proporcionar un consejo estratégico de alta prioridad')) {
+    // SIMULACIÓN para Live Coach
+    return {
+      "realtimeAdvice": "¡Atención! El jungla enemigo (Elise) está en el top-side, considera rotar a bot para presionar el objetivo.",
+      "priorityAction": "ROAM",
+      "message": "Consejo generado por simulación para prueba de Live Coach."
+    };
+  }
+    
   if (prompt.includes('crear 3 desafíos de mejora')) {
     // Simulación de respuesta para desafíos, más realista y variada
     return [
@@ -194,7 +215,8 @@ const handleSimulatedResponse = (prompt) => {
         }
       }
     };
-    return analysisMap[analysisData.zodiacSign] || analysisMap['Aries']; // Retornar un análisis por signo, o Aries por defecto
+    // Se usa analysisData.zodiacSign ya que ahora se pasa explícitamente en el Dashboard/Recommendation
+    return analysisMap[analysisData.zodiacSign] || analysisMap['Aries']; 
   }
   return { error: true, message: "No se pudo generar un análisis simulado." };
 };
