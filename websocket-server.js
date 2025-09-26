@@ -12,14 +12,14 @@ const { createLiveCoachingPrompt } = prompts;
 const { generateStrategicAnalysis } = strategist;
 
 
-const port = process.env.PORT || 8080;
+const WS_PORT = process.env.WS_PORT || 8080; // Usaremos una nueva variable WS_PORT
 
 const pool = db.pool;
 
-const wss = new WebSocket.Server({ port }); 
+const wss = new WebSocket.Server({ port: WS_PORT }); // Cambiar a WS_PORT
 const clients = new Map();
 
-console.log(`✅ Servidor WebSocket de Producción iniciado en el puerto ${port}.`);
+console.log(`✅ Servidor WebSocket de Producción iniciado en el puerto ${WS_PORT}.`);
 
 const fetchUserData = async (userId) => {
   try {
