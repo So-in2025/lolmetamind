@@ -1,13 +1,13 @@
 #!/bin/bash
 
 # =========================================================================================
-# SOLUCIÓN DEFINITIVA DE SINTAXIS Y CONFIGURACIÓN ESM
-# Objetivo: Corregir el 'SyntaxError' y asegurar que la configuración ESM/Node funcione.
+# SOLUCIÓN DEFINITIVA DE SINTAXIS Y ARREGLO DE BUILD
+# Objetivo: Corregir el 'SyntaxError' y asegurar que la compilación pase y el servidor inicie.
 # =========================================================================================
 
 BASE_DIR="." 
 
-echo "--- 1. Corrigiendo websocket-server.mjs: Arreglo de SyntaxError ('*s' -> '* as') ---"
+echo "--- 1. Corrigiendo websocket-server.mjs: Eliminando SyntaxError de comentarios (#) ---"
 # El fix de sintaxis y la lógica de extracción universal del constructor WS.
 cat > "${BASE_DIR}/websocket-server.mjs" << 'EOL'
 import ws from 'ws'; 
@@ -15,8 +15,7 @@ import jwt from 'jsonwebtoken';
 import url from 'url'; 
 import 'dotenv/config';
 
-# // Importación de las distribuciones compiladas
-# 🟢 CORRECCIÓN: Se agrega el espacio y la sintaxis ESM correcta
+// Importación de las distribuciones compiladas
 import * as prompts from './dist/lib/ai/prompts.js';
 import * as strategist from './dist/lib/ai/strategist.js'; 
 import db from './dist/lib/db/index.js'; 
@@ -120,7 +119,8 @@ setInterval(async () => {
   }
 }, 10000); 
 EOL
-echo "websocket-server.mjs corregido."
+echo "websocket-server.mjs corregido (SyntaxError eliminado)."
+
 
 echo "--- 2. Recreando el archivo de DB index.js (ESM) para la compilación ---"
 # Aseguramos que este archivo tenga la exportación ESM que espera el nuevo flujo.
@@ -150,10 +150,6 @@ echo "src/lib/db/index.js asegurado con exportación 'export default'."
 
 echo ""
 echo "=========================================================="
-echo "    ✅ FIX FINAL APLICADO (SINTAXIS Y ESM)"
+echo "    ✅ FIX FINAL APLICADO: SERVIDOR LISTO PARA INICIAR"
 echo "=========================================================="
-echo "El build de Babel debería pasar, y el servidor Node debería iniciar sin errores de módulo/constructor."
-echo ""
-echo "Acciones requeridas:"
-echo "1. **Ejecuta este script en la carpeta raíz de tu proyecto web local.**"
-echo "2. **Haz un commit y deploy a Render.**"
+echo "El servidor debería iniciar en Render. Por favor, haz un commit y deploy."

@@ -3,8 +3,7 @@ import jwt from 'jsonwebtoken';
 import url from 'url'; 
 import 'dotenv/config';
 
-# // Importación de las distribuciones compiladas
-# 🟢 CORRECCIÓN: Se agrega el espacio y la sintaxis ESM correcta
+// Importación de las distribuciones compiladas
 import * as prompts from './dist/lib/ai/prompts.js';
 import * as strategist from './dist/lib/ai/strategist.js'; 
 import db from './dist/lib/db/index.js'; 
