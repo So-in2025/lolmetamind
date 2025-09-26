@@ -1,33 +1,33 @@
+// Ruta: so-in2025/lolmetamind/lolmetamind-adffad4206b2a133fe3e3e14ba85b1b8b418f9c3/src/app/api/live-game/update/route.js
+
 import { NextResponse } from 'next/server';
 import db from '@/lib/db'; 
-import jwt from 'jsonwebtoken';
 
-const JWT_SECRET = process.env.JWT_SECRET;
 export const dynamic = 'force-dynamic';
 
 export async function POST(req) {
-    try {
-        // --- BYPASS DE SEGURIDAD PARA USO PERSONAL/PRUEBA ---
-        // Se usa el ID 1 como usuario de prueba fijo.
-        const userId = 1; 
-        // ----------------------------------------------------
+    
+    // --- BYPASS DE AUTENTICACIÓN: USAR ID 1 ---
+    const userId = 1; 
 
+    try {
         const liveGameData = await req.json();
         
-        if (!liveGameData || !liveGameData.gameTime) {
-             return NextResponse.json({ error: 'Datos de juego inválidos o incompletos.' }, { status: 400 });
+        // Si no está en partida activa, devolvemos 204.
+        if (!liveGameData || liveGameData.gameflow.phase === 'None') {
+             return new NextResponse(null, { status: 204 }); 
         }
 
-        // Se guarda la data en el usuario 1
+        // Guardar la data LCU en la base de datos para el usuario 1
         await db.query(
             'UPDATE users SET live_game_data = $1, updated_at = NOW() WHERE id = $2',
             [liveGameData, userId]
         );
 
-        return NextResponse.json({ message: 'Datos de partida en tiempo real recibidos y actualizados.' });
+        return NextResponse.json({ message: 'Datos LCU recibidos y guardados en DB.', userId: userId });
 
     } catch (error) {
-        console.error('Error al actualizar datos de partida en vivo:', error); 
-        return NextResponse.json({ error: 'Error interno del servidor.' }, { status: 500 });
+        console.error('Error CRÍTICO al actualizar datos LCU:', error); 
+        return NextResponse.json({ error: 'Error interno del servidor al procesar datos LCU.' }, { status: 500 });
     }
 }

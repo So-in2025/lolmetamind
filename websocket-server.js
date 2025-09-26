@@ -1,3 +1,5 @@
+// Ruta: so-in2025/lolmetamind/lolmetamind-adffad4206b2a133fe3e3e14ba85b1b8b418f9c3/websocket-server.js
+
 const WebSocket = require('ws');
 const url = require('url');
 const { Pool } = require('pg');
@@ -9,96 +11,114 @@ const prompts = require('./dist/lib/ai/prompts');
 const strategist = require('./dist/lib/ai/strategist');
 const db = require('./dist/lib/db/index.js'); 
 
-const { createLiveCoachingPrompt } = prompts;
 const { generateStrategicAnalysis } = strategist;
 
-
-const JWT_SECRET = process.env.JWT_SECRET; 
 const SERVER_PORT = process.env.PORT || process.env.WS_PORT || 8080; 
-// ID especial para usuarios que no han iniciado sesión (para evitar null)
-const ANONYMOUS_USER_ID = 0; 
+const POLLING_DB_INTERVAL = 10000; // Polling DB cada 10 segundos (para la demo)
 
 const pool = db.pool;
-
 const wss = new WebSocket.Server({ port: SERVER_PORT }); 
 const clients = new Map();
 
-console.log(`✅ Servidor WebSocket de Producción iniciado en el puerto ${SERVER_PORT}.`);
-
-
-const fetchUserData = async (userId) => {
-  try {
-    // FIX DB: Alias para plan_status y COALESCE para zodiac_sign
-    const res = await pool.query('SELECT id, username, COALESCE(zodiac_sign, \'Aries\') as zodiac_sign, live_game_data, plan_status AS subscription_tier FROM users WHERE id = $1', [userId]);
-    return res.rows[0];
-  } catch (error) {
-    console.error(`Error al buscar usuario ${userId} en la DB:`, error);
-    return null;
-  }
-};
-
+console.log(`✅ Servidor WebSocket de LCU iniciado en el puerto ${SERVER_PORT}.`);
 
 wss.on('connection', (ws, req) => {
-  // --- BYPASS DE SEGURIDAD PARA USO PERSONAL/PRUEBA ---
-  const userId = 1; 
-  // ----------------------------------------------------
-  
+  const userId = 1; // Asumimos ID 1 para la demo sin token
+
   ws.userId = userId;
-  clients.set(ws, { id: userId }); 
+  clients.set(ws, { id: userId, lastGameId: null }); 
   
-  console.log(`[CONEXIÓN] Usuario SIMULADO (ID ${userId}) conectado. Clientes activos: ${clients.size}`);
+  console.log(`[CONEXIÓN] Cliente de Demo (ID ${userId}) conectado. Clientes activos: ${clients.size}`);
   
-  ws.send(JSON.stringify({ realtimeAdvice: 'Conectado al Coach MetaMind. Esperando inicio de partida.', priorityAction: 'STATUS' }));
+  // Enviar un estado inicial para que el widget sepa que la conexión es OK
+  ws.send(JSON.stringify({ event: 'STATUS', phase: 'None', realtimeAdvice: 'Conexión OK. Esperando datos LCU.' }));
 
   ws.on('close', () => {
     clients.delete(ws);
-    console.log(`[DESCONEXIÓN] Usuario ${ws.userId} desconectado. Clientes activos: ${clients.size}`);
+    console.log(`[DESCONEXIÓN] Cliente ${userId} desconectado. Clientes activos: ${clients.size}`);
   });
 });
 
 
-// --- EL MOTOR DE COACHING DE ÉLITE EN TIEMPO REAL ---
 setInterval(async () => {
-  if (clients.size === 0) return;
+  if (wss.clients.size === 0) return;
 
-  for (const [ws, clientData] of clients.entries()) {
-    if (ws.readyState !== 1 /* OPEN */) continue; 
-
-    // Usamos clientData.id (real o anónimo)
-    const freshUserData = await fetchUserData(clientData.id); 
-    
-    // Si la data del usuario es nula o si es el usuario anónimo (ID 0) y no hay liveGameData, envía estado.
-    if (!freshUserData || freshUserData.id === ANONYMOUS_USER_ID || !freshUserData.live_game_data) {
-        
-        // El usuario anónimo solo recibe el mensaje de estado
-        const statusMessage = freshUserData?.id === ANONYMOUS_USER_ID
-          ? 'Conexión OK (Anónimo). Inicia sesión para guardar datos.'
-          : 'Coach inactivo. Inicia una partida con la App de escritorio.';
-
-        ws.send(JSON.stringify({ realtimeAdvice: statusMessage, priorityAction: 'STATUS' }));
-        continue; // Saltar al siguiente cliente
-    }
-
-    // --- LÓGICA DE COACHING SOLO PARA USUARIOS AUTENTICADOS CON LIVE DATA ---
-    const liveGameData = freshUserData.live_game_data;
-    
-    try {
-        const analysisResult = await generateStrategicAnalysis({ 
-            liveGameData: liveGameData, 
-            zodiacSign: freshUserData.zodiac_sign || 'Aries' 
-        });
-        
-        const messageObject = {
-            realtimeAdvice: analysisResult.realtimeAdvice || analysisResult.message, 
-            priorityAction: analysisResult.priorityAction || 'ANALYSIS',
-            gameTime: liveGameData.gameTime 
-        };
-        
-        ws.send(JSON.stringify({ realtimeAdvice: messageObject.realtimeAdvice, priorityAction: messageObject.priorityAction }));
-        
-    } catch (error) {
-        console.error(`Error al generar o enviar consejo ÉLITE para ${freshUserData.username}:`, error);
-        ws.send(JSON.stringify({ realtimeAdvice: "ERROR CRÍTICO: El análisis de IA falló.", priorityAction: 'ERROR' }));
-    }
+  const userId = 1; 
+  let freshGameData = null;
+  
+  try {
+      // 1. Pollear la DB para obtener SOLO la data LCU del usuario 1.
+      const res = await pool.query(
+          // CRÍTICO: COALESCE(zodiac_sign, 'Aries') para evitar fallo en la IA
+          'SELECT COALESCE(zodiac_sign, \'Aries\') as zodiac_sign, live_game_data FROM users WHERE id = $1', 
+          [userId]
+      );
+      freshGameData = res.rows[0];
+  } catch (error) {
+      console.error(`Error al pollear DB:`, error);
+      return;
   }
-}, 10000);
+
+  // Si no hay data LCU o el campo está vacío, volvemos a enviar STATUS.
+  if (!freshGameData || !freshGameData.live_game_data || !freshGameData.live_game_data.gameflow) {
+       wss.clients.forEach(client => {
+          if (client.readyState === WebSocket.OPEN) {
+            client.send(JSON.stringify({ event: 'STATUS', phase: 'None', realtimeAdvice: 'Coach inactivo. Esperando datos LCU.' }));
+          }
+       });
+       return;
+  }
+  
+  const liveGameData = freshGameData.live_game_data;
+  const mockZodiacSign = freshGameData.zodiac_sign; // Obtenemos el signo de la DB o el mock 'Aries'
+  const currentPhase = liveGameData.gameflow.phase; 
+  const liveClientData = liveGameData.liveData; // Contiene todos los datos de in-game (si fase es InProgress)
+  let responseMessage = null;
+
+  // 2. LÓGICA DE FASES (Mejorada)
+  if (currentPhase === 'None' || currentPhase === 'Lobby') {
+      responseMessage = { event: 'STATUS', phase: currentPhase, realtimeAdvice: `Fase actual: ${currentPhase}. Inicia una cola de partida.` };
+  } else if (currentPhase === 'ChampionSelect' || currentPhase === 'GameStart') {
+      responseMessage = { event: 'CHAMP_SELECT', phase: currentPhase, realtimeAdvice: "Fase de Selección/Bans: Analizando composición y preparando la estrategia inicial." };
+  } else if (currentPhase === 'WaitingForStats') {
+      responseMessage = { event: 'STATUS', phase: currentPhase, realtimeAdvice: "Partida terminada. Generando reporte post-partida..." };
+  } else if (currentPhase === 'InProgress' && liveClientData.gameData) {
+      
+      // Manejar el inicio de partida para un log claro
+      const gameId = liveClientData.gameData.gameId;
+      const clientData = clients.get(wss.clients.values().next().value); // El primer cliente conectado
+
+      if (clientData && clientData.lastGameId !== gameId) {
+          clients.set(wss.clients.values().next().value, { ...clientData, lastGameId: gameId });
+          // Mensaje inicial de bienvenida al juego
+          wss.clients.forEach(client => client.send(JSON.stringify({ event: 'START_GAME', phase: currentPhase, realtimeAdvice: `¡Bienvenido! Partida detectada. La IA te acompañará.` })));
+      }
+
+      // Ejecutar la IA
+      try {
+          const analysisResult = await generateStrategicAnalysis({ 
+              liveGameData: liveClientData, // La IA requiere la data de in-game pura
+              zodiacSign: mockZodiacSign 
+          });
+          
+          responseMessage = {
+              event: analysisResult.priorityAction || 'ANALYSIS',
+              phase: currentPhase,
+              realtimeAdvice: analysisResult.realtimeAdvice || analysisResult.message, 
+          };
+          
+      } catch (error) {
+          console.error(`Error al generar consejo ÉLITE:`, error);
+          responseMessage = { event: 'ERROR', phase: currentPhase, realtimeAdvice: "ERROR CRÍTICO: El análisis de IA falló." };
+      }
+  }
+
+  // 3. BROADCAST A TODOS LOS CLIENTES
+  if (responseMessage) {
+      wss.clients.forEach(client => {
+          if (client.readyState === WebSocket.OPEN) {
+              client.send(JSON.stringify(responseMessage));
+          }
+      });
+  }
+}, POLLING_DB_INTERVAL);
