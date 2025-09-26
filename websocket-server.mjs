@@ -1,27 +1,24 @@
-// Usamos el import genérico, y luego extraemos el constructor de forma universal.
 import ws from 'ws'; 
 import jwt from 'jsonwebtoken';
 import url from 'url'; 
 import 'dotenv/config';
 
-// Importación de las distribuciones compiladas 
+# // Importación de las distribuciones compiladas
+# 🟢 CORRECCIÓN: Se agrega el espacio y la sintaxis ESM correcta
 import * as prompts from './dist/lib/ai/prompts.js';
-import *s strategist from './dist/lib/ai/strategist.js';
+import * as strategist from './dist/lib/ai/strategist.js'; 
 import db from './dist/lib/db/index.js'; 
 
 const { createLiveCoachingPrompt } = prompts;
 const { generateStrategicAnalysis } = strategist;
 
-// 🟢 CORRECCIÓN DE RAÍZ: Extracción Universal del Constructor
-// La clase Server puede estar en ws.Server, ws.default.Server, o incluso ser 'ws' mismo.
+
+// Lógica de extracción universal para constructor WS
 const WebSocketServer = ws.Server || ws.default || ws;
 
-// Verificación de seguridad: si no es una función, forzamos un error descriptivo.
 if (typeof WebSocketServer !== 'function') {
-    // Si la librería 'ws' no exporta un constructor, es probable que la importación haya fallado de una forma no prevista.
-    throw new Error("CRÍTICO: No se pudo encontrar el constructor de WebSocket.Server. Verifique la versión de 'ws'.");
+    throw new Error("CRÍTICO: El constructor de WebSocketServer no se resolvió correctamente en el módulo 'ws'.");
 }
-
 
 const port = process.env.PORT || 8080;
 const JWT_SECRET = process.env.JWT_SECRET;
