@@ -5,8 +5,6 @@
  */
 export const createInitialAnalysisPrompt = (analysisData) => {
   // *** BLINDAJE DEFINITIVO ***
-  // Nos aseguramos de que cada propiedad que vamos a usar exista.
-  // Si 'championMastery' no es un array, lo convertimos en uno vacío.
   const {
     summonerName = 'el jugador',
     zodiacSign = 'desconocido',

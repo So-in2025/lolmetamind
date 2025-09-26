@@ -46,7 +46,6 @@ export const generateStrategicAnalysis = async (analysisData) => {
   }
 };
 
-// Se modificó para aceptar analysisData y usar analysisData.zodiacSign en el fallback del análisis
 const handleSimulatedResponse = (prompt, analysisData) => {
     
   if (prompt.includes('Tu misión es proporcionar un consejo estratégico de alta prioridad')) {
@@ -215,7 +214,6 @@ const handleSimulatedResponse = (prompt, analysisData) => {
         }
       }
     };
-    // Se usa analysisData.zodiacSign ya que ahora se pasa explícitamente en el Dashboard/Recommendation
     return analysisMap[analysisData.zodiacSign] || analysisMap['Aries']; 
   }
   return { error: true, message: "No se pudo generar un análisis simulado." };
