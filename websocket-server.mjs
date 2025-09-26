@@ -1,4 +1,4 @@
-import ws from 'ws'; 
+import { Server as WebSocketServer } from 'ws'; // FIX FINAL: Importación nombrada para SERVER
 import jwt from 'jsonwebtoken';
 import url from 'url'; 
 import 'dotenv/config';
@@ -10,12 +10,6 @@ import db from './dist/lib/db/index.js';
 
 const { createLiveCoachingPrompt } = prompts;
 const { generateStrategicAnalysis } = strategist;
-
-
-// 🟢 SOLUCIÓN FINAL DE CONSTRUCTOR: Extraer el constructor del servidor
-// En contextos ESM (incluso con interop CJS), la clase Server se encuentra en ws.Server.
-// Usamos el import nominado que es el estándar más limpio.
-const WebSocketServer = ws.Server; 
 
 
 const port = process.env.PORT || 8080;
