@@ -9,7 +9,7 @@
   "scripts": {
     "dev": "next dev",
     "build": "next build",
-    "start": "next start",
+    "start": "next start -p $PORT",
     "lint": "next lint",
     "start:ws": "npm run build:server && node websocket-server.js",
     "build:server": "rm -rf dist && babel --config-file ./babel.config.server.js src/lib --out-dir dist/lib && babel --config-file ./babel.config.server.js src/services --out-dir dist/services"
