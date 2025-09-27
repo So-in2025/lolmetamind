@@ -29,6 +29,7 @@
     "framer-motion": "^12.23.18",
     "googleapis": "^160.0.0",
     "jsonwebtoken": "^9.0.2",
+    "nano": "^11.0.1",
     "next": "^14.2.32",
     "passport": "^0.7.0",
     "passport-google-oauth20": "^2.0.0",
