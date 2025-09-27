@@ -7,13 +7,13 @@
     "appId": "com.lolmetamind.app"
   },
   "scripts": {
-  "dev": "next dev",
-  "build": "next build",
-  "start": "next start", 
-  "lint": "next lint",
-  "start:ws": "npm run build:server && node websocket-server.js",
-  "build:server": "rm -rf dist && babel --config-file ./babel.config.server.js src/lib --out-dir dist/lib && babel --config-file ./babel.config.server.js src/services --out-dir dist/services"
-},
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint",
+    "start:ws": "npm run build:server && node websocket-server.js",
+    "build:server": "rm -rf dist && babel --config-file ./babel.config.server.js src/lib --out-dir dist/lib && babel --config-file ./babel.config.server.js src/services --out-dir dist/services"
+  },
   "dependencies": {
     "@clerk/nextjs": "^6.32.2",
     "@tailwindcss/aspect-ratio": "^0.4.2",
@@ -30,6 +30,8 @@
     "googleapis": "^160.0.0",
     "jsonwebtoken": "^9.0.2",
     "next": "^14.2.32",
+    "passport": "^0.7.0",
+    "passport-google-oauth20": "^2.0.0",
     "pg": "^8.16.3",
     "react": "^18",
     "react-dom": "^18",
