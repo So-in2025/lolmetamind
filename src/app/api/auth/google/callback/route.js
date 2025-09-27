@@ -1,55 +1,48 @@
+// src/app/api/auth/google/callback/route.js
+
 import { NextResponse } from 'next/server';
-import passport from '../../../../../lib/auth/utils'; // Importamos nuestra config de passport
-import jwt from 'jsonwebtoken';
+import passport, { createToken } from '../../../../../lib/auth/utils'; // Importamos passport y createToken
 import { promisify } from 'util';
 
-// Convertimos el middleware de passport a una promesa para usarlo con async/await
-const authenticate = promisify(passport.authenticate('google', { session: false }));
+// 🚨 SOLUCIÓN AL ERROR 'Dynamic server usage'
+// Esto le dice a Next.js que esta ruta SIEMPRE debe ejecutarse en el servidor.
+export const dynamic = 'force-dynamic';
 
-export async function GET(req) {
-    try {
-        // Ejecutamos la autenticación de Passport
-        const user = await authenticate(req);
-        
-        if (!user) {
-            // Si por alguna razón no hay usuario, redirigimos con error
-            const errorUrl = new URL('/login/error', process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000');
-            errorUrl.searchParams.set('message', 'No se pudo autenticar al usuario.');
-            return NextResponse.redirect(errorUrl);
-        }
+const authenticate = promisify(passport.authenticate('google', { session: false, failureRedirect: '/login/error' }));
 
-        // Si el usuario es autenticado, creamos el Token (JWT)
-        const token = jwt.sign(
-            { id: user.id, email: user.email },
-            process.env.JWT_SECRET, // Asegúrate de tener esta variable en Render
-            { expiresIn: '7d' }
-        );
+export async function GET(req, res) {
+  try {
+    // Passport maneja la autenticación y nos devuelve el usuario de la DB
+    const user = await authenticate(req, res);
 
-        // --- EL PASO CLAVE PARA ELECTRON ---
-        // Preparamos los datos para enviarlos de vuelta a la app de escritorio
-        const userData = JSON.stringify({
-            id: user.id,
-            displayName: user.displayName,
-            email: user.email,
-            avatarUrl: user.avatarUrl,
-            hasCompletedOnboarding: user.has_completed_onboarding || false
-        });
-
-        // Construimos la URL de redirección final que main.js está escuchando
-        const redirectUrl = new URL(req.url); // Reutilizamos la URL base
-        redirectUrl.searchParams.set('user', userData);
-        redirectUrl.searchParams.set('token', token);
-
-        console.log("Redirigiendo a la app de escritorio con éxito.");
-        
-        // Redirigimos. main.js capturará esta URL y cerrará la ventana.
-        return NextResponse.redirect(redirectUrl);
-
-    } catch (error) {
-        console.error("Error en el callback de Google:", error);
-        // En caso de error, redirigimos a una página de error genérica
-        const errorUrl = new URL('/login/error', process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000');
-        errorUrl.searchParams.set('message', 'Ocurrió un error en el servidor.');
-        return NextResponse.redirect(errorUrl);
+    if (!user) {
+      throw new Error("La autenticación con Passport falló.");
     }
+    
+    // Creamos el token de sesión
+    const token = createToken(user);
+
+    // Preparamos los datos del usuario para enviarlos a la app de Electron
+    const userData = JSON.stringify({
+        id: user._id,
+        displayName: user.displayName,
+        email: user.email,
+        avatarUrl: user.avatarUrl,
+        hasCompletedOnboarding: user.has_completed_onboarding
+    });
+    
+    // Construimos la URL de redirección final que nuestro main.js está esperando
+    const redirectUrl = new URL(process.env.NEXT_PUBLIC_BASE_URL); // Usamos la URL base de tu app
+    redirectUrl.pathname = '/auth/google/callback'; // Mantenemos una ruta limpia
+    redirectUrl.searchParams.set('user', userData);
+    redirectUrl.searchParams.set('token', token);
+
+    return NextResponse.redirect(redirectUrl);
+
+  } catch (error) {
+    console.error("Error en el callback de Google:", error);
+    const errorUrl = new URL('/login/error', process.env.NEXT_PUBLIC_BASE_URL);
+    errorUrl.searchParams.set('message', 'Ocurrió un error en el servidor durante la autenticación.');
+    return NextResponse.redirect(errorUrl);
+  }
 }
