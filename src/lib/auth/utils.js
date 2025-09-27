@@ -1,31 +1,40 @@
-// src/lib/auth/utils.js
-import bcrypt from 'bcryptjs';
-import jwt from 'jsonwebtoken';
+import passport from 'passport';
+import { Strategy as GoogleStrategy } from 'passport-google-oauth20';
+import { findOrCreateUser } from '../db'; // Asumimos que esta función existe en tu DB handler
 
-const JWT_SECRET = process.env.JWT_SECRET;
-
-/**
- * Genera un hash de una contraseña.
- */
-export const hashPassword = (password) => {
-  return bcrypt.hash(password, 10);
-};
-
-/**
- * Compara una contraseña con su hash.
- */
-export const comparePassword = (password, hash) => {
-  return bcrypt.compare(password, hash);
-};
-
-/**
- * Crea un token JWT para un usuario.
- */
-export const createToken = (user) => {
-  if (!JWT_SECRET) {
-    throw new Error('La clave secreta JWT no está definida en las variables de entorno.');
+passport.use(new GoogleStrategy({
+    clientID: process.env.GOOGLE_CLIENT_ID,
+    clientSecret: process.env.GOOGLE_CLIENT_SECRET,
+    callbackURL: "/api/auth/google/callback", // La ruta relativa en tu backend
+    scope: ['profile', 'email']
+  },
+  async (accessToken, refreshToken, profile, done) => {
+    try {
+      // Usamos la información de Google para encontrar o crear un usuario en tu base de datos
+      const user = await findOrCreateUser({
+        googleId: profile.id,
+        email: profile.emails[0].value,
+        displayName: profile.displayName,
+        avatarUrl: profile.photos[0].value
+      });
+      // Devolvemos el usuario para que la ruta de callback lo pueda usar
+      return done(null, user);
+    } catch (error) {
+      return done(error, null);
+    }
   }
-  return jwt.sign({ userId: user.id, username: user.username }, JWT_SECRET, {
-    expiresIn: '7d', // El token expira en 7 días
-  });
-};
+));
+
+// Estas funciones son necesarias para que Passport maneje la sesión
+passport.serializeUser((user, done) => {
+    done(null, user.id);
+});
+
+passport.deserializeUser(async (id, done) => {
+    // Aquí buscarías al usuario en tu DB por su ID
+    // const user = await findUserById(id);
+    // done(null, user);
+    done(null, { id }); // Placeholder hasta que implementes findUserById
+});
+
+export default passport;
