@@ -1,19 +1,22 @@
-import { NextResponse } from 'next/server';
-import { getDb } from '@/lib/db'; // CORRECCIÓN
+// src/app/api/challenges/weekly/route.js
 
-// Asumimos que tienes una DB o un servicio para los desafíos
-// const challengesDb = getDb().couch.use('challenges');
+import { NextResponse } from 'next/server';
+import { getPool } from '@/lib/db'; // CORRECCIÓN: Usamos la nueva función de conexión
 
 export async function GET(req) {
     try {
-        // Lógica para obtener los desafíos de la semana
-        const weeklyChallenges = [
-            { id: 'wc1', title: 'Gana 3 partidas con un campeón de Jonia', reward: 100 },
-            { id: 'wc2', title: 'Consigue 5 Heraldos de la Grieta', reward: 150 },
-        ];
+        const db = getPool(); // Obtenemos la conexión a la base de datos
+        
+        // Asumimos que tienes una tabla llamada 'challenges'
+        // Esta es una consulta de ejemplo para obtener los desafíos marcados como semanales
+        const result = await db.query('SELECT * FROM challenges WHERE type = $1', ['weekly']);
+        
+        const weeklyChallenges = result.rows;
+
         return NextResponse.json(weeklyChallenges, { status: 200 });
     } catch (error) {
         console.error("Error al obtener desafíos semanales:", error);
-        return NextResponse.json({ message: "Error interno del servidor" }, { status: 500 });
+        // Devolvemos un array vacío en caso de error para no romper el frontend
+        return NextResponse.json([], { status: 500 });
     }
 }
