@@ -1,55 +1,33 @@
 import { NextResponse } from 'next/server';
-import db from '@/lib/db'; // Importación por defecto
-import { v4 as uuidv4 } from 'uuid';
+import { getDb } from '@/lib/db'; // CORRECCIÓN
+import crypto from 'crypto';
 
 export async function POST(req) {
-  try {
-    const formData = await req.formData();
-    const hotmartEvent = Object.fromEntries(formData.entries());
-    console.log('Webhook de Hotmart recibido:', hotmartEvent);
+    const { usersDb } = getDb(); // CORRECCIÓN
+    const signature = req.headers.get('x-hotmart-hmac-sha256');
+    const payload = await req.json();
 
-    const hotmartToken = req.headers.get('x-hotmart-hottok');
-    if (hotmartToken !== process.env.HOTMART_WEBHOOK_SECRET) {
-      console.warn('Intento de webhook no autorizado.');
-      return NextResponse.json({ message: 'No autorizado' }, { status: 401 });
+    // Lógica de verificación del webhook (muy importante en producción)
+    const secret = process.env.HOTMART_WEBHOOK_SECRET;
+    const hash = crypto.createHmac('sha256', secret).update(JSON.stringify(payload)).digest('hex');
+
+    if (hash !== signature) {
+        return NextResponse.json({ message: 'Firma inválida' }, { status: 401 });
     }
 
-    const eventType = hotmartEvent.event;
-    const userEmail = hotmartEvent.email;
-    const subscriptionId = hotmartEvent.sub_id || hotmartEvent.subscription; // Asumiendo 'sub_id' o 'subscription'
+    try {
+        const email = payload.data.buyer.email;
+        const query = { selector: { email: email }, limit: 1 };
+        const users = await usersDb.find(query);
 
-    if (!userEmail) {
-        return NextResponse.json({ message: 'Email no proporcionado.' }, { status: 400 });
-    }
-
-    // CORRECCIÓN DE QUERY: Añadir $1
-    const userResult = await db.query('SELECT * FROM users WHERE email = $1', [userEmail]);
-    let user = userResult.rows[0];
-
-    if (eventType === 'PURCHASE_APPROVED' || eventType === 'SUBSCRIPTION_ACTIVATED') {
-        if (user) {
-            // CORRECCIÓN DE QUERY: Añadir $1, $2 y $3
-            await db.query(
-              'UPDATE users SET "subscription_tier" = $1, "hotmart_subscription_id" = $2 WHERE email = $3',
-              ['PREMIUM', subscriptionId, userEmail]
-            );
-            console.log(`Usuario ${userEmail} actualizado a PREMIUM.`);
+        if (users.docs.length > 0) {
+            const user = users.docs[0];
+            // Lógica para actualizar la suscripción del usuario
+            user.subscriptionStatus = 'active';
+            await usersDb.insert(user);
         }
-    } else if (eventType === 'SUBSCRIPTION_CANCELED' || eventType === 'PURCHASE_REFUNDED') {
-        if (user) {
-            // CORRECCIÓN DE QUERY: Añadir $1 y $2
-            await db.query(
-              'UPDATE users SET "subscription_tier" = $1, "hotmart_subscription_id" = NULL WHERE email = $2',
-              ['FREE', userEmail]
-            );
-            console.log(`Suscripción de ${userEmail} cancelada.`);
-        }
+        return NextResponse.json({ message: 'Webhook procesado' }, { status: 200 });
+    } catch (error) {
+        return NextResponse.json({ message: 'Error interno' }, { status: 500 });
     }
-
-    return NextResponse.json({ message: 'Webhook procesado' }, { status: 200 });
-
-  } catch (error) {
-    console.error('Error al procesar webhook de Hotmart:', error);
-    return NextResponse.json({ error: 'Error interno del servidor' }, { status: 500 });
-  }
 }

@@ -1,75 +1,19 @@
 import { NextResponse } from 'next/server';
-import { google } from 'googleapis';
-import db from '@/lib/db'; 
-import { createToken } from '@/lib/auth/utils';
+import passport from '@/lib/auth/utils'; // Ya usa el archivo correcto
+import { promisify } from 'util';
 
-const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID;
-const GOOGLE_CLIENT_SECRET = process.env.GOOGLE_CLIENT_SECRET;
-const GOOGLE_REDIRECT_URI = process.env.GOOGLE_REDIRECT_URI;
+export const dynamic = 'force-dynamic';
 
-const oauth2Client = new google.auth.OAuth2(
-  GOOGLE_CLIENT_ID,
-  GOOGLE_CLIENT_SECRET,
-  GOOGLE_REDIRECT_URI
-);
+const authenticate = promisify(passport.authenticate('google', { scope: ['profile', 'email'], session: false }));
 
-export async function GET(request) {
-  const url = new URL(request.url);
-  const code = url.searchParams.get('code');
-  
-  const redirectTo = url.searchParams.get('redirect_to');
-
-  if (!code) {
-    const authUrl = oauth2Client.generateAuthUrl({
-      access_type: 'offline',
-      scope: ['https://www.googleapis.com/auth/userinfo.email', 'https://www.googleapis.com/auth/userinfo.profile'],
-      prompt: 'consent',
-      state: redirectTo ? `redirect_to=${encodeURIComponent(redirectTo)}` : undefined,
-    });
-    return NextResponse.redirect(authUrl);
-  }
-
+export async function GET(req) {
   try {
-    const { tokens } = await oauth2Client.getToken(code);
-    oauth2Client.setCredentials(tokens);
-
-    const oauth2 = google.oauth2({
-      auth: oauth2Client,
-      version: 'v2'
-    });
-    const userInfo = await oauth2.userinfo.get();
-
-    let user = null;
-    const existingUser = await db.query('SELECT * FROM users WHERE email = $1', [userInfo.data.email]);
-    
-    if (existingUser.rows.length > 0) {
-      user = existingUser.rows[0];
-      // Actualizar el avatar_url
-      await db.query(
-        'UPDATE users SET avatar_url = $1 WHERE id = $2',
-        [userInfo.data.picture, user.id]
-      );
-    } else {
-      // INSERTANDO NUEVO USUARIO con avatar_url
-      const newUserResult = await db.query(
-        'INSERT INTO users (username, email, google_id, avatar_url) VALUES ($1, $2, $3, $4) RETURNING *',
-        [userInfo.data.name, userInfo.data.email, userInfo.data.id, userInfo.data.picture]
-      );
-      user = newUserResult.rows[0];
-    }
-
-    const token = createToken(user);
-    
-    const finalRedirectPath = url.searchParams.get('state')?.includes('redirect_to=')
-      ? decodeURIComponent(url.searchParams.get('state').split('redirect_to=')[1])
-      : '/dashboard';
-
-    const redirectUrl = new URL(finalRedirectPath, url.origin);
-    redirectUrl.searchParams.set('token', token);
-    return NextResponse.redirect(redirectUrl);
-
+    // Esta ruta inicia el flujo, no necesita la DB directamente, solo Passport
+    await authenticate(req);
+    // Passport se encarga de la redirección a Google, por lo que esta respuesta no se envía
+    return NextResponse.json({ message: 'Redirigiendo a Google...' });
   } catch (error) {
-    console.error('Error CRÍTICO en Google Auth API:', error);
-    return NextResponse.json({ error: 'Hubo un error con la autenticación de Google.' }, { status: 500 });
+    console.error('Error al iniciar autenticación con Google:', error);
+    return NextResponse.json({ message: 'Error interno del servidor' }, { status: 500 });
   }
 }
