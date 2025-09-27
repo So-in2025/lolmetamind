@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { getDb } from '@/lib/db'; // CORRECCIÓN
+import { getPool } from '@/lib/db';
 import { getToken } from 'next-auth/jwt';
 
 export async function POST(req) {
@@ -7,14 +7,16 @@ export async function POST(req) {
     if (!token) return NextResponse.json({ message: 'No autorizado' }, { status: 401 });
 
     try {
-        const { usersDb } = getDb(); // CORRECCIÓN
-        const user = await usersDb.get(token.id);
-
-        // Lógica de verificación de licencia
-        const isValid = user.subscriptionStatus === 'active' || user.trialEndsAt > new Date().toISOString();
-
+        const db = getPool();
+        const result = await db.query('SELECT "subscriptionStatus", "trialEndsAt" FROM users WHERE id = $1', [token.id]);
+        if (result.rows.length === 0) {
+            return NextResponse.json({ isValid: false }, { status: 404 });
+        }
+        const user = result.rows[0];
+        const isValid = user.subscriptionStatus === 'active' || (user.trialEndsAt && new Date(user.trialEndsAt) > new Date());
         return NextResponse.json({ isValid }, { status: 200 });
     } catch (error) {
+        console.error('Error al verificar licencia:', error);
         return NextResponse.json({ isValid: false, message: 'Error interno' }, { status: 500 });
     }
 }

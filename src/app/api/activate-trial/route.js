@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { getDb } from '@/lib/db'; // CORRECCIÓN
+import { getPool } from '@/lib/db';
 import { getToken } from 'next-auth/jwt';
 
 export async function POST(req) {
@@ -7,16 +7,18 @@ export async function POST(req) {
   if (!token) return NextResponse.json({ message: 'No autorizado' }, { status: 401 });
 
   try {
-    const { usersDb } = getDb(); // CORRECCIÓN
-    const userDoc = await usersDb.get(token.id);
+    const db = getPool();
+    const userResult = await db.query('SELECT "trialActivated" FROM users WHERE id = $1', [token.id]);
 
-    if (userDoc.trialActivated) {
+    if (userResult.rows.length === 0) {
+      return NextResponse.json({ message: 'Usuario no encontrado' }, { status: 404 });
+    }
+    if (userResult.rows[0].trialActivated) {
       return NextResponse.json({ message: 'El período de prueba ya fue activado.' }, { status: 400 });
     }
 
-    userDoc.trialActivated = true;
-    userDoc.trialEndsAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(); // 7 días de prueba
-    await usersDb.insert(userDoc);
+    const trialEndsAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString();
+    await db.query('UPDATE users SET "trialActivated" = true, "trialEndsAt" = $1 WHERE id = $2', [trialEndsAt, token.id]);
 
     return NextResponse.json({ message: 'Período de prueba activado con éxito.' }, { status: 200 });
   } catch (error) {
