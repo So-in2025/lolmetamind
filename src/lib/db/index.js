@@ -1,26 +1,31 @@
-// src/lib/db/index.js
-
 import nano from 'nano';
 import { v4 as uuidv4 } from 'uuid';
 
-// --- SOLUCIÓN CRÍTICA: Verificación de la variable de entorno ---
-if (!process.env.COUCHDB_URL) {
-  throw new Error('FATAL ERROR: La variable de entorno COUCHDB_URL no está definida. Revisa tu configuración en Render.');
+let couch;
+let usersDb;
+let matchesDb;
+
+/**
+ * --- SOLUCIÓN CRÍTICA: Inicialización "Lazy" ---
+ * Esta función asegura que la conexión a la base de datos solo se establezca
+ * cuando una ruta de la API la necesite, y no durante el build.
+ */
+function getDb() {
+  if (!couch) {
+    if (!process.env.COUCHDB_URL) {
+      throw new Error('FATAL ERROR: La variable de entorno COUCHDB_URL no está definida.');
+    }
+    couch = nano(process.env.COUCHDB_URL);
+    usersDb = couch.use('users');
+    matchesDb = couch.use('matches');
+  }
+  return { couch, usersDb, matchesDb };
 }
 
-// La conexión a la base de datos ahora es segura
-const couch = nano(process.env.COUCHDB_URL);
-const usersDb = couch.use('users');
-const matchesDb = couch.use('matches');
-
-// ... (El resto de tus funciones, como findOrCreateUser, se mantienen igual) ...
-
 export async function findOrCreateUser(profile) {
+  const { usersDb } = getDb(); // Obtenemos la conexión
   try {
-    const query = {
-      selector: { googleId: profile.googleId },
-      limit: 1,
-    };
+    const query = { selector: { googleId: profile.googleId }, limit: 1 };
     const existingUsers = await usersDb.find(query);
 
     if (existingUsers.docs.length > 0) {
@@ -44,4 +49,5 @@ export async function findOrCreateUser(profile) {
   }
 }
 
-export { usersDb, matchesDb, couch };
+// Exportamos la función para obtener la DB, no las instancias directamente
+export { getDb };
