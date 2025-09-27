@@ -1,17 +1,16 @@
--- src/lib/db/schema.sql
+-- src/lib/db/schema.sql (SIMPLIFICADO)
 -- Esquema de base de datos para PostgreSQL en producción.
 
 -- Se eliminan las tablas existentes para asegurar un esquema limpio.
 DROP TABLE IF EXISTS users CASCADE;
 DROP TABLE IF EXISTS user_challenges CASCADE;
 
--- Tabla de Usuarios actualizada para Riot ID y Paddle
+-- Tabla de Usuarios actualizada para Riot ID y datos de League
 CREATE TABLE users (
     id SERIAL PRIMARY KEY,
     username VARCHAR(255) UNIQUE,
     email VARCHAR(255) UNIQUE,
-    google_id VARCHAR(255) UNIQUE,
-    avatar_url VARCHAR(255), -- <--- ¡COLUMNA AÑADIDA!
+    avatar_url VARCHAR(255),
     
     -- Campos para el Riot ID y datos de League
     riot_id_name VARCHAR(255),
@@ -20,21 +19,18 @@ CREATE TABLE users (
     puuid VARCHAR(255) UNIQUE,
     summoner_id VARCHAR(255) UNIQUE,
 
-    -- Campos para monetización con Paddle
-    plan_status VARCHAR(50) DEFAULT 'free',
-    paddle_customer_id VARCHAR(255) UNIQUE,
-
+    -- Data para Live Coaching / Perfil
+    live_game_data JSONB,
+    zodiac_sign VARCHAR(50), 
+    
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
 
-    -- Campos para Hotmart y suscripción (corregidos para consistencia)
-    subscription_tier VARCHAR(50) DEFAULT 'FREE',
-    trial_ends_at TIMESTAMP WITH TIME ZONE,
-    license_key VARCHAR(255) UNIQUE,
-    hotmart_subscription_id VARCHAR(255)
+    -- Onboarding: mantener el campo como marcador simple si es necesario para la lógica de la app de escritorio
+    has_completed_onboarding BOOLEAN DEFAULT FALSE
 );
 
--- Tabla para almacenar los desafíos activos de los usuarios
+-- Tabla para almacenar los desafíos activos de los usuarios (simplificada)
 CREATE TABLE user_challenges (
     id SERIAL PRIMARY KEY,
     user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
@@ -42,8 +38,8 @@ CREATE TABLE user_challenges (
     description TEXT NOT NULL,
     challenge_type VARCHAR(50) NOT NULL, -- 'daily' o 'weekly'
     metric VARCHAR(100) NOT NULL,        -- ej: 'kills', 'visionScore', 'csPerMinute'
-    goal INTEGER NOT NULL,
-    progress INTEGER DEFAULT 0,
+    goal NUMERIC(10, 2) NOT NULL,        -- Usar NUMERIC para valores decimales como CS/min
+    progress NUMERIC(10, 2) DEFAULT 0,
     is_completed BOOLEAN DEFAULT FALSE,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
     expires_at TIMESTAMP WITH TIME ZONE NOT NULL

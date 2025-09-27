@@ -229,8 +229,8 @@ export default function LandingPage() {
             <motion.p initial={{ y: 50, opacity: 0 }} whileInView={{ y: 0, opacity: 1 }} viewport={{ once: true }} transition={{ duration: 1, delay: 0.2 }} className="text-lol-gold-light/90 text-lg md:text-2xl mb-10 max-w-3xl mx-auto text-shadow-md">
                 Dejá de adivinar. Empezá a dominar. Uníte a la revolución de estrategia y contenido con el poder de la IA y la astrología.
             </motion.p>
-            <Link href="/pricings" passHref>
-                <EpicButton>Registrate Gratis</EpicButton>
+            <Link href="#download-app-link" passHref> {/* Cambia el href al enlace de descarga de tu app */}
+                <EpicButton>Descargar APP</EpicButton>
             </Link>
         </section>
 

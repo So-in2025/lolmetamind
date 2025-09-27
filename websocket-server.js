@@ -4,7 +4,7 @@ const WebSocket = require('ws');
 const url = require('url');
 const { Pool } = require('pg');
 require('dotenv').config();
-const jwt = require('jsonwebtoken'); 
+// ELIMINADO: const jwt = require('jsonwebtoken'); 
 
 // Imports de la distribución compilada (CJS)
 const prompts = require('./dist/lib/ai/prompts');
@@ -18,12 +18,12 @@ const POLLING_DB_INTERVAL = 10000; // Polling DB cada 10 segundos (para la demo)
 
 const pool = db.pool;
 const wss = new WebSocket.Server({ port: SERVER_PORT }); 
-const clients = new Map();
+const clients = new Map(); // Mantenemos el Map para rastrear la última partida (lastGameId)
 
 console.log(`✅ Servidor WebSocket de LCU iniciado en el puerto ${SERVER_PORT}.`);
 
 wss.on('connection', (ws, req) => {
-  const userId = 1; // Asumimos ID 1 para la demo sin token
+  const userId = 1; // Hardcodeado a ID 1 para el flujo simplificado/demo
 
   ws.userId = userId;
   clients.set(ws, { id: userId, lastGameId: null }); 
@@ -86,10 +86,12 @@ setInterval(async () => {
       
       // Manejar el inicio de partida para un log claro
       const gameId = liveClientData.gameData.gameId;
-      const clientData = clients.get(wss.clients.values().next().value); // El primer cliente conectado
+      // Obtenemos el primer cliente (asumimos un solo cliente para el ID 1)
+      const firstClient = wss.clients.values().next().value; 
+      const clientData = clients.get(firstClient);
 
       if (clientData && clientData.lastGameId !== gameId) {
-          clients.set(wss.clients.values().next().value, { ...clientData, lastGameId: gameId });
+          clients.set(firstClient, { ...clientData, lastGameId: gameId });
           // Mensaje inicial de bienvenida al juego
           wss.clients.forEach(client => client.send(JSON.stringify({ event: 'START_GAME', phase: currentPhase, realtimeAdvice: `¡Bienvenido! Partida detectada. La IA te acompañará.` })));
       }
