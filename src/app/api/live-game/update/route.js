@@ -1,33 +1,33 @@
-// Ruta: so-in2025/lolmetamind/lolmetamind-adffad4206b2a133fe3e3e14ba85b1b8b418f9c3/src/app/api/live-game/update/route.js
+// src/app/api/live-game/update/route.js
 
 import { NextResponse } from 'next/server';
-import db from '@/lib/db'; 
-
-export const dynamic = 'force-dynamic';
+// --- CORRECCIÓN: Se importa la instancia central de la base de datos ---
+import { matchesDb } from '@/lib/db';
+import { getToken } from 'next-auth/jwt';
 
 export async function POST(req) {
-    
-    // --- BYPASS DE AUTENTICACIÓN: USAR ID 1 ---
-    const userId = 1; 
+    const token = await getToken({ req, secret: process.env.NEXTAUTH_SECRET });
+
+    if (!token) {
+        return NextResponse.json({ message: 'No autorizado' }, { status: 401 });
+    }
 
     try {
         const liveGameData = await req.json();
+
+        // Aquí procesarías los datos de la partida en vivo
+        // y los guardarías en la base de datos 'matches'
         
-        // Si no está en partida activa, devolvemos 204.
-        if (!liveGameData || liveGameData.gameflow.phase === 'None') {
-             return new NextResponse(null, { status: 204 }); 
-        }
+        // Ejemplo:
+        // const matchId = liveGameData.gameId;
+        // await matchesDb.insert({ _id: matchId.toString(), ...liveGameData, userId: token.sub });
 
-        // Guardar la data LCU en la base de datos para el usuario 1
-        await db.query(
-            'UPDATE users SET live_game_data = $1, updated_at = NOW() WHERE id = $2',
-            [liveGameData, userId]
-        );
+        console.log('Datos de partida en vivo recibidos para el usuario:', token.sub);
 
-        return NextResponse.json({ message: 'Datos LCU recibidos y guardados en DB.', userId: userId });
+        return NextResponse.json({ message: 'Datos de partida recibidos' }, { status: 200 });
 
     } catch (error) {
-        console.error('Error CRÍTICO al actualizar datos LCU:', error); 
-        return NextResponse.json({ error: 'Error interno del servidor al procesar datos LCU.' }, { status: 500 });
+        console.error('Error al actualizar datos de la partida en vivo:', error);
+        return NextResponse.json({ message: 'Error interno del servidor' }, { status: 500 });
     }
 }

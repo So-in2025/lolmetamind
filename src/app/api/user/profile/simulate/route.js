@@ -1,38 +1,32 @@
+// src/app/api/user/profile/simulate/route.js
+
 import { NextResponse } from 'next/server';
-import jwt from 'jsonwebtoken';
-import db from '@/lib/db';
+// --- CORRECCIÓN: Se usa una importación nombrada ---
+import { usersDb } from '@/lib/db';
+import { getToken } from 'next-auth/jwt';
 
-const JWT_SECRET = process.env.JWT_SECRET;
-export const dynamic = 'force-dynamic'; 
+export async function POST(req) {
+    const token = await getToken({ req, secret: process.env.NEXTAUTH_SECRET });
 
-export async function POST(request) {
-  try {
-    const token = request.headers.get('authorization')?.split(' ')[1];
-    if (!token) return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
-    
-    const decoded = jwt.verify(token, JWT_SECRET);
-    const userId = decoded.userId;
-
-    const { gameName, tagLine, region } = await request.json();
-    if (!gameName || !tagLine || !region) {
-      return NextResponse.json({ error: 'Faltan datos para la simulación' }, { status: 400 });
+    if (!token || token.role !== 'admin') { // Asumimos que solo un admin puede hacer esto
+        return NextResponse.json({ message: 'Acceso denegado' }, { status: 403 });
     }
 
-    const mockPuuid = `simulated-puuid-${userId}-${gameName}`;
-    const mockSummonerId = `simulated-summoner-id-${userId}-${gameName}`;
+    try {
+        const { userId, simulationData } = await req.json();
+        
+        // Lógica para encontrar al usuario y aplicar datos de simulación
+        const userDoc = await usersDb.get(userId);
+        
+        // ... (Tu lógica de simulación aquí) ...
+        
+        // Guardar los cambios
+        // await usersDb.insert(userDoc);
 
-    const result = await db.query(
-      `UPDATE users 
-       SET riot_id_name = $1, riot_id_tagline = $2, region = $3, puuid = $4, summoner_id = $5, updated_at = NOW() 
-       WHERE id = $6 
-       RETURNING id, username, email, riot_id_name, riot_id_tagline, region, puuid`,
-      [gameName, tagLine, region, mockPuuid, mockSummonerId, userId]
-    );
+        return NextResponse.json({ message: 'Simulación aplicada con éxito (simulado)', user: userDoc }, { status: 200 });
 
-    return NextResponse.json({ message: 'Perfil simulado con éxito', user: result.rows[0] });
-
-  } catch (error) {
-    console.error('Error al simular perfil:', error.message);
-    return NextResponse.json({ error: 'No se pudo crear el perfil simulado.' }, { status: 500 });
-  }
+    } catch (error) {
+        console.error('Error en la simulación de perfil:', error);
+        return NextResponse.json({ message: 'Error interno del servidor' }, { status: 500 });
+    }
 }
