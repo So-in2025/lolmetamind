@@ -1,24 +1,25 @@
 // src/app/api/auth/google/callback/route.js
 
 import { NextResponse } from 'next/server';
-import passport, { createToken } from '../../../../../lib/auth/utils'; // Importamos passport y createToken
+import passport, { createToken } from '@/lib/auth/utils';
 import { promisify } from 'util';
 
-// 🚨 SOLUCIÓN AL ERROR 'Dynamic server usage'
-// Esto le dice a Next.js que esta ruta SIEMPRE debe ejecutarse en el servidor.
+// 🚨 SOLUCIÓN: Hacemos la ruta dinámica
 export const dynamic = 'force-dynamic';
 
-const authenticate = promisify(passport.authenticate('google', { session: false, failureRedirect: '/login/error' }));
+// Creamos una función de autenticación compatible
+const authenticate = (req) => new Promise((resolve, reject) => {
+    passport.authenticate('google', { session: false }, (err, user, info) => {
+        if (err) return reject(err);
+        if (!user) return reject(new Error('La autenticación con Passport falló.'));
+        resolve(user);
+    })(req);
+});
 
-export async function GET(req, res) {
+export async function GET(req) {
   try {
-    // Passport maneja la autenticación y nos devuelve el usuario de la DB
-    const user = await authenticate(req, res);
+    const user = await authenticate(req);
 
-    if (!user) {
-      throw new Error("La autenticación con Passport falló.");
-    }
-    
     // Creamos el token de sesión
     const token = createToken(user);
 
@@ -32,17 +33,20 @@ export async function GET(req, res) {
     });
     
     // Construimos la URL de redirección final que nuestro main.js está esperando
-    const redirectUrl = new URL(process.env.NEXT_PUBLIC_BASE_URL); // Usamos la URL base de tu app
-    redirectUrl.pathname = '/auth/google/callback'; // Mantenemos una ruta limpia
+    // Usamos la URL base del backend para la redirección
+    const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || `https://${req.headers.get('host')}`;
+    const redirectUrl = new URL(baseUrl);
+    redirectUrl.pathname = '/auth/google/callback'; // Mantenemos la ruta para que main.js la detecte
     redirectUrl.searchParams.set('user', userData);
     redirectUrl.searchParams.set('token', token);
 
-    return NextResponse.redirect(redirectUrl);
+    return NextResponse.redirect(redirectUrl.toString());
 
   } catch (error) {
     console.error("Error en el callback de Google:", error);
-    const errorUrl = new URL('/login/error', process.env.NEXT_PUBLIC_BASE_URL);
+    const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || `https://${req.headers.get('host')}`;
+    const errorUrl = new URL('/login/error', baseUrl);
     errorUrl.searchParams.set('message', 'Ocurrió un error en el servidor durante la autenticación.');
-    return NextResponse.redirect(errorUrl);
+    return NextResponse.redirect(errorUrl.toString());
   }
 }
