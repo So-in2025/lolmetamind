@@ -3,7 +3,8 @@ import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import { getPool } from '@/lib/db';
 
-const JWT_SECRET = process.env.JWT_SECRET || 'CLAVE_SECRETA_FUERTE_DEBES_CAMBIARLA';
+// 🔑 CLAVE: Usamos una clave de fallback ÚNICA para asegurar la consistencia.
+const JWT_SECRET = process.env.JWT_SECRET || 'p2s5v8y/B?E(H+MbQeThWmZq4t7w!z%C&F)J@NcRfUjXn2r5u8x/A?D*G-KaPdSg';
 
 export async function POST(request) {
     const db = getPool();
@@ -29,7 +30,7 @@ export async function POST(request) {
             return NextResponse.json({ message: 'Credenciales inválidas.' }, { status: 401 });
         }
 
-        // 3. Generar el Token JWT
+        // 3. Generar el Token JWT usando la clave única
         const token = jwt.sign({ id: user.id, username: user.username }, JWT_SECRET, { expiresIn: '7d' });
 
         const headers = {

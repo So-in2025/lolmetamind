@@ -3,7 +3,7 @@ import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import { getPool } from '@/lib/db';
 
-const JWT_SECRET = process.env.JWT_SECRET || 'CLAVE_SECRETA_FUERTE_DEBES_CAMBIARLA';
+const JWT_SECRET = process.env.JWT_SECRET || 'p2s5v8y/B?E(H+MbQeThWmZq4t7w!z%C&F)J@NcRfUjXn2r5u8x/A?D*G-KaPdSg';
 
 export async function POST(request) {
     const db = getPool();
