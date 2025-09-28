@@ -3,7 +3,7 @@
 Object.defineProperty(exports, "__esModule", {
   value: true
 });
-exports.getSummonerByName = exports.getMatchHistoryIds = exports.getMatchDetails = exports.getChampionMastery = exports.getAccountByRiotId = void 0;
+exports.getSummonerByPuuid = exports.getSummonerByName = exports.getMatchHistoryIds = exports.getMatchDetails = exports.getChampionMastery = exports.getAccountByRiotId = void 0;
 var _axios = _interopRequireDefault(require("axios"));
 var _apiConfig = require("./apiConfig");
 function _interopRequireDefault(e) { return e && e.__esModule ? e : { default: e }; }
@@ -57,8 +57,6 @@ const getAccountByRiotId = async (gameName, tagLine, region) => {
     handleApiError(error, 'getAccountByRiotId');
   }
 };
-
-// *** NUEVA FUNCIÓN MÁS DIRECTA Y ROBUSTA ***
 exports.getAccountByRiotId = getAccountByRiotId;
 const getSummonerByName = async (name, region) => {
   try {
@@ -72,7 +70,23 @@ const getSummonerByName = async (name, region) => {
     handleApiError(error, 'getSummonerByName');
   }
 };
+
+// --- FUNCIÓN AÑADIDA PARA CORREGIR EL ERROR ---
 exports.getSummonerByName = getSummonerByName;
+const getSummonerByPuuid = async (puuid, region) => {
+  try {
+    const api = createApi(`https://${getPlatformRoute(region)}.api.riotgames.com`);
+    const response = await api.get(`/lol/summoner/v4/summoners/by-puuid/${puuid}`);
+    if (!response.data || !response.data.id) {
+      throw new Error('La respuesta de Riot no contiene un ID de invocador válido para el PUUID proporcionado.');
+    }
+    return response.data;
+  } catch (error) {
+    handleApiError(error, 'getSummonerByPuuid');
+  }
+};
+// --- FIN DE LA CORRECCIÓN ---
+exports.getSummonerByPuuid = getSummonerByPuuid;
 const getChampionMastery = async (puuid, region) => {
   if (!puuid || !region) return [];
   try {
