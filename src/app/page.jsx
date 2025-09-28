@@ -74,7 +74,7 @@ export default function LandingPage() {
           transition={{ duration: 1 }}
         >
           <h1 className="text-6xl md:text-8xl font-display font-extrabold text-lol-gold-light text-shadow-lg">
-            LoL MetaMind
+            Couch MetaMind
           </h1>
           <p className="mt-4 text-lg md:text-2xl max-w-3xl text-lol-gold-light/90 text-shadow-md">
             Tu ventaja estratégica ha llegado.
@@ -110,7 +110,7 @@ export default function LandingPage() {
             transition={{ duration: 1 }}
             className="text-6xl md:text-8xl font-display font-extrabold text-lol-gold-light text-shadow-lg"
           >
-            LoL MetaMind
+            Couch MetaMind
           </motion.h1>
           <motion.p
             initial={{ opacity: 0 }}
