@@ -1,12 +1,10 @@
-// src/app/api/user/profile/route.js
 import { NextResponse, NextRequest } from 'next/server';
 import jwt from 'jsonwebtoken';
-import { getPool } from '@/lib/db';
+import { getSql } from '@/lib/db'; 
 
-// 🔑 CLAVE: Usamos la misma clave de fallback ÚNICA que el login.
 const JWT_SECRET = process.env.JWT_SECRET || 'CLAVE_SECRETA_UNICA_DE_RENDER_DB_TESTING';
 
-// Encabezados CORS para todas las respuestas
+// Encabezados CORS
 const CORS_HEADERS = {
     'Access-Control-Allow-Origin': '*',
     'Access-Control-Allow-Methods': 'GET, OPTIONS',
@@ -33,7 +31,7 @@ function authenticateUser(request) {
  * Endpoint GET para obtener los datos de invocador del usuario autenticado.
  */
 export async function GET(request) {
-    const db = getPool();
+    const sql = getSql();
     const url = new URL(request.url);
     const username = url.searchParams.get('username'); 
 
@@ -45,20 +43,21 @@ export async function GET(request) {
     }
 
     try {
-        // 2. Consulta a la DB de Render para obtener los datos clave del invocador
-        // Usamos COALESCE para convertir NULL en '' (cadena vacía)
+        // 2. Consulta a la DB: 🚨 TÉCNICA FINAL DE DOBLE ALIAS PARA BYPASS DE CORRUPCIÓN 🚨
+        // Leemos la columna problemática 'rname' dos veces con nuevos alias.
         const queryText = `
             SELECT 
-                COALESCE(riot_id_name, '') AS summonerName, 
-                COALESCE(riot_id_tagline, '') AS tagline, 
-                COALESCE(region, '') AS region 
+                TRIM(COALESCE(rname, ''))::TEXT AS rname_a,         -- Primer intento (puede ser corrupto)
+                TRIM(COALESCE(rname, ''))::TEXT AS rname_b,         -- Segundo intento (el valor de fallback)
+                TRIM(COALESCE(riot_id_tagline, ''))::TEXT AS tagline, 
+                TRIM(COALESCE(region, ''))::TEXT AS region
             FROM users 
             WHERE username = $1
         `;
-        const result = await db.query(queryText, [username]);
+        const result = await sql.unsafe(queryText, [username]);
         
         // 3. Verificación de existencia de fila
-        if (result.rows.length === 0) {
+        if (result.length === 0) {
             console.warn(`[BACKEND DB] Usuario no encontrado en la tabla 'users'. Devolviendo 404.`);
             return NextResponse.json({ 
                 message: 'Perfil de invocador no existe en la DB.',
@@ -66,23 +65,41 @@ export async function GET(request) {
             }, { status: 404, headers: CORS_HEADERS });
         }
         
-        const profile = result.rows[0]; 
+        const profile = result[0]; 
 
-        // 4. AISLAMIENTO Y VERIFICACIÓN FINAL: Chequeamos que las cadenas no estén vacías.
-        const summonerName = profile.summonerName || '';
-        const tagline = profile.tagline || '';
-        const region = profile.region || '';
+        // 4. AISLAMIENTO Y VERIFICACIÓN FINAL: Diagnóstico y limpieza
+        
+        let rawNameA = profile.rname_a || '';
+        let rawNameB = profile.rname_b || '';
+        
+        // 🚨 BYPASS DE LECTURA: Usar el segundo alias si el primero (rname_a) es corrupto (Length 0).
+        let rawSummonerName = (rawNameA.length === 0 && rawNameB.length > 0) ? rawNameB : rawNameA; 
+
+        const rawTagline = profile.tagline || '';
+        const rawRegion = profile.region || '';
+        
+        // Aplicar trim final para todos
+        const summonerName = String(rawSummonerName).trim();
+        const tagline = String(rawTagline).trim();
+        const region = String(rawRegion).trim();
+        
         
         if (summonerName.length === 0 || tagline.length === 0 || region.length === 0) {
             
+            // 🚨 LOG DE DIAGNÓSTICO FINAL 🚨
+            console.error(`[BACKEND DB] FALLO PERSISTENTE. Diagnóstico (Doble Alias):`);
+            console.error(`[BACKEND DB] -> rname_a: Length ${rawNameA.length}, Value='${rawNameA}'`);
+            console.error(`[BACKEND DB] -> rname_b: Length ${rawNameB.length}, Value='${rawNameB}'`);
+            console.error(`[BACKEND DB] -> Name FINAL ('summonerName'): Length ${summonerName.length}, Value='${summonerName}'`);
+
             console.warn(`[BACKEND DB] Perfil de invocador incompleto (datos vacíos). Devolviendo 404.`);
             return NextResponse.json({ 
                 message: 'Perfil de invocador incompleto o no existe.',
-                data: { summonerName, tagline, region } // Devolver la data cruda para diagnóstico
+                data: { summonerName, tagline, region } 
             }, { status: 404, headers: CORS_HEADERS });
         }
 
-        // 5. Devolver los datos
+        // 5. Devolver los datos (éxito)
         return NextResponse.json({ summonerName, tagline, region }, { status: 200, headers: CORS_HEADERS });
 
     } catch (error) {

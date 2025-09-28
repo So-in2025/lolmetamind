@@ -3,28 +3,33 @@
 Object.defineProperty(exports, "__esModule", {
   value: true
 });
-exports.getPool = getPool;
-var _pg = require("pg");
-let pool;
+exports.getSql = getSql;
+var _postgres = _interopRequireDefault(require("postgres"));
+function _interopRequireDefault(e) { return e && e.__esModule ? e : { default: e }; }
+let sql;
 
 /**
- * --- SOLUCIÓN CRÍTICA: Conexión a PostgreSQL en Render ---
- * Esta función establece la conexión a tu base de datos PostgreSQL.
- * Utiliza la variable de entorno DATABASE_URL que Render te da automáticamente.
+ * --- SOLUCIÓN CRÍTICA: CAMBIO DE DRIVER DE 'pg' A 'postgres' ---
+ * Usamos el driver 'postgres' (JS puro) para evitar el bug de serialización.
+ * El objeto devuelto 'sql' es una función que ejecuta consultas.
  */
-function getPool() {
-  if (!pool) {
+function getSql() {
+  if (!sql) {
     if (!process.env.DATABASE_URL) {
-      throw new Error('FATAL ERROR: La variable de entorno DATABASE_URL no está definida. Asegúrate de que tu servicio web esté conectado a tu base de datos en el dashboard de Render.');
+      throw new Error('FATAL ERROR: La variable de entorno DATABASE_URL no está definida.');
     }
-    pool = new _pg.Pool({
-      connectionString: process.env.DATABASE_URL,
+
+    // 🚨 Configuración para Render (SSL) y el driver 'postgres'
+    sql = (0, _postgres.default)(process.env.DATABASE_URL, {
       ssl: {
-        rejectUnauthorized: false // Requerido para conexiones a Render
-      }
+        rejectUnauthorized: false
+      },
+      // Configuración de pools y timeouts si es necesario, pero la configuración base es suficiente.
+      max: 10 // Máximo de conexiones
     });
+    console.log("[DB] Driver 'postgres' inicializado y conectado.");
   }
-  return pool;
+  return sql;
 }
 
-// Exportamos la función para obtener la conexión
+// Exportamos la función con un nombre más descriptivo para el nuevo driver
