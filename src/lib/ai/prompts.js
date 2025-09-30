@@ -63,9 +63,31 @@ export const createPerformanceAnalysisPrompt = (matchHistory, summonerData) => {
     `;
 };
 
-// --- PROMPT PARA ANÁLISIS DEL META ACTUAL (Este es más objetivo, no necesita el signo) ---
-export const createMetaAnalysisPrompt = (patchVersion) => { /* ... sin cambios ... */ };
+// --- PROMPT PARA ANÁLISIS DEL META ACTUAL (Implementación para evitar el error 500) ---
+export const createMetaAnalysisPrompt = (patchVersion) => {
+    // Definición completa del prompt para evitar el error 500 por 'customPrompt' vacío
+    return `
+      Eres "MetaMind", un analista de la Grieta del Invocador.
 
+      **DATOS DE CONTEXTO:**
+      - Versión del Parche Solicitada: ${patchVersion}.
+
+      **MISIÓN:**
+      Genera un análisis conciso del estado actual del meta de League of Legends en el parche **${patchVersion}**, centrándose en los cambios más impactantes en el juego profesional (Top, Jungla, Medio, ADC, Soporte).
+
+      **FORMATO DE SALIDA (JSON ESTRICTO):**
+      {
+        "type": "meta",
+        "patchVersion": "${patchVersion}",
+        "tierListChanges": "Un resumen de los 3 campeones que subieron más de tier y los 3 que bajaron más, con una breve explicación.",
+        "strategicFocus": "El objetivo macro principal del juego en este parche (ej: control de visión, peleas de equipo en mid-game, split-push).",
+        "keyChampionToMaster": {
+            "name": "Nombre de Campeón",
+            "reason": "Por qué dominar a este campeón es clave para la victoria en este meta."
+        }
+      }
+    `;
+};
 // --- TUS PROMPTS ORIGINALES (REFINADOS) ---
 
 // Prompt para el análisis inicial del dashboard
@@ -105,8 +127,54 @@ export const createInitialAnalysisPrompt = (analysisData) => {
   `;
 };
 
-// Prompt para generar desafíos
-export const createChallengeGenerationPrompt = (playerData) => { /* ... sin cambios, ya es bueno ... */ };
+
+// --- PROMPT PARA GENERAR DESAFÍOS SEMANALES (Implementación para evitar el error 500) ---
+export const createChallengeGenerationPrompt = (playerData) => { 
+    const { summonerName, recentMatchesPerformance } = playerData;
+    
+    // Convertimos el objeto de rendimiento en una cadena legible para la IA
+    const performanceSummary = JSON.stringify(recentMatchesPerformance, null, 2);
+
+    return `
+      Eres "MetaMind", un coach de élite de League of Legends enfocado en el crecimiento a largo plazo. Tu cliente es ${summonerName}.
+
+      **ANÁLISIS DE RENDIMIENTO RECIENTE (5 Partidas):**
+      Los datos a continuación son un resumen de las métricas clave del jugador en sus partidas recientes. Analiza estas tendencias para identificar áreas de mejora.
+      ${performanceSummary}
+
+      **MISIÓN:**
+      Genera **3 Desafíos Semanales** altamente personalizados para ${summonerName}. Cada desafío debe ser una meta cuantificable, basada en las métricas de rendimiento y diseñada para mejorar un aspecto específico de su juego (ej: visión, farmeo, control de objetivos).
+
+      **FORMATO DE SALIDA (JSON ESTRICTO):**
+      Un array JSON que contiene 3 objetos. Cada objeto debe seguir estrictamente este esquema, que coincide con la estructura de la tabla 'user_challenges' de la base de datos:
+      [
+        {
+          "title": "Desafío de Visión Estratégica",
+          "description": "Si tu 'averageVisionScore' es bajo, el desafío podría ser: 'Alcanza un promedio de Puntuación de Visión de X en 5 partidas rankeadas.', de lo contrario, enfócate en otra métrica.",
+          "challenge_type": "weekly",
+          "metric": "visionScore",       // Opciones: 'visionScore', 'csPerMinute', 'kills', 'deaths', 'goldPerMinute', etc.
+          "goal": 25.5,                  // Valor decimal para la meta (ej: 25.5 o 6.8)
+          "reward": "Cofre MetaMind"     // Una recompensa simple para el cliente.
+        },
+        {
+          "title": "Dominio del Farmeo Temprano",
+          "description": "Basado en tu 'csPerMinute' promedio, supera esta marca en la fase de líneas.",
+          "challenge_type": "weekly",
+          "metric": "csPerMinute",
+          "goal": 6.8, 
+          "reward": "Emblema de Maestría"
+        },
+        {
+          "title": "Control Agresivo de Objetivos",
+          "description": "Mejora tu impacto en los objetivos globales como dragones o torres. El desafío es alcanzar un 'killParticipation' alto.",
+          "challenge_type": "weekly",
+          "metric": "killParticipation",
+          "goal": 0.65, // Representa 65%
+          "reward": "Ícono de Invocador Único"
+        }
+      ]
+    `;
+};
 
 // Prompt para "Nano Banana" (aquí también puede influir)
 export const createLiveCoachingPrompt = (liveGameData, zodiacSign) => {

@@ -10,7 +10,10 @@ import {
     createMetaAnalysisPrompt
 } from './prompts';
 
-const API_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key=${GEMINI_API_KEY}`;
+// 🚨 CORRECCIÓN CLAVE: Cambiar el nombre del modelo
+const API_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent?key=${GEMINI_API_KEY}`; 
+// NOTA: Si 'gemini-2.5-flash' no funciona, prueba con 'gemini-1.5-pro-latest' o 'gemini-1.0-pro' 
+// o el modelo que tu clave soporte y que permita 'responseMimeType: "application/json"'.
 
 /**
  * Función central para generar análisis enviando un prompt a la API de Gemini.

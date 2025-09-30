@@ -78,8 +78,31 @@ const createPerformanceAnalysisPrompt = (matchHistory, summonerData) => {
 
 // --- PROMPT PARA ANÁLISIS DEL META ACTUAL (Este es más objetivo, no necesita el signo) ---
 exports.createPerformanceAnalysisPrompt = createPerformanceAnalysisPrompt;
-const createMetaAnalysisPrompt = patchVersion => {/* ... sin cambios ... */};
+// --- PROMPT PARA ANÁLISIS DEL META ACTUAL (Este es más objetivo, no necesita el signo) ---
+const createMetaAnalysisPrompt = (patchVersion) => {
+    // Definición completa del prompt para evitar el error 500 por 'customPrompt' vacío
+    return `
+      Eres "MetaMind", un analista de la Grieta del Invocador.
 
+      **DATOS DE CONTEXTO:**
+      - Versión del Parche Solicitada: ${patchVersion}.
+
+      **MISIÓN:**
+      Genera un análisis conciso del estado actual del meta de League of Legends en el parche **${patchVersion}**, centrándose en los cambios más impactantes en el juego profesional (Top, Jungla, Medio, ADC, Soporte).
+
+      **FORMATO DE SALIDA (JSON ESTRICTO):**
+      {
+        "type": "meta",
+        "patchVersion": "${patchVersion}",
+        "tierListChanges": "Un resumen de los 3 campeones que subieron más de tier y los 3 que bajaron más, con una breve explicación.",
+        "strategicFocus": "El objetivo macro principal del juego en este parche (ej: control de visión, peleas de equipo en mid-game, split-push).",
+        "keyChampionToMaster": {
+            "name": "Nombre de Campeón",
+            "reason": "Por qué dominar a este campeón es clave para la victoria en este meta."
+        }
+      }
+    `;
+};
 // --- TUS PROMPTS ORIGINALES (REFINADOS) ---
 
 // Prompt para el análisis inicial del dashboard

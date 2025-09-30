@@ -1,27 +1,52 @@
-// src/app/api/ai/get-recommendations/route.js
+// lolmetamind/src/app/api/ai/get-recommendations/route.js
+
 import { NextResponse } from 'next/server';
 import { generateStrategicAnalysis } from '@/lib/ai/strategist';
-import { createChampSelectPrompt } from '@/lib/ai/prompts'; // <-- ¡NUEVO PROMPT!
+import { createInitialAnalysisPrompt } from '@/lib/ai/prompts'; 
+
+const CORS_HEADERS = {
+    'Access-Control-Allow-Origin': '*',
+    'Access-Control-Allow-Methods': 'POST, OPTIONS',
+    'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+};
 
 export async function POST(request) {
     try {
-        const body = await request.json();
-        const { draft, summoner } = body;
+        const { summoner, draft } = await request.json();
 
-        if (!draft) {
-            return NextResponse.json({ error: 'Faltan datos del draft para el análisis.' }, { status: 400 });
+        // 🚨 VALIDACIÓN CRÍTICA: Asegurarse de que summoner y zodiacSign estén presentes
+        if (!summoner || !summoner.summonerName || !summoner.zodiacSign) {
+            console.error("[API GET-RECOMMENDATIONS] Error: Faltan datos esenciales del invocador para la IA (summonerName, zodiacSign).");
+            return NextResponse.json(
+                { message: "Faltan datos esenciales del invocador para generar recomendaciones. Asegúrate de que el perfil esté completo (incluyendo signo zodiacal)." },
+                { status: 400, headers: CORS_HEADERS }
+            );
         }
+        
+        console.log(`[Strategist] Enviando prompt a Gemini 1.0 Pro para recomendaciones iniciales...`);
 
-        // 1. Crear el prompt específico para Champ Select
-        const prompt = createChampSelectPrompt(draft, summoner);
+        // Crea el prompt con los datos disponibles, sin forzar 'rank' si no existe
+        const prompt = createInitialAnalysisPrompt({
+            summonerName: summoner.summonerName,
+            zodiacSign: summoner.zodiacSign,
+            // Aquí puedes pasar otros datos si los tienes, como roles, campeones, etc.
+            // Por ejemplo: roles: summoner.roles, favoriteChampions: summoner.favoriteChampions
+            draft: draft
+        });
 
-        // 2. Llamar al estratega de IA con el prompt
-        const recommendations = await generateStrategicAnalysis({ customPrompt: prompt });
+        const analysis = await generateStrategicAnalysis(prompt);
 
-        return NextResponse.json(recommendations);
+        return NextResponse.json(analysis, { status: 200, headers: CORS_HEADERS });
 
     } catch (error) {
-        console.error('[API GET-RECOMMENDATIONS] Error:', error);
-        return NextResponse.json({ error: 'Error interno al generar recomendaciones con la IA.' }, { status: 500 });
+        console.error("[API GET-RECOMMENDATIONS] Error en la generación de recomendaciones:", error);
+        return NextResponse.json(
+            { message: `Error: No se pudo completar el análisis de la IA. Detalles: ${error.message}` },
+            { status: 500, headers: CORS_HEADERS }
+        );
     }
+}
+
+export async function OPTIONS() {
+    return new NextResponse(null, { status: 200, headers: CORS_HEADERS });
 }

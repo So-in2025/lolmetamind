@@ -1,8 +1,11 @@
+// src/app/api/user/profile/route.js
+
 import { NextResponse, NextRequest } from 'next/server';
 import jwt from 'jsonwebtoken';
 import { getSql } from '@/lib/db'; 
 
-const JWT_SECRET = process.env.JWT_SECRET || 'CLAVE_SECRETA_UNICA_DE_RENDER_DB_TESTING';
+// 🔑 CLAVE: Usamos la misma clave de fallback ÚNICA para asegurar la consistencia.
+const JWT_SECRET = process.env.JWT_SECRET || 'CLAVE_SECRETA_UNICA_DE_RENDER_DB_TESTING'; 
 
 // Encabezados CORS
 const CORS_HEADERS = {
@@ -43,14 +46,15 @@ export async function GET(request) {
     }
 
     try {
-        // 2. Consulta a la DB: 🚨 TÉCNICA FINAL DE DOBLE ALIAS PARA BYPASS DE CORRUPCIÓN 🚨
-        // Leemos la columna problemática 'rname' dos veces con nuevos alias.
+        // 2. Consulta a la DB: 🚨 INCLUIR ID Y ZODIAC_SIGN 🚨
         const queryText = `
             SELECT 
-                TRIM(COALESCE(rname, ''))::TEXT AS rname_a,         -- Primer intento (puede ser corrupto)
-                TRIM(COALESCE(rname, ''))::TEXT AS rname_b,         -- Segundo intento (el valor de fallback)
+                id,                                                 
+                TRIM(COALESCE(rname, ''))::TEXT AS rname_a,         
+                TRIM(COALESCE(rname, ''))::TEXT AS rname_b,         
                 TRIM(COALESCE(riot_id_tagline, ''))::TEXT AS tagline, 
-                TRIM(COALESCE(region, ''))::TEXT AS region
+                TRIM(COALESCE(region, ''))::TEXT AS region,
+                TRIM(COALESCE(zodiac_sign, ''))::TEXT AS "zodiacSign" 
             FROM users 
             WHERE username = $1
         `;
@@ -75,18 +79,15 @@ export async function GET(request) {
         // 🚨 BYPASS DE LECTURA: Usar el segundo alias si el primero (rname_a) es corrupto (Length 0).
         let rawSummonerName = (rawNameA.length === 0 && rawNameB.length > 0) ? rawNameB : rawNameA; 
 
-        const rawTagline = profile.tagline || '';
-        const rawRegion = profile.region || '';
-        
-        // Aplicar trim final para todos
+        const userId = profile.id; 
         const summonerName = String(rawSummonerName).trim();
-        const tagline = String(rawTagline).trim();
-        const region = String(rawRegion).trim();
+        const tagline = String(profile.tagline).trim();
+        const region = String(profile.region).trim();
+        const zodiacSign = String(profile.zodiacSign).trim();
         
         
-        if (summonerName.length === 0 || tagline.length === 0 || region.length === 0) {
+        if (summonerName.length === 0 || tagline.length === 0 || region.length === 0 || zodiacSign.length === 0) {
             
-            // 🚨 LOG DE DIAGNÓSTICO FINAL 🚨
             console.error(`[BACKEND DB] FALLO PERSISTENTE. Diagnóstico (Doble Alias):`);
             console.error(`[BACKEND DB] -> rname_a: Length ${rawNameA.length}, Value='${rawNameA}'`);
             console.error(`[BACKEND DB] -> rname_b: Length ${rawNameB.length}, Value='${rawNameB}'`);
@@ -95,15 +96,14 @@ export async function GET(request) {
             console.warn(`[BACKEND DB] Perfil de invocador incompleto (datos vacíos). Devolviendo 404.`);
             return NextResponse.json({ 
                 message: 'Perfil de invocador incompleto o no existe.',
-                data: { summonerName, tagline, region } 
+                data: { summonerName, tagline, region, zodiacSign } 
             }, { status: 404, headers: CORS_HEADERS });
         }
 
         // 5. Devolver los datos (éxito)
-        return NextResponse.json({ summonerName, tagline, region }, { status: 200, headers: CORS_HEADERS });
+        return NextResponse.json({ userId, summonerName, tagline, region, zodiacSign }, { status: 200, headers: CORS_HEADERS });
 
     } catch (error) {
-        // Esto captura el error si la conexión a la DB falla o hay un error de lógica mayor.
         console.error("Error al obtener perfil del usuario:", error);
         return NextResponse.json({ message: 'Error interno del servidor al consultar DB.' }, { status: 500, headers: CORS_HEADERS });
     }
