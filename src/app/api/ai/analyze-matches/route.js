@@ -1,0 +1,23 @@
+import { NextResponse } from 'next/server';
+import { generateStrategicAnalysis } from '@/lib/ai/strategist';
+import { createPerformanceAnalysisPrompt } from '@/lib/ai/prompts';
+
+export async function POST(request) {
+    try {
+        const body = await request.json();
+        const { matchHistory, summonerData } = body;
+
+        if (!summonerData) {
+            return NextResponse.json({ error: 'Faltan datos del invocador.' }, { status: 400 });
+        }
+        
+        const prompt = createPerformanceAnalysisPrompt(matchHistory || [], summonerData);
+        const analysis = await generateStrategicAnalysis({ customPrompt: prompt });
+
+        return NextResponse.json(analysis);
+
+    } catch (error) {
+        console.error('[API ANALYZE-MATCHES] Error:', error);
+        return NextResponse.json({ error: 'Error interno al analizar las partidas.' }, { status: 500 });
+    }
+}
