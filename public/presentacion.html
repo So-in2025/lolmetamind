@@ -247,18 +247,21 @@
         document.getElementById('start-tts').addEventListener('click', () => {
             const overlay = document.getElementById('splash');
             
+            // 1. Ocultar el Splash Screen
             overlay.style.opacity = '0';
             setTimeout(() => {
                 overlay.style.display = 'none';
             }, 1000);
 
+            // 2. Extraer el texto completo
             function getFullTextForTTS() {
                 let text = "Saludos. La misión ha sido un éxito rotundo. El proyecto Coach Meta Mind, desarrollado por SO IN Soluciones Informáticas, ha sido finalizado, auditado y está listo para producción. El ecosistema de coaching de tres fases, la inyección de runas y el flujo de datos LCU están completamente operativos y alineados. Este informe detalla la arquitectura y las funcionalidades épicas entregadas. ";
                 
                 text += document.querySelector('header').innerText.replace(/\n/g, ". ");
                 
                 document.querySelectorAll('.container section').forEach(section => {
-                    text += ". " + section.textContent.replace(/\s\s+/g, ' ').trim(); 
+                    // Limpieza: Reemplaza múltiples espacios/saltos de línea con un punto y espacio
+                    text += ". " + section.textContent.replace(/[\n\r]+/g, ' ').replace(/\s\s+/g, ' ').trim(); 
                 });
 
                 return text;
@@ -266,28 +269,32 @@
 
             const textToSpeak = getFullTextForTTS();
 
+            // 🚨 3. LÓGICA TTS CORREGIDA PARA EL DESBLOQUEO DE AUDIO 🚨
             if ('speechSynthesis' in window) {
                 const utterance = new SpeechSynthesisUtterance(textToSpeak);
                 utterance.pitch = 1; 
                 utterance.rate = 1;
 
-                // --- LÓGICA TTS MEJORADA PARA MÓVILES ---
                 function speakNow() {
                     const voices = window.speechSynthesis.getVoices();
+                    // Intentamos encontrar una voz en español (es)
                     const esVoice = voices.find(voice => voice.lang.startsWith('es'));
+                    
                     if (esVoice) {
                         utterance.voice = esVoice;
                     }
+                    
+                    // CRÍTICO: El .speak() dentro del handler del click reanuda/inicia el AudioContext
                     window.speechSynthesis.speak(utterance);
                 }
 
-                // Los navegadores móviles a menudo cargan las voces de forma asíncrona.
-                // Si no hay voces disponibles, esperamos al evento 'onvoiceschanged'.
-                if (window.speechSynthesis.getVoices().length === 0) {
-                    window.speechSynthesis.onvoiceschanged = speakNow;
-                } else {
-                    // Si las voces ya están cargadas (típico en escritorio), hablamos de inmediato.
+                // Si las voces están listas, hablamos de inmediato (típico en escritorio)
+                if (window.speechSynthesis.getVoices().length > 0) {
                     speakNow();
+                } else {
+                    // Si las voces aún no están listas (típico en la primera carga en móvil/Electron), esperamos
+                    // y luego ejecutamos el speakNow dentro del mismo gesto de usuario (aunque asíncrono, ya fue iniciado)
+                    window.speechSynthesis.onvoiceschanged = speakNow;
                 }
                 
             } else {
