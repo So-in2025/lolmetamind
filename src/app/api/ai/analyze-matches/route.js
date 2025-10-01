@@ -1,3 +1,5 @@
+// src/app/api/ai/analyze-matches/route.js
+
 import { NextResponse } from 'next/server';
 import { generateStrategicAnalysis } from '@/lib/ai/strategist';
 import { createPerformanceAnalysisPrompt } from '@/lib/ai/prompts';
@@ -12,7 +14,9 @@ export async function POST(request) {
         }
         
         const prompt = createPerformanceAnalysisPrompt(matchHistory || [], summonerData);
-        const analysis = await generateStrategicAnalysis({ customPrompt: prompt });
+        
+        // CORRECCIÓN: Pasar el prompt directamente como una cadena.
+        const analysis = await generateStrategicAnalysis(prompt);
 
         return NextResponse.json(analysis);
 

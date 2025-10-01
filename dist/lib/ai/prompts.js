@@ -76,12 +76,11 @@ const createPerformanceAnalysisPrompt = (matchHistory, summonerData) => {
     `;
 };
 
-// --- PROMPT PARA ANÁLISIS DEL META ACTUAL (Este es más objetivo, no necesita el signo) ---
+// --- PROMPT PARA ANÁLISIS DEL META ACTUAL (Implementación para evitar el error 500) ---
 exports.createPerformanceAnalysisPrompt = createPerformanceAnalysisPrompt;
-// --- PROMPT PARA ANÁLISIS DEL META ACTUAL (Este es más objetivo, no necesita el signo) ---
-const createMetaAnalysisPrompt = (patchVersion) => {
-    // Definición completa del prompt para evitar el error 500 por 'customPrompt' vacío
-    return `
+const createMetaAnalysisPrompt = patchVersion => {
+  // Definición completa del prompt para evitar el error 500 por 'customPrompt' vacío
+  return `
       Eres "MetaMind", un analista de la Grieta del Invocador.
 
       **DATOS DE CONTEXTO:**
@@ -146,9 +145,56 @@ const createInitialAnalysisPrompt = analysisData => {
   `;
 };
 
-// Prompt para generar desafíos
+// --- PROMPT PARA GENERAR DESAFÍOS SEMANALES (Implementación para evitar el error 500) ---
 exports.createInitialAnalysisPrompt = createInitialAnalysisPrompt;
-const createChallengeGenerationPrompt = playerData => {/* ... sin cambios, ya es bueno ... */};
+const createChallengeGenerationPrompt = playerData => {
+  const {
+    summonerName,
+    recentMatchesPerformance
+  } = playerData;
+
+  // Convertimos el objeto de rendimiento en una cadena legible para la IA
+  const performanceSummary = JSON.stringify(recentMatchesPerformance, null, 2);
+  return `
+      Eres "MetaMind", un coach de élite de League of Legends enfocado en el crecimiento a largo plazo. Tu cliente es ${summonerName}.
+
+      **ANÁLISIS DE RENDIMIENTO RECIENTE (5 Partidas):**
+      Los datos a continuación son un resumen de las métricas clave del jugador en sus partidas recientes. Analiza estas tendencias para identificar áreas de mejora.
+      ${performanceSummary}
+
+      **MISIÓN:**
+      Genera **3 Desafíos Semanales** altamente personalizados para ${summonerName}. Cada desafío debe ser una meta cuantificable, basada en las métricas de rendimiento y diseñada para mejorar un aspecto específico de su juego (ej: visión, farmeo, control de objetivos).
+
+      **FORMATO DE SALIDA (JSON ESTRICTO):**
+      Un array JSON que contiene 3 objetos. Cada objeto debe seguir estrictamente este esquema, que coincide con la estructura de la tabla 'user_challenges' de la base de datos:
+      [
+        {
+          "title": "Desafío de Visión Estratégica",
+          "description": "Si tu 'averageVisionScore' es bajo, el desafío podría ser: 'Alcanza un promedio de Puntuación de Visión de X en 5 partidas rankeadas.', de lo contrario, enfócate en otra métrica.",
+          "challenge_type": "weekly",
+          "metric": "visionScore",       // Opciones: 'visionScore', 'csPerMinute', 'kills', 'deaths', 'goldPerMinute', etc.
+          "goal": 25.5,                  // Valor decimal para la meta (ej: 25.5 o 6.8)
+          "reward": "Cofre MetaMind"     // Una recompensa simple para el cliente.
+        },
+        {
+          "title": "Dominio del Farmeo Temprano",
+          "description": "Basado en tu 'csPerMinute' promedio, supera esta marca en la fase de líneas.",
+          "challenge_type": "weekly",
+          "metric": "csPerMinute",
+          "goal": 6.8, 
+          "reward": "Emblema de Maestría"
+        },
+        {
+          "title": "Control Agresivo de Objetivos",
+          "description": "Mejora tu impacto en los objetivos globales como dragones o torres. El desafío es alcanzar un 'killParticipation' alto.",
+          "challenge_type": "weekly",
+          "metric": "killParticipation",
+          "goal": 0.65, // Representa 65%
+          "reward": "Ícono de Invocador Único"
+        }
+      ]
+    `;
+};
 
 // Prompt para "Nano Banana" (aquí también puede influir)
 exports.createChallengeGenerationPrompt = createChallengeGenerationPrompt;

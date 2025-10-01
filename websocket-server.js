@@ -1,4 +1,4 @@
-// websocket-server.js - VERSIÓN FINAL DIRECTA PARA LA APP ELECTRON
+// websocket-server.js - CORREGIDO PARA LA NUEVA FIRMA DE generateStrategicAnalysis
 
 const WebSocket = require('ws');
 const { generateStrategicAnalysis } = require('./dist/lib/ai/strategist');
@@ -26,21 +26,25 @@ wss.on('connection', (ws) => {
                 case 'CHAMP_SELECT_UPDATE':
                     if (!data || !userData) throw new Error('Datos de Champ Select o de usuario incompletos.');
                     prompt = createChampSelectPrompt(data, userData);
-                    analysisResult = await generateStrategicAnalysis({ customPrompt: prompt });
+                    
+                    // CORRECCIÓN: Pasar el prompt directamente.
+                    analysisResult = await generateStrategicAnalysis(prompt);
+
                     // Enviar la respuesta de vuelta
                     ws.send(JSON.stringify({ eventType: 'CHAMP_SELECT_ADVICE', data: analysisResult }));
                     break;
                 
                 case 'IN_GAME_SCREENSHOT_ANALYSIS': // Para la "R Definitiva" de Nano Banana
                     if (!data || !userData) throw new Error('Datos de captura de pantalla o de usuario incompletos.');
-                    // 'data' aquí sería la imagen en base64 o una URL
+                    
                     prompt = createLiveCoachingPrompt(data, userData.zodiacSign);
-                    analysisResult = await generateStrategicAnalysis({ customPrompt: prompt });
+                    
+                    // CORRECCIÓN: Pasar el prompt directamente.
+                    analysisResult = await generateStrategicAnalysis(prompt);
+                    
                     // Enviar la respuesta de vuelta
                     ws.send(JSON.stringify({ eventType: 'IN_GAME_ADVICE', data: analysisResult }));
                     break;
-
-                // Puedes añadir más tipos de eventos aquí si es necesario
 
                 default:
                     console.warn(`[EVENTO] Tipo de evento no reconocido: ${eventType}`);

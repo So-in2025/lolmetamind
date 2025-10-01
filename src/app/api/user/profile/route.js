@@ -1,11 +1,10 @@
-// src/app/api/user/profile/route.js
+// src/app/api/user/profile/route.js - CORREGIDO PARA USAR NOMBRES DE COLUMNA ACTUALIZADOS
 
 import { NextResponse, NextRequest } from 'next/server';
 import jwt from 'jsonwebtoken';
 import { getSql } from '@/lib/db'; 
 
-// 🔑 CLAVE: Usamos la misma clave de fallback ÚNICA para asegurar la consistencia.
-const JWT_SECRET = process.env.JWT_SECRET || 'CLAVE_SECRETA_UNICA_DE_RENDER_DB_TESTING'; 
+const JWT_SECRET = process.env.JWT_SECRET || 'p2s5v8y/B?E(H+MbQeThWmZq4t7w!z%C&F)J@NcRfUjXn2r5u8x/A?D*G-KaPdSg'; 
 
 // Encabezados CORS
 const CORS_HEADERS = {
@@ -46,15 +45,21 @@ export async function GET(request) {
     }
 
     try {
-        // 2. Consulta a la DB: 🚨 INCLUIR ID Y ZODIAC_SIGN 🚨
+        // 2. Consulta a la DB: USAMOS LOS NUEVOS NOMBRES DE COLUMNA (CamelCase)
         const queryText = `
             SELECT 
-                id,                                                 
-                TRIM(COALESCE(rname, ''))::TEXT AS rname_a,         
-                TRIM(COALESCE(rname, ''))::TEXT AS rname_b,         
-                TRIM(COALESCE(riot_id_tagline, ''))::TEXT AS tagline, 
+                id,
+                username,
+                TRIM(COALESCE("summonerName", ''))::TEXT AS "summonerName",         
+                TRIM(COALESCE(tagline, ''))::TEXT AS tagline, 
                 TRIM(COALESCE(region, ''))::TEXT AS region,
-                TRIM(COALESCE(zodiac_sign, ''))::TEXT AS "zodiacSign" 
+                TRIM(COALESCE("zodiacSign", ''))::TEXT AS "zodiacSign",
+                TRIM(COALESCE("favRole1", ''))::TEXT AS "favRole1",
+                TRIM(COALESCE("favRole2", ''))::TEXT AS "favRole2",
+                TRIM(COALESCE("favChamp1", ''))::TEXT AS "favChamp1",
+                TRIM(COALESCE("favChamp2", ''))::TEXT AS "favChamp2",
+                TRIM(COALESCE(riot_api_key, ''))::TEXT AS "riotApiKey",
+                puuid
             FROM users 
             WHERE username = $1
         `;
@@ -62,7 +67,7 @@ export async function GET(request) {
         
         // 3. Verificación de existencia de fila
         if (result.length === 0) {
-            console.warn(`[BACKEND DB] Usuario no encontrado en la tabla 'users'. Devolviendo 404.`);
+            console.warn(`[BACKEND DB] Usuario no encontrado para '${username}'. Devolviendo 404.`);
             return NextResponse.json({ 
                 message: 'Perfil de invocador no existe en la DB.',
                 data: null
@@ -71,41 +76,17 @@ export async function GET(request) {
         
         const profile = result[0]; 
 
-        // 4. AISLAMIENTO Y VERIFICACIÓN FINAL: Diagnóstico y limpieza
-        
-        let rawNameA = profile.rname_a || '';
-        let rawNameB = profile.rname_b || '';
-        
-        // 🚨 BYPASS DE LECTURA: Usar el segundo alias si el primero (rname_a) es corrupto (Length 0).
-        let rawSummonerName = (rawNameA.length === 0 && rawNameB.length > 0) ? rawNameB : rawNameA; 
-
-        const userId = profile.id; 
-        const summonerName = String(rawSummonerName).trim();
-        const tagline = String(profile.tagline).trim();
-        const region = String(profile.region).trim();
-        const zodiacSign = String(profile.zodiacSign).trim();
-        
-        
-        if (summonerName.length === 0 || tagline.length === 0 || region.length === 0 || zodiacSign.length === 0) {
-            
-            console.error(`[BACKEND DB] FALLO PERSISTENTE. Diagnóstico (Doble Alias):`);
-            console.error(`[BACKEND DB] -> rname_a: Length ${rawNameA.length}, Value='${rawNameA}'`);
-            console.error(`[BACKEND DB] -> rname_b: Length ${rawNameB.length}, Value='${rawNameB}'`);
-            console.error(`[BACKEND DB] -> Name FINAL ('summonerName'): Length ${summonerName.length}, Value='${summonerName}'`);
-
-            console.warn(`[BACKEND DB] Perfil de invocador incompleto (datos vacíos). Devolviendo 404.`);
-            return NextResponse.json({ 
-                message: 'Perfil de invocador incompleto o no existe.',
-                data: { summonerName, tagline, region, zodiacSign } 
-            }, { status: 404, headers: CORS_HEADERS });
-        }
-
-        // 5. Devolver los datos (éxito)
-        return NextResponse.json({ userId, summonerName, tagline, region, zodiacSign }, { status: 200, headers: CORS_HEADERS });
+        // 4. Devolver los datos (éxito)
+        // Usamos spread operator ya que los aliases SQL ya coinciden con los nombres de la respuesta.
+        return NextResponse.json(profile, { status: 200, headers: CORS_HEADERS });
 
     } catch (error) {
-        console.error("Error al obtener perfil del usuario:", error);
-        return NextResponse.json({ message: 'Error interno del servidor al consultar DB.' }, { status: 500, headers: CORS_HEADERS });
+        console.error("Error al obtener perfil del usuario (Postgres):", error);
+        // Si hay un error de DB (como el 42703 que vimos antes), devolvemos 500 con detalles.
+        return NextResponse.json({ 
+            message: 'Error interno del servidor al consultar DB.',
+            details: error.message 
+        }, { status: 500, headers: CORS_HEADERS });
     }
 }
 

@@ -21,13 +21,11 @@ const API_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-
  * @param {string} analysisData.customPrompt - El prompt completo y listo para la IA.
  * @returns {Promise<object>} - Una promesa que se resuelve con el objeto JSON de la IA.
  */
-export const generateStrategicAnalysis = async (analysisData) => {
-  if (!analysisData || !analysisData.customPrompt) {
-    console.error('[Strategist] Error: No se proporcionó un "customPrompt".');
+export const generateStrategicAnalysis = async (prompt) => {
+  if (!prompt || typeof prompt !== 'string' || prompt.trim().length === 0) {
+    console.error('[Strategist] Error: No se proporcionó un prompt válido.');
     throw new Error('Se requiere un prompt para el análisis.');
   }
-
-  const prompt = analysisData.customPrompt;
 
   try {
     console.log('[Strategist] Enviando prompt a Gemini 1.5 Flash...');

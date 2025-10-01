@@ -1,3 +1,5 @@
+// src/app/api/ai/get-meta/route.js
+
 import { NextResponse } from 'next/server';
 import { generateStrategicAnalysis } from '@/lib/ai/strategist';
 import { createMetaAnalysisPrompt } from '@/lib/ai/prompts';
@@ -8,7 +10,9 @@ export async function POST(request) {
         const { patchVersion } = body;
 
         const prompt = createMetaAnalysisPrompt(patchVersion || 'actual');
-        const metaAnalysis = await generateStrategicAnalysis({ customPrompt: prompt });
+        
+        // CORRECCIÓN: Pasar el prompt directamente como una cadena.
+        const metaAnalysis = await generateStrategicAnalysis(prompt);
 
         return NextResponse.json(metaAnalysis);
 

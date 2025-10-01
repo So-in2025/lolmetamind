@@ -10,7 +10,10 @@ var _prompts = require("./prompts");
 
 // Importamos TODOS los prompts que podríamos necesitar
 
-const API_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key=${_apiConfig.GEMINI_API_KEY}`;
+// 🚨 CORRECCIÓN CLAVE: Cambiar el nombre del modelo
+const API_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent?key=${_apiConfig.GEMINI_API_KEY}`;
+// NOTA: Si 'gemini-2.5-flash' no funciona, prueba con 'gemini-1.5-pro-latest' o 'gemini-1.0-pro' 
+// o el modelo que tu clave soporte y que permita 'responseMimeType: "application/json"'.
 
 /**
  * Función central para generar análisis enviando un prompt a la API de Gemini.
@@ -18,12 +21,11 @@ const API_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-
  * @param {string} analysisData.customPrompt - El prompt completo y listo para la IA.
  * @returns {Promise<object>} - Una promesa que se resuelve con el objeto JSON de la IA.
  */
-const generateStrategicAnalysis = async analysisData => {
-  if (!analysisData || !analysisData.customPrompt) {
-    console.error('[Strategist] Error: No se proporcionó un "customPrompt".');
+const generateStrategicAnalysis = async prompt => {
+  if (!prompt || typeof prompt !== 'string' || prompt.trim().length === 0) {
+    console.error('[Strategist] Error: No se proporcionó un prompt válido.');
     throw new Error('Se requiere un prompt para el análisis.');
   }
-  const prompt = analysisData.customPrompt;
   try {
     console.log('[Strategist] Enviando prompt a Gemini 1.5 Flash...');
     const response = await fetch(API_URL, {
