@@ -23,12 +23,14 @@
             padding: 0;
             line-height: 1.6;
             transition: background-color 0.5s;
+            -webkit-text-size-adjust: 100%; /* Previene el ajuste de texto en móviles */
         }
 
         h1, h2, h3, .font-display {
             font-family: 'Cinzel', serif;
             color: var(--lol-gold);
             text-shadow: 0 0 8px rgba(200, 155, 60, 0.4);
+            word-wrap: break-word; /* Asegura que los títulos no se desborden */
         }
 
         .container {
@@ -39,7 +41,7 @@
 
         header {
             background-color: var(--lol-medium-blue);
-            padding: 40px 0;
+            padding: 40px 15px;
             text-align: center;
             border-bottom: 4px solid var(--lol-gold);
             box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
@@ -67,12 +69,22 @@
             transform: translateX(5px);
             box-shadow: 0 0 10px rgba(11, 198, 227, 0.5);
         }
-
+        
+        /* Estilos de runas anidadas */
+        .feature-list ul {
+            padding-left: 20px;
+            margin-top: 10px;
+        }
+        .feature-list ul li {
+            border-left: 5px solid var(--lol-gold) !important;
+        }
+        
         .status-badge {
             display: inline-block;
             padding: 5px 10px;
             border-radius: 4px;
             font-weight: bold;
+            font-size: 0.8em;
             text-transform: uppercase;
         }
 
@@ -99,24 +111,65 @@
             flex-direction: column;
             z-index: 1000;
             transition: opacity 1s ease-out;
+            padding: 15px;
+            text-align: center;
         }
         
         .cta-button {
             background-color: var(--lol-gold);
             color: var(--lol-dark-blue);
             border: 2px solid var(--lol-accent);
-            padding: 10px 20px;
+            padding: 12px 24px;
             text-transform: uppercase;
             font-family: 'Cinzel', serif;
             font-weight: 700;
             cursor: pointer;
             transition: all 0.3s;
             margin-top: 20px;
+            font-size: 1em;
         }
 
         .cta-button:hover {
             background-color: var(--lol-accent);
             border-color: var(--lol-gold);
+        }
+        
+        /* --- ESTILOS RESPONSIVE --- */
+
+        /* Para tablets y móviles grandes */
+        @media (max-width: 768px) {
+            .container {
+                padding: 20px 15px;
+            }
+            .card {
+                padding: 20px;
+            }
+            header h1, .splash-overlay h1 {
+                font-size: 2.5em !important;
+            }
+            header h2, .splash-overlay h2 {
+                font-size: 1.3em !important;
+            }
+        }
+        
+        /* Para móviles pequeños */
+        @media (max-width: 480px) {
+            header h1, .splash-overlay h1 {
+                font-size: 2em !important;
+            }
+            header h2, .splash-overlay h2 {
+                font-size: 1.1em !important;
+            }
+            .splash-overlay p {
+                font-size: 1.2em !important;
+            }
+            .feature-list li, .feature-list ul li {
+                padding: 10px;
+            }
+            .cta-button {
+                padding: 10px 20px;
+                font-size: 0.9em;
+            }
         }
     </style>
 </head>
@@ -137,7 +190,7 @@
     </header>
 
     <div class="container">
-        <section id="vision" class="card">
+         <section id="vision" class="card">
             <h2 class="font-display">La Visión: Un Ecosistema de Coaching Inteligente</h2>
             <p>El equipo de **SO->IN Soluciones Informaticas** ha diseñado y ejecutado una proeza de la ingeniería de software: un sistema de alto rendimiento que fusiona la identidad única de cada jugador (Astrología y Perfil de Maestría) con la potencia de la inteligencia artificial (Gemini) y un flujo de datos en tiempo real desde el corazón de League of Legends (Riot Games API y Cliente LCU). Este ecosistema opera en un ciclo continuo y sinérgico de tres fases críticas, garantizando una ventaja competitiva sin precedentes.</p>
 
@@ -149,10 +202,10 @@
                 <li>
                     <h3 style="color: var(--lol-gold-light);">FASE II: La Ventaja Crítica en Tiempo Real</h3>
                     <p>Aquí es donde la magia de la aplicación de escritorio Electron brilla. Al detectar el cliente LCU, el sistema entra en modo de combate, ofreciendo un arsenal de herramientas tácticas:</p>
-                    <ul>
-                        <li style="border-left: 5px solid var(--lol-gold);"><strong>Asistencia en Draft:</strong> Durante la selección de campeón, la IA proporciona consejos estratégicos en tiempo real, analizando las composiciones de equipo y sugiriendo picks y bans óptimos.</li>
-                        <li style="border-left: 5px solid var(--lol-gold);"><strong>Overlay Táctico:</strong> Una vez en partida, un overlay transparente y no intrusivo (Nano Banana) muestra consejos contextuales y personalizados que se adaptan dinámicamente al estado del juego y al arquetipo zodiacal del jugador.</li>
-                        <li style="border-left: 5px solid var(--lol-gold);"><strong>Inyección de Runas Automatizada:</strong> La joya de la corona. Con un solo clic, el sistema puede enviar comandos directamente al cliente LCU para construir e inyectar una página de runas completa y optimizada por la IA, eliminando errores y ahorrando tiempo crítico.</li>
+                    <ul style="list-style: none;">
+                        <li><strong>Asistencia en Draft:</strong> Durante la selección de campeón, la IA proporciona consejos estratégicos en tiempo real, analizando las composiciones de equipo y sugiriendo picks y bans óptimos.</li>
+                        <li><strong>Overlay Táctico:</strong> Una vez en partida, un overlay transparente y no intrusivo (Nano Banana) muestra consejos contextuales y personalizados que se adaptan dinámicamente al estado del juego y al arquetipo zodiacal del jugador.</li>
+                        <li><strong>Inyección de Runas Automatizada:</strong> La joya de la corona. Con un solo clic, el sistema puede enviar comandos directamente al cliente LCU para construir e inyectar una página de runas completa y optimizada por la IA, eliminando errores y ahorrando tiempo crítico.</li>
                     </ul>
                 </li>
                 <li>
@@ -188,7 +241,6 @@
                 <li><strong>Seguridad de la API Key:</strong> El manejo de la clave de Riot API es impecable. Se almacena de forma segura en la <strong>Electron Store</strong> local tras el primer login y solo es accesible por el proceso principal (<code>main.js</code>), nunca exponiéndola al código del renderer.</li>
             </ul>
         </section>
-
     </div>
 
     <script>
@@ -216,31 +268,31 @@
 
             if ('speechSynthesis' in window) {
                 const utterance = new SpeechSynthesisUtterance(textToSpeak);
-                
-                const voices = window.speechSynthesis.getVoices();
-                const esVoice = voices.find(voice => voice.lang.startsWith('es'));
-                if (esVoice) {
-                    utterance.voice = esVoice;
-                }
-                
                 utterance.pitch = 1; 
                 utterance.rate = 1;
-                
-                // Esperar a que las voces se carguen si es necesario
-                if (window.speechSynthesis.getVoices().length === 0) {
-                    window.speechSynthesis.onvoiceschanged = function() {
-                        const updatedVoices = window.speechSynthesis.getVoices();
-                        const updatedEsVoice = updatedVoices.find(voice => voice.lang.startsWith('es'));
-                        if (updatedEsVoice) {
-                            utterance.voice = updatedEsVoice;
-                        }
-                        window.speechSynthesis.speak(utterance);
-                    };
-                } else {
+
+                // --- LÓGICA TTS MEJORADA PARA MÓVILES ---
+                function speakNow() {
+                    const voices = window.speechSynthesis.getVoices();
+                    const esVoice = voices.find(voice => voice.lang.startsWith('es'));
+                    if (esVoice) {
+                        utterance.voice = esVoice;
+                    }
                     window.speechSynthesis.speak(utterance);
                 }
+
+                // Los navegadores móviles a menudo cargan las voces de forma asíncrona.
+                // Si no hay voces disponibles, esperamos al evento 'onvoiceschanged'.
+                if (window.speechSynthesis.getVoices().length === 0) {
+                    window.speechSynthesis.onvoiceschanged = speakNow;
+                } else {
+                    // Si las voces ya están cargadas (típico en escritorio), hablamos de inmediato.
+                    speakNow();
+                }
+                
             } else {
                 console.error("El navegador no soporta Speech Synthesis.");
+                alert("Tu navegador no soporta la narración por voz.");
             }
         });
     </script>
