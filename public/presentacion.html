@@ -23,14 +23,14 @@
             padding: 0;
             line-height: 1.6;
             transition: background-color 0.5s;
-            -webkit-text-size-adjust: 100%; /* Previene el ajuste de texto en móviles */
+            -webkit-text-size-adjust: 100%;
         }
 
         h1, h2, h3, .font-display {
             font-family: 'Cinzel', serif;
             color: var(--lol-gold);
             text-shadow: 0 0 8px rgba(200, 155, 60, 0.4);
-            word-wrap: break-word; /* Asegura que los títulos no se desborden */
+            word-wrap: break-word;
         }
 
         .container {
@@ -115,6 +115,14 @@
             text-align: center;
         }
         
+        /* Contenedor de botones en el splash screen */
+        .splash-buttons {
+            display: flex;
+            flex-direction: column;
+            gap: 15px; /* Espacio entre los botones */
+            margin-top: 20px;
+        }
+
         .cta-button {
             background-color: var(--lol-gold);
             color: var(--lol-dark-blue);
@@ -125,8 +133,9 @@
             font-weight: 700;
             cursor: pointer;
             transition: all 0.3s;
-            margin-top: 20px;
+            text-decoration: none; /* Para el enlace */
             font-size: 1em;
+            text-align: center;
         }
 
         .cta-button:hover {
@@ -149,33 +158,37 @@
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 0; /* Ocultamos el texto por defecto para usar un ícono */
+            font-size: 0; 
             box-shadow: 0 4px 10px rgba(0, 0, 0, 0.5), 0 0 20px var(--lol-accent);
             border: 2px solid var(--lol-gold-light);
-            
-            /* Usamos la propiedad data-icon para el contenido */
-            content: attr(data-icon);
-            font-family: sans-serif; /* Usamos una fuente simple para el ícono */
-            font-size: 26px;
+            cursor: pointer;
         }
         
-        /* CRÍTICO: El contenido se define por data-icon en JS, pero aquí aseguramos el responsive */
-        .tts-floating-control:hover {
-            transform: scale(1.05);
-            background-color: var(--lol-gold);
+        /* Estilo para mostrar el ícono */
+        .tts-floating-control span {
+            font-size: 26px;
+            line-height: 1;
         }
         
         /* --- ESTILOS RESPONSIVE --- */
-        @media (max-width: 480px) {
-            header h1, .splash-overlay h1 {
-                font-size: 2em !important;
+        @media (max-width: 768px) {
+            .splash-buttons {
+                gap: 10px;
             }
+        }
+        @media (max-width: 480px) {
             .tts-floating-control {
                 width: 50px;
                 height: 50px;
-                font-size: 20px;
                 bottom: 15px;
                 right: 15px;
+            }
+            .tts-floating-control span {
+                font-size: 20px;
+            }
+            .cta-button {
+                padding: 10px 20px;
+                font-size: 0.9em;
             }
         }
     </style>
@@ -186,7 +199,14 @@
         <h1 class="font-display" style="font-size: 3em;">INFORME DE PROYECTO</h1>
         <h2 class="font-display" style="color: var(--lol-gold-light);">COACH META MIND</h2>
         <p class="font-display" style="font-size: 1.5em;">Tu ventaja estratégica está lista.</p>
-        <button id="start-tts" class="cta-button">Ver Informe y Escuchar Narración</button>
+        
+        <div class="splash-buttons">
+            <button id="start-tts" class="cta-button">Ver Informe y Escuchar Narración</button>
+            
+            <a href="https://couchmetamind.vercel.app/" id="go-to-landing" class="cta-button" target="_blank">
+                Ir a la Página de Lanzamiento
+            </a>
+        </div>
     </div>
 
     <header>
@@ -250,31 +270,31 @@
         </section>
     </div>
 
-    <button id="tts-control" class="cta-button tts-floating-control" style="display: none;" data-icon="🛑">
-        🛑
+    <button id="tts-control" class="tts-floating-control" style="display: none;" data-icon="🎤">
+        <span id="tts-icon">🎤</span>
     </button>
 
     <script>
-        // Variables globales para el estado y la reproducción
+        // Variables globales para la reproducción de voz
         let currentUtterance = null;
-        let isSpeaking = false;
         const ttsControl = document.getElementById('tts-control');
+        const ttsIcon = document.getElementById('tts-icon');
 
-        // Función para cambiar el estado del botón flotante
+        // Función para actualizar el estado visual del botón flotante
         function updateFloatingControl() {
             if (window.speechSynthesis.speaking) {
-                ttsControl.setAttribute('data-icon', '🛑'); // Ícono de Detener
-                ttsControl.textContent = '🛑';
+                ttsIcon.textContent = '🛑'; // Detener
+                ttsControl.title = 'Detener Narración';
             } else if (window.speechSynthesis.paused) {
-                ttsControl.setAttribute('data-icon', '▶️'); // Ícono de Reanudar
-                ttsControl.textContent = '▶️';
+                ttsIcon.textContent = '▶️'; // Reanudar
+                ttsControl.title = 'Reanudar Narración';
             } else {
-                ttsControl.setAttribute('data-icon', '🎤'); // Ícono de Inicio/Finalizado
-                ttsControl.textContent = '🎤';
+                ttsIcon.textContent = '🎤'; // Iniciar/Finalizado
+                ttsControl.title = 'Iniciar Narración';
             }
         }
         
-        // Función de alternar (Play/Pause/Resume)
+        // Función de alternar (Play/Pause/Resume/Restart)
         function toggleTTS() {
             if (!window.speechSynthesis) return;
 
@@ -282,78 +302,77 @@
                 window.speechSynthesis.pause();
             } else if (window.speechSynthesis.paused) {
                 window.speechSynthesis.resume();
+            } else if (currentUtterance) {
+                // Si está finalizado o cancelado, reiniciamos la reproducción
+                window.speechSynthesis.cancel();
+                speakNow(currentUtterance);
             }
-            // En caso de que se detenga por completo, no hace nada o puedes llamar a speakNow() de nuevo
             updateFloatingControl();
         }
+        
+        // Función de extracción de texto
+        function getFullTextForTTS() {
+            let text = "Saludos. La misión ha sido un éxito rotundo. El proyecto Coach Meta Mind, desarrollado por SO IN Soluciones Informáticas, ha sido finalizado, auditado y está listo para producción. El ecosistema de coaching de tres fases, la inyección de runas y el flujo de datos LCU están completamente operativos y alineados. Este informe detalla la arquitectura y las funcionalidades épicas entregadas. ";
+            
+            text += document.querySelector('header').innerText.replace(/\n/g, ". ");
+            
+            document.querySelectorAll('.container section').forEach(section => {
+                text += ". " + section.textContent.replace(/[\n\r]+/g, ' ').replace(/\s\s+/g, ' ').trim(); 
+            });
 
-        // 🚨 CRÍTICO: El botón flotante debe escuchar la acción de toggle
+            return text;
+        }
+
+        // Función que realmente llama a .speak()
+        function speakNow(utterance) {
+            const voices = window.speechSynthesis.getVoices();
+            const esVoice = voices.find(voice => voice.lang.startsWith('es'));
+            
+            if (esVoice) {
+                utterance.voice = esVoice;
+            }
+            
+            utterance.onend = () => {
+                updateFloatingControl(); // Actualiza a 🎤 al finalizar
+            };
+            
+            window.speechSynthesis.speak(utterance);
+            updateFloatingControl(); // Actualiza a 🛑 Inmediatamente
+        }
+        
+        // 🚨 Listener del botón flotante (permanente)
         ttsControl.addEventListener('click', toggleTTS);
 
-        document.getElementById('start-tts').addEventListener('click', () => {
+        // 🚨 Listener del botón del splash screen
+        document.getElementById('start-tts').addEventListener('click', (event) => {
             const overlay = document.getElementById('splash');
             
             // 1. Ocultar el Splash Screen
             overlay.style.opacity = '0';
             setTimeout(() => {
                 overlay.style.display = 'none';
-                // 🚨 2. Mostrar el control flotante
+                // 2. Mostrar el control flotante
                 ttsControl.style.display = 'flex';
             }, 1000);
 
-            // 3. Extraer el texto completo
-            function getFullTextForTTS() {
-                let text = "Saludos. La misión ha sido un éxito rotundo. El proyecto Coach Meta Mind, desarrollado por SO IN Soluciones Informáticas, ha sido finalizado, auditado y está listo para producción. El ecosistema de coaching de tres fases, la inyección de runas y el flujo de datos LCU están completamente operativos y alineados. Este informe detalla la arquitectura y las funcionalidades épicas entregadas. ";
-                
-                text += document.querySelector('header').innerText.replace(/\n/g, ". ");
-                
-                document.querySelectorAll('.container section').forEach(section => {
-                    // Limpieza: Reemplaza múltiples espacios/saltos de línea con un punto y espacio
-                    text += ". " + section.textContent.replace(/[\n\r]+/g, ' ').replace(/\s\s+/g, ' ').trim(); 
-                });
-
-                return text;
-            }
-
-            const textToSpeak = getFullTextForTTS();
-
-            // 4. LÓGICA TTS CORREGIDA
+            // 3. Iniciar la lógica de TTS
             if ('speechSynthesis' in window) {
-                // Preparamos la nueva reproducción
-                if (currentUtterance) {
-                    window.speechSynthesis.cancel();
-                }
+                const textToSpeak = getFullTextForTTS();
                 currentUtterance = new SpeechSynthesisUtterance(textToSpeak);
                 currentUtterance.pitch = 1; 
                 currentUtterance.rate = 1;
 
-                function speakNow() {
-                    const voices = window.speechSynthesis.getVoices();
-                    const esVoice = voices.find(voice => voice.lang.startsWith('es'));
-                    
-                    if (esVoice) {
-                        currentUtterance.voice = esVoice;
-                    }
-                    
-                    // Listener de fin para actualizar el botón flotante
-                    currentUtterance.onend = () => {
-                        updateFloatingControl();
-                    };
-                    
-                    // CRÍTICO: El .speak() dentro del handler del click inicia la reproducción
-                    window.speechSynthesis.speak(currentUtterance);
-                    updateFloatingControl(); // Actualiza el botón a 'Detener'
-                }
-
                 if (window.speechSynthesis.getVoices().length > 0) {
-                    speakNow();
+                    speakNow(currentUtterance);
                 } else {
-                    window.speechSynthesis.onvoiceschanged = speakNow;
+                    // Esperamos a que las voces carguen, luego iniciamos la narración
+                    window.speechSynthesis.onvoiceschanged = () => speakNow(currentUtterance);
                 }
                 
             } else {
                 console.error("El navegador no soporta Speech Synthesis.");
                 alert("Tu navegador no soporta la narración por voz.");
+                ttsControl.style.display = 'none'; // Esconde el botón si no hay TTS
             }
         });
     </script>
