@@ -1,0 +1,555 @@
+VK 690@DESKTOP-FKTCRDB MINGW64 ~/Documents/PROYECTO LOL/Metamind/lolmetamind-electron (master)
+$ npm run electron:dev
+
+> lolmetamind-electron@0.2.0 electron:dev
+> concurrently --kill-others "npm run dev" "wait-on http://localhost:3001 && npx electron ."
+
+(node:12748) [DEP0060] DeprecationWarning: The `util._extend` API is deprecated. Please use Object.assign() instead.
+(Use `node --trace-deprecation ...` to show where the warning was created)
+[0]
+[0] > lolmetamind-electron@0.2.0 dev
+[0] > next dev -p 3001
+[0]
+[0]   ▲ Next.js 14.2.3
+[0]   - Local:        http://localhost:3001
+[0]
+[0]  ✓ Starting...
+[0]  ✓ Ready in 2.5s
+[0]  ○ Compiling / ...
+[0]  ✓ Compiled / in 864ms (683 modules)
+[0]  HEAD / 200 in 1120ms
+[0]  HEAD / 200 in 1124ms
+[0]  HEAD / 200 in 1127ms
+[0]  HEAD / 200 in 1130ms
+[0]  HEAD / 200 in 1132ms
+[0]  HEAD / 200 in 1135ms
+[0]  HEAD / 200 in 1137ms
+[0]  HEAD / 200 in 281ms
+[0]  HEAD / 200 in 777ms
+[0]  HEAD / 200 in 1065ms
+[0]  HEAD / 200 in 1148ms
+[0]  HEAD / 200 in 1149ms
+[0]  HEAD / 200 in 515ms
+[0]  HEAD / 200 in 1153ms
+[1]
+[1] [MAIN] -> App lista. Creando ventanas y configurando IPC.
+[0]  GET / 200 in 57ms
+[1] [MAIN] ✅ Login Window mostrada.
+[1] [IPC RECEIVE] Evento 'user-logged-in' recibido para el usuario: jonathan
+[1] [DB FETCH] 🔍 Iniciando fetchAndStoreUserProfile para: jonathan
+[1] [DB FETCH] ✅ Perfil guardado para: Jh0wner.
+[1] [MAIN-FLOW] ✅ Perfil cargado. Cerrando Login y abriendo Dashboard.
+[1] [Electron] Overlay Window creado y listo.
+[0]  ○ Compiling /dashboard ...
+[0]  ✓ Compiled /dashboard in 899ms (752 modules)
+[0] [OVERLAY] Evaluando widget. Estado actual:
+[0]  -> LCU_STATUS: OFFLINE
+[0]  -> userData: null
+[0]  -> gamePhase: None
+[0] [OVERLAY] Condición de corte: LCU offline o no hay datos de usuario. No se muestra ningún widget.
+[0]  GET /overlay 200 in 1058ms
+[0]  GET /dashboard 200 in 1061ms
+[1] [MAIN] READY-TO-SHOW disparado. Mostrando mainWindow (Dashboard) INACTIVO.
+[1] [MAIN] El Dashboard está pidiendo los datos del usuario.
+[1] [MAIN] El Dashboard está pidiendo los datos del usuario.
+[1] [MAIN-FLOW] Retardo de 1.5s completado. Iniciando flujo de datos Riot/LCU.
+[1] [MAIN-FLOW] -> Iniciando executeInitialRiotApiFetchAndStartPolling.
+[1] [MAIN-FLOW] Verificando datos necesarios para la llamada a Riot API:
+[1] [RIOT API] Iniciando la batería de pruebas de la API de Riot...
+[1] [LCU Creds] Buscando credenciales del LCU a través de PowerShell...
+[1] [MAIN] Datos de usuario obtenidos con éxito.
+[1] [LCU Creds] ✅ Credenciales LCU obtenidas con éxito.
+[1] [LCU ID] ✅ IDs obtenidos del cliente activo.
+[1] [LCU MITIGATION] ✅ IDs obtenidos del cliente. PUUID: SÍ
+[1] [RIOT API] ✅ Batería de pruebas completada. Devolviendo datos consolidados.
+[1] [MAIN-FLOW] ✅ Datos de Riot API (primera pasada) obtenidos. Enviando al frontend y al backend.
+[1] [IPC SEND] Enviando al canal 'riot-profile-data'.
+[1] [MAIN] Datos de usuario obtenidos con éxito.
+[1] [MAIN-FLOW] ✅ Datos iniciales de Riot API enviados al backend.
+[1] [LCU POLLING] 🟢 Iniciando ciclo de polling para LCU...
+[1]
+[1] --- INICIO DE CICLO DE POLLING ---
+[1] [LCU Creds] Buscando credenciales del LCU a través de PowerShell...
+[1] [LCU Creds] ✅ Credenciales LCU obtenidas con éxito.
+[1] [POLLING] Credenciales encontradas. Intentando conectar a LCU en puerto 57301...
+[1] [POLLING] Fase detectada: Lobby
+[1] [POLLING] Fase activa detectada (Lobby). Entrando en modo Realtime.
+[1] [POLLING] Modo final determinado: Realtime
+[1] [POLLING] Enviando datos al DASHBOARD...
+[1] [IPC SEND] Enviando al canal 'riot-profile-data'.
+[1] [POLLING] Enviando datos al OVERLAY: { lcuStatus: 'ONLINE', gamePhase: 'Lobby', draftData: null }
+[1] [IPC SEND] Enviando payload completo al OVERLAY...
+[1] --- FIN DE CICLO DE POLLING ---
+[1]
+
+
+
+VK 690@DESKTOP-FKTCRDB MINGW64 ~/Documents/PROYECTO LOL/Metamind/lol-metamind (main)
+$ npm run dev
+
+> lol-metamind@0.1.0 dev
+> next dev
+
+  ▲ Next.js 14.2.33
+  - Local:        http://localhost:3000
+  - Environments: .env.local
+
+ ✓ Starting...
+ ✓ Ready in 2.1s
+ ✓ Compiled /api/auth/login in 246ms (152 modules)
+ OPTIONS /api/auth/login 204 in 349ms
+[DB] Driver 'postgres' inicializado y conectado.
+ POST /api/auth/login 200 in 1951ms
+ ✓ Compiled /api/user/profile in 140ms (154 modules)
+[DB] Driver 'postgres' inicializado y conectado.
+ GET /api/user/profile 200 in 2009ms
+ GET /api/user/profile 200 in 379ms
+ ✓ Compiled /api/ai/get-weekly-challenges in 206ms (165 modules)
+ ✓ Compiled (169 modules)
+[Strategist] Enviando prompt a Gemini 1.5 Flash...
+[Strategist] Enviando prompt a Gemini 1.0 Pro para recomendaciones iniciales...
+[Strategist] Enviando prompt a Gemini 1.5 Flash...
+[Strategist] Enviando prompt a Gemini 1.5 Flash...
+ ✓ Compiled /api/live-game/update in 85ms (171 modules)
+[DB] Driver 'postgres' inicializado y conectado.
+[Strategist] 🚨 Error de la API de Gemini: 404 - {"code":404,"message":"models/gemini-1.5-flash-latest is not found for API version v1beta, or is not supported for generateContent. Call ListModels to see the list of available models and their supported methods.","status":"NOT_FOUND"}
+[Strategist] 🚨 Fallo catastrófico al generar análisis: La API de Gemini devolvió un error: 404
+[API GET-RECOMMENDATIONS] Error en la generación de recomendaciones: Error: No se pudo completar el análisis de la IA.
+    at generateStrategicAnalysis (webpack-internal:///(rsc)/./src/lib/ai/strategist.js:77:15)
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+    at async POST (webpack-internal:///(rsc)/./src/app/api/ai/get-recommendations/route.js:40:26)
+    at async C:\Users\VK 690\Documents\PROYECTO LOL\Metamind\lol-metamind\node_modules\next\dist\compiled\next-server\app-route.runtime.dev.js:6:57228
+    at async eT.execute (C:\Users\VK 690\Documents\PROYECTO LOL\Metamind\lol-metamind\node_modules\next\dist\compiled\next-server\app-route.runtime.dev.js:6:46851)
+    at async eT.handle (C:\Users\VK 690\Documents\PROYECTO LOL\Metamind\lol-metamind\node_modules\next\dist\compiled\next-server\app-route.runtime.dev.js:6:58760)
+    at async doRender (C:\Users\VK 690\Documents\PROYECTO LOL\Metamind\lol-metamind\node_modules\next\dist\server\base-server.js:1366:42)
+    at async cacheEntry.responseCache.get.routeKind (C:\Users\VK 690\Documents\PROYECTO LOL\Metamind\lol-metamind\node_modules\next\dist\server\base-server.js:1588:28)
+    at async DevServer.renderToResponseWithComponentsImpl (C:\Users\VK 690\Documents\PROYECTO LOL\Metamind\lol-metamind\node_modules\next\dist\server\base-server.js:1496:28)
+    at async DevServer.renderPageComponent (C:\Users\VK 690\Documents\PROYECTO LOL\Metamind\lol-metamind\node_modules\next\dist\server\base-server.js:1924:24)
+    at async DevServer.renderToResponseImpl (C:\Users\VK 690\Documents\PROYECTO LOL\Metamind\lol-metamind\node_modules\next\dist\server\base-server.js:1962:32)
+    at async DevServer.pipeImpl (C:\Users\VK 690\Documents\PROYECTO LOL\Metamind\lol-metamind\node_modules\next\dist\server\base-server.js:922:25)
+    at async NextNodeServer.handleCatchallRenderRequest (C:\Users\VK 690\Documents\PROYECTO LOL\Metamind\lol-metamind\node_modules\next\dist\server\next-server.js:272:17)
+    at async DevServer.handleRequestImpl (C:\Users\VK 690\Documents\PROYECTO LOL\Metamind\lol-metamind\node_modules\next\dist\server\base-server.js:818:17)
+    at async C:\Users\VK 690\Documents\PROYECTO LOL\Metamind\lol-metamind\node_modules\next\dist\server\dev\next-dev-server.js:339:20
+    at async Span.traceAsyncFn (C:\Users\VK 690\Documents\PROYECTO LOL\Metamind\lol-metamind\node_modules\next\dist\trace\trace.js:154:20)
+    at async DevServer.handleRequest (C:\Users\VK 690\Documents\PROYECTO LOL\Metamind\lol-metamind\node_modules\next\dist\server\dev\next-dev-server.js:336:24)
+    at async invokeRender (C:\Users\VK 690\Documents\PROYECTO LOL\Metamind\lol-metamind\node_modules\next\dist\server\lib\router-server.js:179:21)
+    at async handleRequest (C:\Users\VK 690\Documents\PROYECTO LOL\Metamind\lol-metamind\node_modules\next\dist\server\lib\router-server.js:359:24)
+    at async requestHandlerImpl (C:\Users\VK 690\Documents\PROYECTO LOL\Metamind\lol-metamind\node_modules\next\dist\server\lib\router-server.js:383:13)
+    at async Server.requestListener (C:\Users\VK 690\Documents\PROYECTO LOL\Metamind\lol-metamind\node_modules\next\dist\server\lib\start-server.js:141:13)
+ POST /api/ai/get-recommendations 500 in 1324ms
+[Strategist] 🚨 Error de la API de Gemini: 404 - {"code":404,"message":"models/gemini-1.5-flash-latest is not found for API version v1beta, or is not supported for generateContent. Call ListModels to see the list of available models and their supported methods.","status":"NOT_FOUND"}
+[Strategist] 🚨 Fallo catastrófico al generar análisis: La API de Gemini devolvió un error: 404
+[API GET-META] Error: Error: No se pudo completar el análisis de la IA.
+    at generateStrategicAnalysis (webpack-internal:///(rsc)/./src/lib/ai/strategist.js:77:15)
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+    at async POST (webpack-internal:///(rsc)/./src/app/api/ai/get-meta/route.js:18:30)
+    at async C:\Users\VK 690\Documents\PROYECTO LOL\Metamind\lol-metamind\node_modules\next\dist\compiled\next-server\app-route.runtime.dev.js:6:57228
+    at async eT.execute (C:\Users\VK 690\Documents\PROYECTO LOL\Metamind\lol-metamind\node_modules\next\dist\compiled\next-server\app-route.runtime.dev.js:6:46851)
+    at async eT.handle (C:\Users\VK 690\Documents\PROYECTO LOL\Metamind\lol-metamind\node_modules\next\dist\compiled\next-server\app-route.runtime.dev.js:6:58760)
+    at async doRender (C:\Users\VK 690\Documents\PROYECTO LOL\Metamind\lol-metamind\node_modules\next\dist\server\base-server.js:1366:42)
+    at async cacheEntry.responseCache.get.routeKind (C:\Users\VK 690\Documents\PROYECTO LOL\Metamind\lol-metamind\node_modules\next\dist\server\base-server.js:1588:28)
+    at async DevServer.renderToResponseWithComponentsImpl (C:\Users\VK 690\Documents\PROYECTO LOL\Metamind\lol-metamind\node_modules\next\dist\server\base-server.js:1496:28)
+    at async DevServer.renderPageComponent (C:\Users\VK 690\Documents\PROYECTO LOL\Metamind\lol-metamind\node_modules\next\dist\server\base-server.js:1924:24)
+    at async DevServer.renderToResponseImpl (C:\Users\VK 690\Documents\PROYECTO LOL\Metamind\lol-metamind\node_modules\next\dist\server\base-server.js:1962:32)
+    at async DevServer.pipeImpl (C:\Users\VK 690\Documents\PROYECTO LOL\Metamind\lol-metamind\node_modules\next\dist\server\base-server.js:922:25)
+    at async NextNodeServer.handleCatchallRenderRequest (C:\Users\VK 690\Documents\PROYECTO LOL\Metamind\lol-metamind\node_modules\next\dist\server\next-server.js:272:17)
+    at async DevServer.handleRequestImpl (C:\Users\VK 690\Documents\PROYECTO LOL\Metamind\lol-metamind\node_modules\next\dist\server\base-server.js:818:17)
+    at async C:\Users\VK 690\Documents\PROYECTO LOL\Metamind\lol-metamind\node_modules\next\dist\server\dev\next-dev-server.js:339:20
+    at async Span.traceAsyncFn (C:\Users\VK 690\Documents\PROYECTO LOL\Metamind\lol-metamind\node_modules\next\dist\trace\trace.js:154:20)
+    at async DevServer.handleRequest (C:\Users\VK 690\Documents\PROYECTO LOL\Metamind\lol-metamind\node_modules\next\dist\server\dev\next-dev-server.js:336:24)
+    at async invokeRender (C:\Users\VK 690\Documents\PROYECTO LOL\Metamind\lol-metamind\node_modules\next\dist\server\lib\router-server.js:179:21)
+    at async handleRequest (C:\Users\VK 690\Documents\PROYECTO LOL\Metamind\lol-metamind\node_modules\next\dist\server\lib\router-server.js:359:24)
+    at async requestHandlerImpl (C:\Users\VK 690\Documents\PROYECTO LOL\Metamind\lol-metamind\node_modules\next\dist\server\lib\router-server.js:383:13)
+    at async Server.requestListener (C:\Users\VK 690\Documents\PROYECTO LOL\Metamind\lol-metamind\node_modules\next\dist\server\lib\start-server.js:141:13)
+ POST /api/ai/get-meta 500 in 1332ms
+[Strategist] 🚨 Error de la API de Gemini: 404 - {"code":404,"message":"models/gemini-1.5-flash-latest is not found for API version v1beta, or is not supported for generateContent. Call ListModels to see the list of available models and their supported methods.","status":"NOT_FOUND"}
+[Strategist] 🚨 Fallo catastrófico al generar análisis: La API de Gemini devolvió un error: 404
+[API GET-CHALLENGES] Error: Error: No se pudo completar el análisis de la IA.
+    at generateStrategicAnalysis (webpack-internal:///(rsc)/./src/lib/ai/strategist.js:77:15)
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+    at async POST (webpack-internal:///(rsc)/./src/app/api/ai/get-weekly-challenges/route.js:28:28)
+    at async C:\Users\VK 690\Documents\PROYECTO LOL\Metamind\lol-metamind\node_modules\next\dist\compiled\next-server\app-route.runtime.dev.js:6:57228
+    at async eT.execute (C:\Users\VK 690\Documents\PROYECTO LOL\Metamind\lol-metamind\node_modules\next\dist\compiled\next-server\app-route.runtime.dev.js:6:46851)
+    at async eT.handle (C:\Users\VK 690\Documents\PROYECTO LOL\Metamind\lol-metamind\node_modules\next\dist\compiled\next-server\app-route.runtime.dev.js:6:58760)
+    at async doRender (C:\Users\VK 690\Documents\PROYECTO LOL\Metamind\lol-metamind\node_modules\next\dist\server\base-server.js:1366:42)
+    at async cacheEntry.responseCache.get.routeKind (C:\Users\VK 690\Documents\PROYECTO LOL\Metamind\lol-metamind\node_modules\next\dist\server\base-server.js:1588:28)
+    at async DevServer.renderToResponseWithComponentsImpl (C:\Users\VK 690\Documents\PROYECTO LOL\Metamind\lol-metamind\node_modules\next\dist\server\base-server.js:1496:28)
+    at async DevServer.renderPageComponent (C:\Users\VK 690\Documents\PROYECTO LOL\Metamind\lol-metamind\node_modules\next\dist\server\base-server.js:1924:24)
+    at async DevServer.renderToResponseImpl (C:\Users\VK 690\Documents\PROYECTO LOL\Metamind\lol-metamind\node_modules\next\dist\server\base-server.js:1962:32)
+    at async DevServer.pipeImpl (C:\Users\VK 690\Documents\PROYECTO LOL\Metamind\lol-metamind\node_modules\next\dist\server\base-server.js:922:25)
+    at async NextNodeServer.handleCatchallRenderRequest (C:\Users\VK 690\Documents\PROYECTO LOL\Metamind\lol-metamind\node_modules\next\dist\server\next-server.js:272:17)
+    at async DevServer.handleRequestImpl (C:\Users\VK 690\Documents\PROYECTO LOL\Metamind\lol-metamind\node_modules\next\dist\server\base-server.js:818:17)
+    at async C:\Users\VK 690\Documents\PROYECTO LOL\Metamind\lol-metamind\node_modules\next\dist\server\dev\next-dev-server.js:339:20
+    at async Span.traceAsyncFn (C:\Users\VK 690\Documents\PROYECTO LOL\Metamind\lol-metamind\node_modules\next\dist\trace\trace.js:154:20)
+    at async DevServer.handleRequest (C:\Users\VK 690\Documents\PROYECTO LOL\Metamind\lol-metamind\node_modules\next\dist\server\dev\next-dev-server.js:336:24)
+    at async invokeRender (C:\Users\VK 690\Documents\PROYECTO LOL\Metamind\lol-metamind\node_modules\next\dist\server\lib\router-server.js:179:21)
+    at async handleRequest (C:\Users\VK 690\Documents\PROYECTO LOL\Metamind\lol-metamind\node_modules\next\dist\server\lib\router-server.js:359:24)
+    at async requestHandlerImpl (C:\Users\VK 690\Documents\PROYECTO LOL\Metamind\lol-metamind\node_modules\next\dist\server\lib\router-server.js:383:13)
+    at async Server.requestListener (C:\Users\VK 690\Documents\PROYECTO LOL\Metamind\lol-metamind\node_modules\next\dist\server\lib\start-server.js:141:13)
+ POST /api/ai/get-weekly-challenges 500 in 1333ms
+ GET /api/user/profile 200 in 1890ms
+[Strategist] Enviando prompt a Gemini 1.5 Flash...
+[Strategist] Enviando prompt a Gemini 1.0 Pro para recomendaciones iniciales...
+[Strategist] Enviando prompt a Gemini 1.5 Flash...
+[Strategist] Enviando prompt a Gemini 1.5 Flash...
+[Strategist] 🚨 Error de la API de Gemini: 404 - {"code":404,"message":"models/gemini-1.5-flash-latest is not found for API version v1beta, or is not supported for generateContent. Call ListModels to see the list of available models and their supported methods.","status":"NOT_FOUND"}
+[Strategist] 🚨 Fallo catastrófico al generar análisis: La API de Gemini devolvió un error: 404
+[API GET-RECOMMENDATIONS] Error en la generación de recomendaciones: Error: No se pudo completar el análisis de la IA.
+    at generateStrategicAnalysis (webpack-internal:///(rsc)/./src/lib/ai/strategist.js:77:15)
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+    at async POST (webpack-internal:///(rsc)/./src/app/api/ai/get-recommendations/route.js:40:26)
+    at async C:\Users\VK 690\Documents\PROYECTO LOL\Metamind\lol-metamind\node_modules\next\dist\compiled\next-server\app-route.runtime.dev.js:6:57228
+    at async eT.execute (C:\Users\VK 690\Documents\PROYECTO LOL\Metamind\lol-metamind\node_modules\next\dist\compiled\next-server\app-route.runtime.dev.js:6:46851)
+    at async eT.handle (C:\Users\VK 690\Documents\PROYECTO LOL\Metamind\lol-metamind\node_modules\next\dist\compiled\next-server\app-route.runtime.dev.js:6:58760)
+    at async doRender (C:\Users\VK 690\Documents\PROYECTO LOL\Metamind\lol-metamind\node_modules\next\dist\server\base-server.js:1366:42)
+    at async cacheEntry.responseCache.get.routeKind (C:\Users\VK 690\Documents\PROYECTO LOL\Metamind\lol-metamind\node_modules\next\dist\server\base-server.js:1588:28)
+    at async DevServer.renderToResponseWithComponentsImpl (C:\Users\VK 690\Documents\PROYECTO LOL\Metamind\lol-metamind\node_modules\next\dist\server\base-server.js:1496:28)
+    at async DevServer.renderPageComponent (C:\Users\VK 690\Documents\PROYECTO LOL\Metamind\lol-metamind\node_modules\next\dist\server\base-server.js:1924:24)
+    at async DevServer.renderToResponseImpl (C:\Users\VK 690\Documents\PROYECTO LOL\Metamind\lol-metamind\node_modules\next\dist\server\base-server.js:1962:32)
+    at async DevServer.pipeImpl (C:\Users\VK 690\Documents\PROYECTO LOL\Metamind\lol-metamind\node_modules\next\dist\server\base-server.js:922:25)
+    at async NextNodeServer.handleCatchallRenderRequest (C:\Users\VK 690\Documents\PROYECTO LOL\Metamind\lol-metamind\node_modules\next\dist\server\next-server.js:272:17)
+    at async DevServer.handleRequestImpl (C:\Users\VK 690\Documents\PROYECTO LOL\Metamind\lol-metamind\node_modules\next\dist\server\base-server.js:818:17)
+    at async C:\Users\VK 690\Documents\PROYECTO LOL\Metamind\lol-metamind\node_modules\next\dist\server\dev\next-dev-server.js:339:20
+    at async Span.traceAsyncFn (C:\Users\VK 690\Documents\PROYECTO LOL\Metamind\lol-metamind\node_modules\next\dist\trace\trace.js:154:20)
+    at async DevServer.handleRequest (C:\Users\VK 690\Documents\PROYECTO LOL\Metamind\lol-metamind\node_modules\next\dist\server\dev\next-dev-server.js:336:24)
+    at async invokeRender (C:\Users\VK 690\Documents\PROYECTO LOL\Metamind\lol-metamind\node_modules\next\dist\server\lib\router-server.js:179:21)
+    at async handleRequest (C:\Users\VK 690\Documents\PROYECTO LOL\Metamind\lol-metamind\node_modules\next\dist\server\lib\router-server.js:359:24)
+    at async requestHandlerImpl (C:\Users\VK 690\Documents\PROYECTO LOL\Metamind\lol-metamind\node_modules\next\dist\server\lib\router-server.js:383:13)
+    at async Server.requestListener (C:\Users\VK 690\Documents\PROYECTO LOL\Metamind\lol-metamind\node_modules\next\dist\server\lib\start-server.js:141:13)
+ POST /api/ai/get-recommendations 500 in 233ms
+[Strategist] 🚨 Error de la API de Gemini: 404 - {"code":404,"message":"models/gemini-1.5-flash-latest is not found for API version v1beta, or is not supported for generateContent. Call ListModels to see the list of available models and their supported methods.","status":"NOT_FOUND"}
+[Strategist] 🚨 Fallo catastrófico al generar análisis: La API de Gemini devolvió un error: 404
+[API GET-META] Error: Error: No se pudo completar el análisis de la IA.
+    at generateStrategicAnalysis (webpack-internal:///(rsc)/./src/lib/ai/strategist.js:77:15)
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+    at async POST (webpack-internal:///(rsc)/./src/app/api/ai/get-meta/route.js:18:30)
+    at async C:\Users\VK 690\Documents\PROYECTO LOL\Metamind\lol-metamind\node_modules\next\dist\compiled\next-server\app-route.runtime.dev.js:6:57228
+    at async eT.execute (C:\Users\VK 690\Documents\PROYECTO LOL\Metamind\lol-metamind\node_modules\next\dist\compiled\next-server\app-route.runtime.dev.js:6:46851)
+    at async eT.handle (C:\Users\VK 690\Documents\PROYECTO LOL\Metamind\lol-metamind\node_modules\next\dist\compiled\next-server\app-route.runtime.dev.js:6:58760)
+    at async doRender (C:\Users\VK 690\Documents\PROYECTO LOL\Metamind\lol-metamind\node_modules\next\dist\server\base-server.js:1366:42)
+    at async cacheEntry.responseCache.get.routeKind (C:\Users\VK 690\Documents\PROYECTO LOL\Metamind\lol-metamind\node_modules\next\dist\server\base-server.js:1588:28)
+    at async DevServer.renderToResponseWithComponentsImpl (C:\Users\VK 690\Documents\PROYECTO LOL\Metamind\lol-metamind\node_modules\next\dist\server\base-server.js:1496:28)
+    at async DevServer.renderPageComponent (C:\Users\VK 690\Documents\PROYECTO LOL\Metamind\lol-metamind\node_modules\next\dist\server\base-server.js:1924:24)
+    at async DevServer.renderToResponseImpl (C:\Users\VK 690\Documents\PROYECTO LOL\Metamind\lol-metamind\node_modules\next\dist\server\base-server.js:1962:32)
+    at async DevServer.pipeImpl (C:\Users\VK 690\Documents\PROYECTO LOL\Metamind\lol-metamind\node_modules\next\dist\server\base-server.js:922:25)
+    at async NextNodeServer.handleCatchallRenderRequest (C:\Users\VK 690\Documents\PROYECTO LOL\Metamind\lol-metamind\node_modules\next\dist\server\next-server.js:272:17)
+    at async DevServer.handleRequestImpl (C:\Users\VK 690\Documents\PROYECTO LOL\Metamind\lol-metamind\node_modules\next\dist\server\base-server.js:818:17)
+    at async C:\Users\VK 690\Documents\PROYECTO LOL\Metamind\lol-metamind\node_modules\next\dist\server\dev\next-dev-server.js:339:20
+    at async Span.traceAsyncFn (C:\Users\VK 690\Documents\PROYECTO LOL\Metamind\lol-metamind\node_modules\next\dist\trace\trace.js:154:20)
+    at async DevServer.handleRequest (C:\Users\VK 690\Documents\PROYECTO LOL\Metamind\lol-metamind\node_modules\next\dist\server\dev\next-dev-server.js:336:24)
+    at async invokeRender (C:\Users\VK 690\Documents\PROYECTO LOL\Metamind\lol-metamind\node_modules\next\dist\server\lib\router-server.js:179:21)
+    at async handleRequest (C:\Users\VK 690\Documents\PROYECTO LOL\Metamind\lol-metamind\node_modules\next\dist\server\lib\router-server.js:359:24)
+    at async requestHandlerImpl (C:\Users\VK 690\Documents\PROYECTO LOL\Metamind\lol-metamind\node_modules\next\dist\server\lib\router-server.js:383:13)
+    at async Server.requestListener (C:\Users\VK 690\Documents\PROYECTO LOL\Metamind\lol-metamind\node_modules\next\dist\server\lib\start-server.js:141:13)
+ POST /api/ai/get-meta 500 in 246ms
+[Strategist] 🚨 Error de la API de Gemini: 404 - {"code":404,"message":"models/gemini-1.5-flash-latest is not found for API version v1beta, or is not supported for generateContent. Call ListModels to see the list of available models and their supported methods.","status":"NOT_FOUND"}
+[Strategist] 🚨 Fallo catastrófico al generar análisis: La API de Gemini devolvió un error: 404
+[API GET-CHALLENGES] Error: Error: No se pudo completar el análisis de la IA.
+    at generateStrategicAnalysis (webpack-internal:///(rsc)/./src/lib/ai/strategist.js:77:15)
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+    at async POST (webpack-internal:///(rsc)/./src/app/api/ai/get-weekly-challenges/route.js:28:28)
+    at async C:\Users\VK 690\Documents\PROYECTO LOL\Metamind\lol-metamind\node_modules\next\dist\compiled\next-server\app-route.runtime.dev.js:6:57228
+    at async eT.execute (C:\Users\VK 690\Documents\PROYECTO LOL\Metamind\lol-metamind\node_modules\next\dist\compiled\next-server\app-route.runtime.dev.js:6:46851)
+    at async eT.handle (C:\Users\VK 690\Documents\PROYECTO LOL\Metamind\lol-metamind\node_modules\next\dist\compiled\next-server\app-route.runtime.dev.js:6:58760)
+    at async doRender (C:\Users\VK 690\Documents\PROYECTO LOL\Metamind\lol-metamind\node_modules\next\dist\server\base-server.js:1366:42)
+    at async cacheEntry.responseCache.get.routeKind (C:\Users\VK 690\Documents\PROYECTO LOL\Metamind\lol-metamind\node_modules\next\dist\server\base-server.js:1588:28)
+    at async DevServer.renderToResponseWithComponentsImpl (C:\Users\VK 690\Documents\PROYECTO LOL\Metamind\lol-metamind\node_modules\next\dist\server\base-server.js:1496:28)
+    at async DevServer.renderPageComponent (C:\Users\VK 690\Documents\PROYECTO LOL\Metamind\lol-metamind\node_modules\next\dist\server\base-server.js:1924:24)
+    at async DevServer.renderToResponseImpl (C:\Users\VK 690\Documents\PROYECTO LOL\Metamind\lol-metamind\node_modules\next\dist\server\base-server.js:1962:32)
+    at async DevServer.pipeImpl (C:\Users\VK 690\Documents\PROYECTO LOL\Metamind\lol-metamind\node_modules\next\dist\server\base-server.js:922:25)
+    at async NextNodeServer.handleCatchallRenderRequest (C:\Users\VK 690\Documents\PROYECTO LOL\Metamind\lol-metamind\node_modules\next\dist\server\next-server.js:272:17)
+    at async DevServer.handleRequestImpl (C:\Users\VK 690\Documents\PROYECTO LOL\Metamind\lol-metamind\node_modules\next\dist\server\base-server.js:818:17)
+    at async C:\Users\VK 690\Documents\PROYECTO LOL\Metamind\lol-metamind\node_modules\next\dist\server\dev\next-dev-server.js:339:20
+    at async Span.traceAsyncFn (C:\Users\VK 690\Documents\PROYECTO LOL\Metamind\lol-metamind\node_modules\next\dist\trace\trace.js:154:20)
+    at async DevServer.handleRequest (C:\Users\VK 690\Documents\PROYECTO LOL\Metamind\lol-metamind\node_modules\next\dist\server\dev\next-dev-server.js:336:24)
+    at async invokeRender (C:\Users\VK 690\Documents\PROYECTO LOL\Metamind\lol-metamind\node_modules\next\dist\server\lib\router-server.js:179:21)
+    at async handleRequest (C:\Users\VK 690\Documents\PROYECTO LOL\Metamind\lol-metamind\node_modules\next\dist\server\lib\router-server.js:359:24)
+    at async requestHandlerImpl (C:\Users\VK 690\Documents\PROYECTO LOL\Metamind\lol-metamind\node_modules\next\dist\server\lib\router-server.js:383:13)
+    at async Server.requestListener (C:\Users\VK 690\Documents\PROYECTO LOL\Metamind\lol-metamind\node_modules\next\dist\server\lib\start-server.js:141:13)
+ POST /api/ai/get-weekly-challenges 500 in 251ms
+[LIVE GAME UPDATE] [OK] Datos actualizados. Mode: Strategic_API_Profile. Usuario ID: 1
+ POST /api/live-game/update 204 in 1926ms
+[LIVE GAME UPDATE] [OK] Datos actualizados. Mode: Realtime. Usuario ID: 1
+ POST /api/live-game/update 204 in 384ms
+[LIVE GAME UPDATE] [OK] Datos actualizados. Mode: Realtime. Usuario ID: 1
+ POST /api/live-game/update 204 in 395ms
+[LIVE GAME UPDATE] [OK] Datos actualizados. Mode: Realtime. Usuario ID: 1
+ POST /api/live-game/update 204 in 380ms
+[LIVE GAME UPDATE] [OK] Datos actualizados. Mode: Realtime. Usuario ID: 1
+ POST /api/live-game/update 204 in 406ms
+
+
+
+VK 690@DESKTOP-FKTCRDB MINGW64 ~/Documents/PROYECTO LOL/Metamind/lol-metamind (main)
+$ npm run start:ws
+
+> lol-metamind@0.1.0 start:ws
+> npm run build:server && node websocket-server.js
+
+
+> lol-metamind@0.1.0 build:server
+> rm -rf dist && babel --config-file ./babel.config.server.js src/lib --out-dir dist/lib && babel --config-file ./babel.config.server.js src/services --out-dir dist/services
+
+Successfully compiled 3 files with Babel (372ms).
+Successfully compiled 3 files with Babel (412ms).
+✅ Servidor WebSocket de IA iniciado en el puerto 8080.
+[CONEXIÓN] Nueva conexión de cliente (App Electron) establecida.
+[DESCONEXIÓN] Conexión de cliente (App Electron) cerrada.
+[CONEXIÓN] Nueva conexión de cliente (App Electron) establecida.
+[MENSAJE RECIBIDO] QUEUE_UPDATE
+[EVENTO] Procesando QUEUE_UPDATE para generar consejo pre-partida...
+[PROMPTS] Creando prompt para análisis pre-partida...
+[Strategist] Enviando prompt a Gemini 1.5 Flash...
+[Strategist] 🚨 Error de la API de Gemini: 400 - {"code":400,"message":"API key not valid. Please pass a valid API key.","status":"INVALID_ARGUMENT","details":[{"@type":"type.googleapis.com/google.rpc.ErrorInfo","reason":"API_KEY_INVALID","domain":"googleapis.com","metadata":{"service":"generativelanguage.googleapis.com"}},{"@type":"type.googleapis.com/google.rpc.LocalizedMessage","locale":"en-US","message":"API key not valid. Please pass a valid API key."}]}
+[Strategist] 🚨 Fallo catastrófico al generar análisis: La API de Gemini devolvió un error: 400
+🚨 Error al procesar el mensaje del WebSocket: No se pudo completar el análisis de la IA.
+[DESCONEXIÓN] Conexión de cliente (App Electron) cerrada.
+[CONEXIÓN] Nueva conexión de cliente (App Electron) establecida.
+[DESCONEXIÓN] Conexión de cliente (App Electron) cerrada.
+[CONEXIÓN] Nueva conexión de cliente (App Electron) establecida.
+[DESCONEXIÓN] Conexión de cliente (App Electron) cerrada.
+[CONEXIÓN] Nueva conexión de cliente (App Electron) establecida.
+[DESCONEXIÓN] Conexión de cliente (App Electron) cerrada.
+
+PreGameCoach.jsx?537e:34 [PreGameCoach] useEffect [wsStatus, userData] -> Verificando condiciones para enviar actualización de cola.
+PreGameCoach.jsx?537e:42 [PreGameCoach] Condiciones para "QueueUpdate" no cumplidas (WS no conectado, ya enviado, o sin userData).
+useWebSocketCoach.js?9516:30 [useWebSocketCoach] ✅ WebSocket conectado para QUEUE_ADVICE.
+PreGameCoach.jsx?537e:14 [PreGameCoach] --- RENDERIZANDO ---
+PreGameCoach.jsx?537e:15 [PreGameCoach] Props recibidas -> LCU_STATUS: ONLINE
+PreGameCoach.jsx?537e:16 [PreGameCoach] Props recibidas -> userData: {id: 1, username: 'jonathan', summonerName: 'Jh0wner', tagline: '7258', region: 'LAS', …}
+PreGameCoach.jsx?537e:31 [PreGameCoach] Estado actual del WebSocket: CONNECTED
+PreGameCoach.jsx?537e:14 [PreGameCoach] --- RENDERIZANDO ---
+PreGameCoach.jsx?537e:15 [PreGameCoach] Props recibidas -> LCU_STATUS: ONLINE
+PreGameCoach.jsx?537e:16 [PreGameCoach] Props recibidas -> userData: {id: 1, username: 'jonathan', summonerName: 'Jh0wner', tagline: '7258', region: 'LAS', …}
+PreGameCoach.jsx?537e:31 [PreGameCoach] Estado actual del WebSocket: CONNECTED
+PreGameCoach.jsx?537e:34 [PreGameCoach] useEffect [wsStatus, userData] -> Verificando condiciones para enviar actualización de cola.
+PreGameCoach.jsx?537e:42 [PreGameCoach] Condiciones para "QueueUpdate" no cumplidas (WS no conectado, ya enviado, o sin userData).
+useLcuData.js?e742:34 [useLcuData] ✅ Paquete de datos completo recibido desde Electron: {lcuStatus: 'ONLINE', gamePhase: 'Lobby', draftData: null, userData: {…}}
+page.jsx?3c80:22 [OVERLAY] Evaluando widget. Estado actual:
+page.jsx?3c80:23  -> LCU_STATUS: ONLINE
+page.jsx?3c80:24  -> userData: {id: 1, username: 'jonathan', summonerName: 'Jh0wner', tagline: '7258', region: 'LAS', …}
+page.jsx?3c80:25  -> gamePhase: Lobby
+page.jsx?3c80:38 [OVERLAY] RENDER: PreGameCoach
+page.jsx?3c80:22 [OVERLAY] Evaluando widget. Estado actual:
+page.jsx?3c80:23  -> LCU_STATUS: ONLINE
+page.jsx?3c80:24  -> userData: {id: 1, username: 'jonathan', summonerName: 'Jh0wner', tagline: '7258', region: 'LAS', …}
+page.jsx?3c80:25  -> gamePhase: Lobby
+page.jsx?3c80:38 [OVERLAY] RENDER: PreGameCoach
+PreGameCoach.jsx?537e:14 [PreGameCoach] --- RENDERIZANDO ---
+PreGameCoach.jsx?537e:15 [PreGameCoach] Props recibidas -> LCU_STATUS: ONLINE
+PreGameCoach.jsx?537e:16 [PreGameCoach] Props recibidas -> userData: {id: 1, username: 'jonathan', summonerName: 'Jh0wner', tagline: '7258', region: 'LAS', …}
+PreGameCoach.jsx?537e:31 [PreGameCoach] Estado actual del WebSocket: CONNECTED
+PreGameCoach.jsx?537e:14 [PreGameCoach] --- RENDERIZANDO ---
+PreGameCoach.jsx?537e:15 [PreGameCoach] Props recibidas -> LCU_STATUS: ONLINE
+PreGameCoach.jsx?537e:16 [PreGameCoach] Props recibidas -> userData: {id: 1, username: 'jonathan', summonerName: 'Jh0wner', tagline: '7258', region: 'LAS', …}
+PreGameCoach.jsx?537e:31 [PreGameCoach] Estado actual del WebSocket: CONNECTED
+useWebSocketCoach.js?9516:25 [useWebSocketCoach] 'userData' recibido. Conectando a ws://localhost:8080 para el evento QUEUE_ADVICE...
+PreGameCoach.jsx?537e:34 [PreGameCoach] useEffect [wsStatus, userData] -> Verificando condiciones para enviar actualización de cola.
+PreGameCoach.jsx?537e:42 [PreGameCoach] Condiciones para "QueueUpdate" no cumplidas (WS no conectado, ya enviado, o sin userData).
+PreGameCoach.jsx?537e:47 [PreGameCoach] useEffect [aiAdvice] -> Verificando si hay nuevo consejo de la IA.
+PreGameCoach.jsx?537e:14 [PreGameCoach] --- RENDERIZANDO ---
+PreGameCoach.jsx?537e:15 [PreGameCoach] Props recibidas -> LCU_STATUS: ONLINE
+PreGameCoach.jsx?537e:16 [PreGameCoach] Props recibidas -> userData: {id: 1, username: 'jonathan', summonerName: 'Jh0wner', tagline: '7258', region: 'LAS', …}
+PreGameCoach.jsx?537e:31 [PreGameCoach] Estado actual del WebSocket: DISCONNECTED
+PreGameCoach.jsx?537e:14 [PreGameCoach] --- RENDERIZANDO ---
+PreGameCoach.jsx?537e:15 [PreGameCoach] Props recibidas -> LCU_STATUS: ONLINE
+PreGameCoach.jsx?537e:16 [PreGameCoach] Props recibidas -> userData: {id: 1, username: 'jonathan', summonerName: 'Jh0wner', tagline: '7258', region: 'LAS', …}
+PreGameCoach.jsx?537e:31 [PreGameCoach] Estado actual del WebSocket: DISCONNECTED
+PreGameCoach.jsx?537e:34 [PreGameCoach] useEffect [wsStatus, userData] -> Verificando condiciones para enviar actualización de cola.
+PreGameCoach.jsx?537e:42 [PreGameCoach] Condiciones para "QueueUpdate" no cumplidas (WS no conectado, ya enviado, o sin userData).
+useWebSocketCoach.js?9516:30 [useWebSocketCoach] ✅ WebSocket conectado para QUEUE_ADVICE.
+PreGameCoach.jsx?537e:14 [PreGameCoach] --- RENDERIZANDO ---
+PreGameCoach.jsx?537e:15 [PreGameCoach] Props recibidas -> LCU_STATUS: ONLINE
+PreGameCoach.jsx?537e:16 [PreGameCoach] Props recibidas -> userData: {id: 1, username: 'jonathan', summonerName: 'Jh0wner', tagline: '7258', region: 'LAS', …}
+PreGameCoach.jsx?537e:31 [PreGameCoach] Estado actual del WebSocket: CONNECTED
+PreGameCoach.jsx?537e:14 [PreGameCoach] --- RENDERIZANDO ---
+PreGameCoach.jsx?537e:15 [PreGameCoach] Props recibidas -> LCU_STATUS: ONLINE
+PreGameCoach.jsx?537e:16 [PreGameCoach] Props recibidas -> userData: {id: 1, username: 'jonathan', summonerName: 'Jh0wner', tagline: '7258', region: 'LAS', …}
+PreGameCoach.jsx?537e:31 [PreGameCoach] Estado actual del WebSocket: CONNECTED
+PreGameCoach.jsx?537e:34 [PreGameCoach] useEffect [wsStatus, userData] -> Verificando condiciones para enviar actualización de cola.
+PreGameCoach.jsx?537e:42 [PreGameCoach] Condiciones para "QueueUpdate" no cumplidas (WS no conectado, ya enviado, o sin userData).
+useLcuData.js?e742:34 [useLcuData] ✅ Paquete de datos completo recibido desde Electron: {lcuStatus: 'ONLINE', gamePhase: 'Lobby', draftData: null, userData: {…}}
+page.jsx?3c80:22 [OVERLAY] Evaluando widget. Estado actual:
+page.jsx?3c80:23  -> LCU_STATUS: ONLINE
+page.jsx?3c80:24  -> userData: {id: 1, username: 'jonathan', summonerName: 'Jh0wner', tagline: '7258', region: 'LAS', …}
+page.jsx?3c80:25  -> gamePhase: Lobby
+page.jsx?3c80:38 [OVERLAY] RENDER: PreGameCoach
+page.jsx?3c80:22 [OVERLAY] Evaluando widget. Estado actual:
+page.jsx?3c80:23  -> LCU_STATUS: ONLINE
+page.jsx?3c80:24  -> userData: {id: 1, username: 'jonathan', summonerName: 'Jh0wner', tagline: '7258', region: 'LAS', …}
+page.jsx?3c80:25  -> gamePhase: Lobby
+page.jsx?3c80:38 [OVERLAY] RENDER: PreGameCoach
+PreGameCoach.jsx?537e:14 [PreGameCoach] --- RENDERIZANDO ---
+PreGameCoach.jsx?537e:15 [PreGameCoach] Props recibidas -> LCU_STATUS: ONLINE
+PreGameCoach.jsx?537e:16 [PreGameCoach] Props recibidas -> userData: {id: 1, username: 'jonathan', summonerName: 'Jh0wner', tagline: '7258', region: 'LAS', …}
+PreGameCoach.jsx?537e:31 [PreGameCoach] Estado actual del WebSocket: CONNECTED
+PreGameCoach.jsx?537e:14 [PreGameCoach] --- RENDERIZANDO ---
+PreGameCoach.jsx?537e:15 [PreGameCoach] Props recibidas -> LCU_STATUS: ONLINE
+PreGameCoach.jsx?537e:16 [PreGameCoach] Props recibidas -> userData: {id: 1, username: 'jonathan', summonerName: 'Jh0wner', tagline: '7258', region: 'LAS', …}
+PreGameCoach.jsx?537e:31 [PreGameCoach] Estado actual del WebSocket: CONNECTED
+useWebSocketCoach.js?9516:25 [useWebSocketCoach] 'userData' recibido. Conectando a ws://localhost:8080 para el evento QUEUE_ADVICE...
+PreGameCoach.jsx?537e:34 [PreGameCoach] useEffect [wsStatus, userData] -> Verificando condiciones para enviar actualización de cola.
+PreGameCoach.jsx?537e:42 [PreGameCoach] Condiciones para "QueueUpdate" no cumplidas (WS no conectado, ya enviado, o sin userData).
+PreGameCoach.jsx?537e:47 [PreGameCoach] useEffect [aiAdvice] -> Verificando si hay nuevo consejo de la IA.
+PreGameCoach.jsx?537e:14 [PreGameCoach] --- RENDERIZANDO ---
+PreGameCoach.jsx?537e:15 [PreGameCoach] Props recibidas -> LCU_STATUS: ONLINE
+PreGameCoach.jsx?537e:16 [PreGameCoach] Props recibidas -> userData: {id: 1, username: 'jonathan', summonerName: 'Jh0wner', tagline: '7258', region: 'LAS', …}
+PreGameCoach.jsx?537e:31 [PreGameCoach] Estado actual del WebSocket: DISCONNECTED
+PreGameCoach.jsx?537e:14 [PreGameCoach] --- RENDERIZANDO ---
+PreGameCoach.jsx?537e:15 [PreGameCoach] Props recibidas -> LCU_STATUS: ONLINE
+PreGameCoach.jsx?537e:16 [PreGameCoach] Props recibidas -> userData: {id: 1, username: 'jonathan', summonerName: 'Jh0wner', tagline: '7258', region: 'LAS', …}
+PreGameCoach.jsx?537e:31 [PreGameCoach] Estado actual del WebSocket: DISCONNECTED
+PreGameCoach.jsx?537e:34 [PreGameCoach] useEffect [wsStatus, userData] -> Verificando condiciones para enviar actualización de cola.
+PreGameCoach.jsx?537e:42 [PreGameCoach] Condiciones para "QueueUpdate" no cumplidas (WS no conectado, ya enviado, o sin userData).
+useWebSocketCoach.js?9516:30 [useWebSocketCoach] ✅ WebSocket conectado para QUEUE_ADVICE.
+PreGameCoach.jsx?537e:14 [PreGameCoach] --- RENDERIZANDO ---
+PreGameCoach.jsx?537e:15 [PreGameCoach] Props recibidas -> LCU_STATUS: ONLINE
+PreGameCoach.jsx?537e:16 [PreGameCoach] Props recibidas -> userData: {id: 1, username: 'jonathan', summonerName: 'Jh0wner', tagline: '7258', region: 'LAS', …}
+PreGameCoach.jsx?537e:31 [PreGameCoach] Estado actual del WebSocket: CONNECTED
+PreGameCoach.jsx?537e:14 [PreGameCoach] --- RENDERIZANDO ---
+PreGameCoach.jsx?537e:15 [PreGameCoach] Props recibidas -> LCU_STATUS: ONLINE
+PreGameCoach.jsx?537e:16 [PreGameCoach] Props recibidas -> userData: {id: 1, username: 'jonathan', summonerName: 'Jh0wner', tagline: '7258', region: 'LAS', …}
+PreGameCoach.jsx?537e:31 [PreGameCoach] Estado actual del WebSocket: CONNECTED
+PreGameCoach.jsx?537e:34 [PreGameCoach] useEffect [wsStatus, userData] -> Verificando condiciones para enviar actualización de cola.
+PreGameCoach.jsx?537e:42 [PreGameCoach] Condiciones para "QueueUpdate" no cumplidas (WS no conectado, ya enviado, o sin userData).
+useLcuData.js?e742:34 [useLcuData] ✅ Paquete de datos completo recibido desde Electron: {lcuStatus: 'ONLINE', gamePhase: 'Lobby', draftData: null, userData: {…}}
+page.jsx?3c80:22 [OVERLAY] Evaluando widget. Estado actual:
+page.jsx?3c80:23  -> LCU_STATUS: ONLINE
+page.jsx?3c80:24  -> userData: {id: 1, username: 'jonathan', summonerName: 'Jh0wner', tagline: '7258', region: 'LAS', …}
+page.jsx?3c80:25  -> gamePhase: Lobby
+page.jsx?3c80:38 [OVERLAY] RENDER: PreGameCoach
+page.jsx?3c80:22 [OVERLAY] Evaluando widget. Estado actual:
+page.jsx?3c80:23  -> LCU_STATUS: ONLINE
+page.jsx?3c80:24  -> userData: {id: 1, username: 'jonathan', summonerName: 'Jh0wner', tagline: '7258', region: 'LAS', …}
+page.jsx?3c80:25  -> gamePhase: Lobby
+page.jsx?3c80:38 [OVERLAY] RENDER: PreGameCoach
+PreGameCoach.jsx?537e:14 [PreGameCoach] --- RENDERIZANDO ---
+PreGameCoach.jsx?537e:15 [PreGameCoach] Props recibidas -> LCU_STATUS: ONLINE
+PreGameCoach.jsx?537e:16 [PreGameCoach] Props recibidas -> userData: {id: 1, username: 'jonathan', summonerName: 'Jh0wner', tagline: '7258', region: 'LAS', …}
+PreGameCoach.jsx?537e:31 [PreGameCoach] Estado actual del WebSocket: CONNECTED
+PreGameCoach.jsx?537e:14 [PreGameCoach] --- RENDERIZANDO ---
+PreGameCoach.jsx?537e:15 [PreGameCoach] Props recibidas -> LCU_STATUS: ONLINE
+PreGameCoach.jsx?537e:16 [PreGameCoach] Props recibidas -> userData: {id: 1, username: 'jonathan', summonerName: 'Jh0wner', tagline: '7258', region: 'LAS', …}
+PreGameCoach.jsx?537e:31 [PreGameCoach] Estado actual del WebSocket: CONNECTED
+useWebSocketCoach.js?9516:25 [useWebSocketCoach] 'userData' recibido. Conectando a ws://localhost:8080 para el evento QUEUE_ADVICE...
+PreGameCoach.jsx?537e:34 [PreGameCoach] useEffect [wsStatus, userData] -> Verificando condiciones para enviar actualización de cola.
+PreGameCoach.jsx?537e:42 [PreGameCoach] Condiciones para "QueueUpdate" no cumplidas (WS no conectado, ya enviado, o sin userData).
+PreGameCoach.jsx?537e:47 [PreGameCoach] useEffect [aiAdvice] -> Verificando si hay nuevo consejo de la IA.
+PreGameCoach.jsx?537e:14 [PreGameCoach] --- RENDERIZANDO ---
+PreGameCoach.jsx?537e:15 [PreGameCoach] Props recibidas -> LCU_STATUS: ONLINE
+PreGameCoach.jsx?537e:16 [PreGameCoach] Props recibidas -> userData: {id: 1, username: 'jonathan', summonerName: 'Jh0wner', tagline: '7258', region: 'LAS', …}
+PreGameCoach.jsx?537e:31 [PreGameCoach] Estado actual del WebSocket: DISCONNECTED
+PreGameCoach.jsx?537e:14 [PreGameCoach] --- RENDERIZANDO ---
+PreGameCoach.jsx?537e:15 [PreGameCoach] Props recibidas -> LCU_STATUS: ONLINE
+PreGameCoach.jsx?537e:16 [PreGameCoach] Props recibidas -> userData: {id: 1, username: 'jonathan', summonerName: 'Jh0wner', tagline: '7258', region: 'LAS', …}
+PreGameCoach.jsx?537e:31 [PreGameCoach] Estado actual del WebSocket: DISCONNECTED
+PreGameCoach.jsx?537e:34 [PreGameCoach] useEffect [wsStatus, userData] -> Verificando condiciones para enviar actualización de cola.
+PreGameCoach.jsx?537e:42 [PreGameCoach] Condiciones para "QueueUpdate" no cumplidas (WS no conectado, ya enviado, o sin userData).
+useWebSocketCoach.js?9516:30 [useWebSocketCoach] ✅ WebSocket conectado para QUEUE_ADVICE.
+PreGameCoach.jsx?537e:14 [PreGameCoach] --- RENDERIZANDO ---
+PreGameCoach.jsx?537e:15 [PreGameCoach] Props recibidas -> LCU_STATUS: ONLINE
+PreGameCoach.jsx?537e:16 [PreGameCoach] Props recibidas -> userData: {id: 1, username: 'jonathan', summonerName: 'Jh0wner', tagline: '7258', region: 'LAS', …}
+PreGameCoach.jsx?537e:31 [PreGameCoach] Estado actual del WebSocket: CONNECTED
+PreGameCoach.jsx?537e:14 [PreGameCoach] --- RENDERIZANDO ---
+PreGameCoach.jsx?537e:15 [PreGameCoach] Props recibidas -> LCU_STATUS: ONLINE
+PreGameCoach.jsx?537e:16 [PreGameCoach] Props recibidas -> userData: {id: 1, username: 'jonathan', summonerName: 'Jh0wner', tagline: '7258', region: 'LAS', …}
+PreGameCoach.jsx?537e:31 [PreGameCoach] Estado actual del WebSocket: CONNECTED
+PreGameCoach.jsx?537e:34 [PreGameCoach] useEffect [wsStatus, userData] -> Verificando condiciones para enviar actualización de cola.
+PreGameCoach.jsx?537e:42 [PreGameCoach] Condiciones para "QueueUpdate" no cumplidas (WS no conectado, ya enviado, o sin userData).
+useLcuData.js?e742:34 [useLcuData] ✅ Paquete de datos completo recibido desde Electron: {lcuStatus: 'ONLINE', gamePhase: 'Lobby', draftData: null, userData: {…}}
+page.jsx?3c80:22 [OVERLAY] Evaluando widget. Estado actual:
+page.jsx?3c80:23  -> LCU_STATUS: ONLINE
+page.jsx?3c80:24  -> userData: {id: 1, username: 'jonathan', summonerName: 'Jh0wner', tagline: '7258', region: 'LAS', …}
+page.jsx?3c80:25  -> gamePhase: Lobby
+page.jsx?3c80:38 [OVERLAY] RENDER: PreGameCoach
+page.jsx?3c80:22 [OVERLAY] Evaluando widget. Estado actual:
+page.jsx?3c80:23  -> LCU_STATUS: ONLINE
+page.jsx?3c80:24  -> userData: {id: 1, username: 'jonathan', summonerName: 'Jh0wner', tagline: '7258', region: 'LAS', …}
+page.jsx?3c80:25  -> gamePhase: Lobby
+page.jsx?3c80:38 [OVERLAY] RENDER: PreGameCoach
+PreGameCoach.jsx?537e:14 [PreGameCoach] --- RENDERIZANDO ---
+PreGameCoach.jsx?537e:15 [PreGameCoach] Props recibidas -> LCU_STATUS: ONLINE
+PreGameCoach.jsx?537e:16 [PreGameCoach] Props recibidas -> userData: {id: 1, username: 'jonathan', summonerName: 'Jh0wner', tagline: '7258', region: 'LAS', …}
+PreGameCoach.jsx?537e:31 [PreGameCoach] Estado actual del WebSocket: CONNECTED
+PreGameCoach.jsx?537e:14 [PreGameCoach] --- RENDERIZANDO ---
+PreGameCoach.jsx?537e:15 [PreGameCoach] Props recibidas -> LCU_STATUS: ONLINE
+PreGameCoach.jsx?537e:16 [PreGameCoach] Props recibidas -> userData: {id: 1, username: 'jonathan', summonerName: 'Jh0wner', tagline: '7258', region: 'LAS', …}
+PreGameCoach.jsx?537e:31 [PreGameCoach] Estado actual del WebSocket: CONNECTED
+useWebSocketCoach.js?9516:25 [useWebSocketCoach] 'userData' recibido. Conectando a ws://localhost:8080 para el evento QUEUE_ADVICE...
+PreGameCoach.jsx?537e:34 [PreGameCoach] useEffect [wsStatus, userData] -> Verificando condiciones para enviar actualización de cola.
+PreGameCoach.jsx?537e:42 [PreGameCoach] Condiciones para "QueueUpdate" no cumplidas (WS no conectado, ya enviado, o sin userData).
+PreGameCoach.jsx?537e:47 [PreGameCoach] useEffect [aiAdvice] -> Verificando si hay nuevo consejo de la IA.
+PreGameCoach.jsx?537e:14 [PreGameCoach] --- RENDERIZANDO ---
+PreGameCoach.jsx?537e:15 [PreGameCoach] Props recibidas -> LCU_STATUS: ONLINE
+PreGameCoach.jsx?537e:16 [PreGameCoach] Props recibidas -> userData: {id: 1, username: 'jonathan', summonerName: 'Jh0wner', tagline: '7258', region: 'LAS', …}
+PreGameCoach.jsx?537e:31 [PreGameCoach] Estado actual del WebSocket: DISCONNECTED
+PreGameCoach.jsx?537e:14 [PreGameCoach] --- RENDERIZANDO ---
+PreGameCoach.jsx?537e:15 [PreGameCoach] Props recibidas -> LCU_STATUS: ONLINE
+PreGameCoach.jsx?537e:16 [PreGameCoach] Props recibidas -> userData: {id: 1, username: 'jonathan', summonerName: 'Jh0wner', tagline: '7258', region: 'LAS', …}
+PreGameCoach.jsx?537e:31 [PreGameCoach] Estado actual del WebSocket: DISCONNECTED
+PreGameCoach.jsx?537e:34 [PreGameCoach] useEffect [wsStatus, userData] -> Verificando condiciones para enviar actualización de cola.
+PreGameCoach.jsx?537e:42 [PreGameCoach] Condiciones para "QueueUpdate" no cumplidas (WS no conectado, ya enviado, o sin userData).
+useWebSocketCoach.js?9516:30 [useWebSocketCoach] ✅ WebSocket conectado para QUEUE_ADVICE.
+PreGameCoach.jsx?537e:14 [PreGameCoach] --- RENDERIZANDO ---
+PreGameCoach.jsx?537e:15 [PreGameCoach] Props recibidas -> LCU_STATUS: ONLINE
+PreGameCoach.jsx?537e:16 [PreGameCoach] Props recibidas -> userData: {id: 1, username: 'jonathan', summonerName: 'Jh0wner', tagline: '7258', region: 'LAS', …}
+PreGameCoach.jsx?537e:31 [PreGameCoach] Estado actual del WebSocket: CONNECTED
+PreGameCoach.jsx?537e:14 [PreGameCoach] --- RENDERIZANDO ---
+PreGameCoach.jsx?537e:15 [PreGameCoach] Props recibidas -> LCU_STATUS: ONLINE
+PreGameCoach.jsx?537e:16 [PreGameCoach] Props recibidas -> userData: {id: 1, username: 'jonathan', summonerName: 'Jh0wner', tagline: '7258', region: 'LAS', …}
+PreGameCoach.jsx?537e:31 [PreGameCoach] Estado actual del WebSocket: CONNECTED
+PreGameCoach.jsx?537e:34 [PreGameCoach] useEffect [wsStatus, userData] -> Verificando condiciones para enviar actualización de cola.
+PreGameCoach.jsx?537e:42 [PreGameCoach] Condiciones para "QueueUpdate" no cumplidas (WS no conectado, ya enviado, o sin userData).
+useLcuData.js?e742:34 [useLcuData] ✅ Paquete de datos completo recibido desde Electron: {lcuStatus: 'ONLINE', gamePhase: 'Lobby', draftData: null, userData: {…}}
+page.jsx?3c80:22 [OVERLAY] Evaluando widget. Estado actual:
+page.jsx?3c80:23  -> LCU_STATUS: ONLINE
+page.jsx?3c80:24  -> userData: {id: 1, username: 'jonathan', summonerName: 'Jh0wner', tagline: '7258', region: 'LAS', …}
+page.jsx?3c80:25  -> gamePhase: Lobby
+page.jsx?3c80:38 [OVERLAY] RENDER: PreGameCoach
+page.jsx?3c80:22 [OVERLAY] Evaluando widget. Estado actual:
+page.jsx?3c80:23  -> LCU_STATUS: ONLINE
+page.jsx?3c80:24  -> userData: {id: 1, username: 'jonathan', summonerName: 'Jh0wner', tagline: '7258', region: 'LAS', …}
+page.jsx?3c80:25  -> gamePhase: Lobby
+page.jsx?3c80:38 [OVERLAY] RENDER: PreGameCoach
+PreGameCoach.jsx?537e:14 [PreGameCoach] --- RENDERIZANDO ---
+PreGameCoach.jsx?537e:15 [PreGameCoach] Props recibidas -> LCU_STATUS: ONLINE
+PreGameCoach.jsx?537e:16 [PreGameCoach] Props recibidas -> userData: {id: 1, username: 'jonathan', summonerName: 'Jh0wner', tagline: '7258', region: 'LAS', …}
+PreGameCoach.jsx?537e:31 [PreGameCoach] Estado actual del WebSocket: CONNECTED
+PreGameCoach.jsx?537e:14 [PreGameCoach] --- RENDERIZANDO ---
+PreGameCoach.jsx?537e:15 [PreGameCoach] Props recibidas -> LCU_STATUS: ONLINE
+PreGameCoach.jsx?537e:16 [PreGameCoach] Props recibidas -> userData: {id: 1, username: 'jonathan', summonerName: 'Jh0wner', tagline: '7258', region: 'LAS', …}
+PreGameCoach.jsx?537e:31 [PreGameCoach] Estado actual del WebSocket: CONNECTED
+useWebSocketCoach.js?9516:25 [useWebSocketCoach] 'userData' recibido. Conectando a ws://localhost:8080 para el evento QUEUE_ADVICE...
+PreGameCoach.jsx?537e:34 [PreGameCoach] useEffect [wsStatus, userData] -> Verificando condiciones para enviar actualización de cola.
+PreGameCoach.jsx?537e:42 [PreGameCoach] Condiciones para "QueueUpdate" no cumplidas (WS no conectado, ya enviado, o sin userData).
+PreGameCoach.jsx?537e:47 [PreGameCoach] useEffect [aiAdvice] -> Verificando si hay nuevo consejo de la IA.
+PreGameCoach.jsx?537e:14 [PreGameCoach] --- RENDERIZANDO ---
+PreGameCoach.jsx?537e:15 [PreGameCoach] Props recibidas -> LCU_STATUS: ONLINE
+PreGameCoach.jsx?537e:16 [PreGameCoach] Props recibidas -> userData: {id: 1, username: 'jonathan', summonerName: 'Jh0wner', tagline: '7258', region: 'LAS', …}
+PreGameCoach.jsx?537e:31 [PreGameCoach] Estado actual del WebSocket: DISCONNECTED
+PreGameCoach.jsx?537e:14 [PreGameCoach] --- RENDERIZANDO ---
+PreGameCoach.jsx?537e:15 [PreGameCoach] Props recibidas -> LCU_STATUS: ONLINE
+PreGameCoach.jsx?537e:16 [PreGameCoach] Props recibidas -> userData: {id: 1, username: 'jonathan', summonerName: 'Jh0wner', tagline: '7258', region: 'LAS', …}
+PreGameCoach.jsx?537e:31 [PreGameCoach] Estado actual del WebSocket: DISCONNECTED
+PreGameCoach.jsx?537e:34 [PreGameCoach] useEffect [wsStatus, userData] -> Verificando condiciones para enviar actualización de cola.
+PreGameCoach.jsx?537e:42 [PreGameCoach] Condiciones para "QueueUpdate" no cumplidas (WS no conectado, ya enviado, o sin userData).
+useWebSocketCoach.js?9516:30 [useWebSocketCoach] ✅ WebSocket conectado para QUEUE_ADVICE.
+PreGameCoach.jsx?537e:14 [PreGameCoach] --- RENDERIZANDO ---
+PreGameCoach.jsx?537e:15 [PreGameCoach] Props recibidas -> LCU_STATUS: ONLINE
+PreGameCoach.jsx?537e:16 [PreGameCoach] Props recibidas -> userData: {id: 1, username: 'jonathan', summonerName: 'Jh0wner', tagline: '7258', region: 'LAS', …}
+PreGameCoach.jsx?537e:31 [PreGameCoach] Estado actual del WebSocket: CONNECTED
+PreGameCoach.jsx?537e:14 [PreGameCoach] --- RENDERIZANDO ---
+PreGameCoach.jsx?537e:15 [PreGameCoach] Props recibidas -> LCU_STATUS: ONLINE
+PreGameCoach.jsx?537e:16 [PreGameCoach] Props recibidas -> userData: {id: 1, username: 'jonathan', summonerName: 'Jh0wner', tagline: '7258', region: 'LAS', …}
+PreGameCoach.jsx?537e:31 [PreGameCoach] Estado actual del WebSocket: CONNECTED
+PreGameCoach.jsx?537e:34 [PreGameCoach] useEffect [wsStatus, userData] -> Verificando condiciones para enviar actualización de cola.
+PreGameCoach.jsx?537e:42 [PreGameCoach] Condiciones para "QueueUpdate" no cumplidas (WS no conectado, ya enviado, o sin userData).
+useLcuData.js?e742:34 [useLcuData] ✅ Paquete de datos completo recibido desde Electron: {lcuStatus: 'ONLINE', gamePhase: 'Lobby', draftData: null, userData: {…}}
+page.jsx?3c80:22 [OVERLAY] Evaluando widget. Estado actual:
+page.jsx?3c80:23  -> LCU_STATUS: ONLINE
+page.jsx?3c80:24  -> userData: {id: 1, username: 'jonathan', summonerName: 'Jh0wner', tagline: '7258', region: 'LAS', …}
+page.jsx?3c80:25  -> gamePhase: Lobby
+page.jsx?3c80:38 [OVERLAY] RENDER: PreGameCoach
+page.jsx?3c80:22 [OVERLAY] Evaluando widget. Estado actual:
+page.jsx?3c80:23  -> LCU_STATUS: ONLINE
+page.jsx?3c80:24  -> userData: {id: 1, username: 'jonath

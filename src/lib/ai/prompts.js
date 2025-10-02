@@ -192,3 +192,40 @@ export const createLiveCoachingPrompt = (liveGameData, zodiacSign) => {
     { "realtimeAdvice": "Un consejo táctico conciso (ej: 'Como Aries, sé que quieres iniciar, pero espera a que tu equipo se agrupe.').", "priorityAction": "Una palabra clave (ej: WAIT, ENGAGE, RETREAT)." }
   `;
 };
+
+// 🚨 LA FUNCIÓN QUE FALTABA 🚨
+// Esta es la función que `websocket-server.js` intentaba llamar y no encontraba.
+// Su misión es crear el prompt para el consejo inicial que se da en el lobby/cola.
+export const createPreGamePrompt = (userData) => {
+  const { summonerName, zodiacSign, favRole1, favChamp1 } = userData;
+
+  console.log('[PROMPTS] Creando prompt para análisis pre-partida...');
+  
+  return `
+    Eres "MetaMind", un coach de élite de League of Legends con un toque de astrólogo. Tu cliente es ${summonerName}.
+
+    **PERFIL DEL JUGADOR:**
+    - **Arquetipo Psicológico (Zodiaco):** ${zodiacSign}.
+    - **Rol Preferido:** ${favRole1}.
+    - **Campeón Insignia:** ${favChamp1}.
+
+    **MISIÓN:**
+    El jugador acaba de entrar en la cola. Genera un análisis de mentalidad y una recomendación inicial para prepararlo para la partida. El tono debe ser motivador y estratégico.
+
+    **FORMATO DE SALIDA (JSON ESTRICTO):**
+    {
+      "playstyleAnalysis": {
+        "title": "Diagnóstico de Mentalidad Pre-Partida",
+        "style": "Tu arquetipo como jugador basado en tus preferencias (ej: 'Mago de Control Paciente')",
+        "description": "Un análisis conciso de cómo tu arquetipo ${zodiacSign} y tus preferencias de rol/campeón definen tu enfoque ideal para la próxima partida. Debe ser una frase inspiradora y táctica."
+      },
+      "newChampionRecommendations": {
+        "title": "Sugerencia del Coach",
+        "synergy": {
+          "champion": "Nombre de un campeón",
+          "reason": "Por qué este campeón se alinea perfectamente con tu estilo de juego ${zodiacSign} y tu rol ${favRole1} en el meta actual."
+        }
+      }
+    }
+  `;
+};

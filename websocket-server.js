@@ -1,8 +1,10 @@
-// websocket-server.js - CORREGIDO PARA LA NUEVA FIRMA DE generateStrategicAnalysis
+// websocket-server.js - VERSIÓN CORREGIDA Y FINAL
 
 const WebSocket = require('ws');
+const path = require('path'); // <-- Se necesita para resolver la ruta
+require('dotenv').config({ path: path.resolve(__dirname, '.env.local') }); // <-- CORRECCIÓN DEFINITIVA
 const { generateStrategicAnalysis } = require('./dist/lib/ai/strategist');
-const { createChampSelectPrompt, createLiveCoachingPrompt } = require('./dist/lib/ai/prompts');
+const { createChampSelectPrompt, createLiveCoachingPrompt, createPreGamePrompt } = require('./dist/lib/ai/prompts');
 
 const SERVER_PORT = process.env.PORT || process.env.WS_PORT || 8080;
 const wss = new WebSocket.Server({ port: SERVER_PORT });
@@ -15,7 +17,7 @@ wss.on('connection', (ws) => {
     ws.on('message', async (rawMessage) => {
         try {
             const message = JSON.parse(rawMessage.toString());
-            console.log('[MENSAJE RECIBIDO]', message);
+            console.log('[MENSAJE RECIBIDO]', message.eventType);
 
             const { eventType, data, userData } = message;
             let prompt;
@@ -23,26 +25,36 @@ wss.on('connection', (ws) => {
 
             // --- LÓGICA DE DECISIÓN BASADA EN EL EVENTO ---
             switch (eventType) {
-                case 'CHAMP_SELECT_UPDATE':
-                    if (!data || !userData) throw new Error('Datos de Champ Select o de usuario incompletos.');
-                    prompt = createChampSelectPrompt(data, userData);
+                case 'QUEUE_UPDATE':
+                    if (!userData) throw new Error('Datos de usuario incompletos para Queue Update.');
                     
-                    // CORRECCIÓN: Pasar el prompt directamente.
+                    console.log('[EVENTO] Procesando QUEUE_UPDATE para generar consejo pre-partida...');
+                    prompt = createPreGamePrompt(userData);
                     analysisResult = await generateStrategicAnalysis(prompt);
 
-                    // Enviar la respuesta de vuelta
+                    console.log('[EVENTO] ✅ Consejo pre-partida generado. Enviando QUEUE_ADVICE...');
+                    ws.send(JSON.stringify({ eventType: 'QUEUE_ADVICE', data: analysisResult }));
+                    break;
+                
+                case 'CHAMP_SELECT_UPDATE':
+                    if (!data || !userData) throw new Error('Datos de Champ Select o de usuario incompletos.');
+                    
+                    console.log('[EVENTO] Procesando CHAMP_SELECT_UPDATE para analizar el draft...');
+                    prompt = createChampSelectPrompt(data, userData);
+                    analysisResult = await generateStrategicAnalysis(prompt);
+
+                    console.log('[EVENTO] ✅ Análisis de draft generado. Enviando CHAMP_SELECT_ADVICE...');
                     ws.send(JSON.stringify({ eventType: 'CHAMP_SELECT_ADVICE', data: analysisResult }));
                     break;
                 
-                case 'IN_GAME_SCREENSHOT_ANALYSIS': // Para la "R Definitiva" de Nano Banana
+                case 'IN_GAME_SCREENSHOT_ANALYSIS':
                     if (!data || !userData) throw new Error('Datos de captura de pantalla o de usuario incompletos.');
-                    
+
+                    console.log('[EVENTO] Procesando IN_GAME_SCREENSHOT_ANALYSIS para coaching en vivo...');
                     prompt = createLiveCoachingPrompt(data, userData.zodiacSign);
-                    
-                    // CORRECCIÓN: Pasar el prompt directamente.
                     analysisResult = await generateStrategicAnalysis(prompt);
                     
-                    // Enviar la respuesta de vuelta
+                    console.log('[EVENTO] ✅ Consejo en vivo generado. Enviando IN_GAME_ADVICE...');
                     ws.send(JSON.stringify({ eventType: 'IN_GAME_ADVICE', data: analysisResult }));
                     break;
 
@@ -53,7 +65,7 @@ wss.on('connection', (ws) => {
             }
 
         } catch (error) {
-            console.error('🚨 Error al procesar el mensaje del WebSocket:', error);
+            console.error('🚨 Error al procesar el mensaje del WebSocket:', error.message);
             ws.send(JSON.stringify({ eventType: 'ERROR', data: { message: `Error en el servidor: ${error.message}` } }));
         }
     });

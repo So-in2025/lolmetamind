@@ -5,29 +5,34 @@ Object.defineProperty(exports, "__esModule", {
 });
 exports.generateStrategicAnalysis = void 0;
 var _apiConfig = require("../../services/apiConfig");
-var _prompts = require("./prompts");
-// src/lib/ai/strategist.js
-
-// Importamos TODOS los prompts que podríamos necesitar
-
-// 🚨 CORRECCIÓN CLAVE: Cambiar el nombre del modelo
-const API_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent?key=${_apiConfig.GEMINI_API_KEY}`;
-// NOTA: Si 'gemini-2.5-flash' no funciona, prueba con 'gemini-1.5-pro-latest' o 'gemini-1.0-pro' 
-// o el modelo que tu clave soporte y que permita 'responseMimeType: "application/json"'.
+// src/lib/ai/strategist.js - VERSIÓN FINAL Y ROBUSTA
 
 /**
- * Función central para generar análisis enviando un prompt a la API de Gemini.
- * @param {object} analysisData - Objeto que contiene el prompt a enviar.
- * @param {string} analysisData.customPrompt - El prompt completo y listo para la IA.
+ * Función centralizada para comunicarse con la API de Gemini, ahora compatible con múltiples modelos.
+ * @param {string} prompt - El prompt completo y listo para ser enviado a la IA.
+ * @param {string} [modelName='gemini-1.5-flash-latest'] - El nombre del modelo a utilizar (opcional, por defecto 'gemini-1.5-flash-latest').
  * @returns {Promise<object>} - Una promesa que se resuelve con el objeto JSON de la IA.
  */
-const generateStrategicAnalysis = async prompt => {
+const generateStrategicAnalysis = async (prompt, modelName = 'gemini-1.5-flash-latest') => {
+  // 1. Validación de entrada robusta.
   if (!prompt || typeof prompt !== 'string' || prompt.trim().length === 0) {
-    console.error('[Strategist] Error: No se proporcionó un prompt válido.');
-    throw new Error('Se requiere un prompt para el análisis.');
+    console.error('[Strategist] 🚨 Error: Se intentó llamar a la IA sin un prompt válido.');
+    throw new Error('Se requiere un prompt para el análisis de la IA.');
   }
+
+  // URL dinámica que cambia según el modelo solicitado.
+  const API_URL = `https://generativelanguage.googleapis.com/v1/models/${modelName}:generateContent?key=${_apiConfig.GEMINI_API_KEY}`;
   try {
-    console.log('[Strategist] Enviando prompt a Gemini 1.5 Flash...');
+    console.log(`[Strategist] Enviando prompt a ${modelName}...`);
+
+    // Objeto base para la configuración de la generación.
+    const generationConfig = {};
+
+    // 💡 LA CORRECCIÓN CLAVE ESTÁ AQUÍ:
+    // Solo añadimos el parámetro 'response_mime_type' si el modelo es compatible.
+    if (modelName.includes('1.5-flash')) {
+      generationConfig.response_mime_type = "application/json";
+    }
     const response = await fetch(API_URL, {
       method: 'POST',
       headers: {
@@ -52,23 +57,28 @@ const generateStrategicAnalysis = async prompt => {
           category: "HARM_CATEGORY_DANGEROUS_CONTENT",
           threshold: "BLOCK_NONE"
         }],
-        generationConfig: {
-          responseMimeType: "application/json"
-        }
+        // Asignamos la configuración que acabamos de crear.
+        generationConfig: generationConfig
       })
     });
+    const responseData = await response.json();
+
+    // 2. Manejo de errores de la API mejorado.
     if (!response.ok) {
-      const errorBody = await response.text();
-      console.error(`[Strategist] Error de la API de Gemini: ${response.status} - ${errorBody}`);
+      const errorDetails = responseData.error ? JSON.stringify(responseData.error) : 'Sin detalles adicionales.';
+      console.error(`[Strategist] 🚨 Error de la API de Gemini: ${response.status} - ${errorDetails}`);
       throw new Error(`La API de Gemini devolvió un error: ${response.status}`);
     }
-    const data = await response.json();
-    const rawText = data.candidates[0].content.parts[0].text;
-    const jsonText = rawText.replace(/```json/g, '').replace(/```/g, '').trim();
-    console.log('[Strategist] ✅ Respuesta JSON recibida y parseada de Gemini.');
-    return JSON.parse(jsonText);
+
+    // 3. Extracción y parseo del texto JSON de la respuesta.
+    const rawText = responseData.candidates[0].content.parts[0].text;
+    console.log('[Strategist] ✅ Respuesta recibida de Gemini. Parseando...');
+
+    // El parseo es seguro porque si el modelo es antiguo, devolverá un JSON de todas formas (según tus prompts).
+    return JSON.parse(rawText);
   } catch (error) {
-    console.error('[Strategist] 🚨 Fallo catastrófico al generar análisis:', error);
+    // Capturamos tanto los errores de red como los de parseo.
+    console.error(`[Strategist] 🚨 Fallo catastrófico al generar análisis: ${error.message}`);
     throw new Error('No se pudo completar el análisis de la IA.');
   }
 };
