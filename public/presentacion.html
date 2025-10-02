@@ -270,7 +270,7 @@
         </section>
     </div>
 
-    <button id="tts-control" class="tts-floating-control" style="display: none;" data-icon="🎤">
+    <button id="tts-control" class="tts-floating-control" style="display: none;" data-icon="🎤" title="Iniciar Narración">
         <span id="tts-icon">🎤</span>
     </button>
 
@@ -317,25 +317,34 @@
             text += document.querySelector('header').innerText.replace(/\n/g, ". ");
             
             document.querySelectorAll('.container section').forEach(section => {
+                // Limpieza: Reemplaza múltiples espacios/saltos de línea con un punto y espacio
                 text += ". " + section.textContent.replace(/[\n\r]+/g, ' ').replace(/\s\s+/g, ' ').trim(); 
             });
 
             return text;
         }
 
-        // Función que realmente llama a .speak()
+        // Función que realmente llama a .speak() con la lógica de prioridad de voz
         function speakNow(utterance) {
             const voices = window.speechSynthesis.getVoices();
-            const esVoice = voices.find(voice => voice.lang.startsWith('es'));
             
-            if (esVoice) {
-                utterance.voice = esVoice;
+            // 🚨 NUEVA LÓGICA DE PRIORIDAD DE VOZ: Google > cualquier Español 🚨
+            const spanishVoices = voices.filter(voice => voice.lang.startsWith('es'));
+            const googleVoice = spanishVoices.find(voice => voice.name.includes('Google'));
+            const finalVoice = googleVoice || spanishVoices[0];
+
+            if (finalVoice) {
+                utterance.voice = finalVoice;
+            } else {
+                 console.warn("No se encontró ninguna voz en español (ni Google) para la narración.");
             }
             
+            // Listener de fin para actualizar el botón flotante
             utterance.onend = () => {
                 updateFloatingControl(); // Actualiza a 🎤 al finalizar
             };
             
+            // CRÍTICO: El .speak() dentro del handler del click inicia la reproducción (fix móvil)
             window.speechSynthesis.speak(utterance);
             updateFloatingControl(); // Actualiza a 🛑 Inmediatamente
         }
@@ -358,6 +367,11 @@
             // 3. Iniciar la lógica de TTS
             if ('speechSynthesis' in window) {
                 const textToSpeak = getFullTextForTTS();
+                
+                // Preparamos la nueva reproducción
+                if (currentUtterance) {
+                    window.speechSynthesis.cancel();
+                }
                 currentUtterance = new SpeechSynthesisUtterance(textToSpeak);
                 currentUtterance.pitch = 1; 
                 currentUtterance.rate = 1;
