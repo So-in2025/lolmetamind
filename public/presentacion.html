@@ -20,7 +20,7 @@
             color: var(--lol-gold-light);
             font-family: 'Roboto', sans-serif;
             margin: 0;
-            padding: 0;
+            padding: 0 0 120px 0; /* Añadido padding inferior para que el footer no tape el contenido */
             line-height: 1.6;
             transition: background-color 0.5s;
             -webkit-text-size-adjust: 100%;
@@ -70,7 +70,6 @@
             box-shadow: 0 0 10px rgba(11, 198, 227, 0.5);
         }
         
-        /* Estilos de runas anidadas */
         .feature-list ul {
             padding-left: 20px;
             margin-top: 10px;
@@ -115,14 +114,6 @@
             text-align: center;
         }
         
-        /* Contenedor de botones en el splash screen */
-        .splash-buttons {
-            display: flex;
-            flex-direction: column;
-            gap: 15px; /* Espacio entre los botones */
-            margin-top: 20px;
-        }
-
         .cta-button {
             background-color: var(--lol-gold);
             color: var(--lol-dark-blue);
@@ -133,62 +124,91 @@
             font-weight: 700;
             cursor: pointer;
             transition: all 0.3s;
-            text-decoration: none; /* Para el enlace */
+            text-decoration: none;
+            display: inline-block;
             font-size: 1em;
-            text-align: center;
         }
-
+        
         .cta-button:hover {
             background-color: var(--lol-accent);
             border-color: var(--lol-gold);
         }
         
-        /* 🚨 NUEVO ESTILO: Botón Flotante para el control de la narración */
-        .tts-floating-control {
+        /* --- NUEVO FOOTER FIJO CON BOTONES --- */
+        .fixed-footer {
             position: fixed;
-            bottom: 20px;
-            right: 20px;
-            z-index: 900;
-            background-color: var(--lol-accent);
-            color: var(--lol-dark-blue);
-            border-radius: 50%;
-            width: 60px;
-            height: 60px;
-            padding: 0;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            background-color: var(--lol-medium-blue);
+            border-top: 2px solid var(--lol-gold);
+            box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.5);
+            padding: 15px;
             display: flex;
-            align-items: center;
             justify-content: center;
-            font-size: 0; 
-            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.5), 0 0 20px var(--lol-accent);
-            border: 2px solid var(--lol-gold-light);
-            cursor: pointer;
+            align-items: center;
+            gap: 20px;
+            z-index: 999;
+            transform: translateY(100%); /* Oculto por defecto */
+            transition: transform 0.5s ease-in-out;
         }
-        
-        /* Estilo para mostrar el ícono */
-        .tts-floating-control span {
-            font-size: 26px;
-            line-height: 1;
+
+        .fixed-footer.visible {
+            transform: translateY(0); /* Lo hace visible */
         }
-        
+
+        .fixed-footer .cta-button {
+            padding: 10px 20px;
+            font-size: 0.9em;
+        }
+
+        .play-button {
+            background-color: var(--lol-accent);
+            border-color: var(--lol-gold-light);
+        }
+        .play-button:hover {
+            background-color: var(--lol-gold);
+            border-color: var(--lol-accent);
+        }
+
         /* --- ESTILOS RESPONSIVE --- */
         @media (max-width: 768px) {
-            .splash-buttons {
-                gap: 10px;
+            .container {
+                padding: 20px 15px;
+            }
+            .card {
+                padding: 20px;
+            }
+            header h1, .splash-overlay h1 {
+                font-size: 2.5em !important;
+            }
+            header h2, .splash-overlay h2 {
+                font-size: 1.3em !important;
             }
         }
+        
         @media (max-width: 480px) {
-            .tts-floating-control {
-                width: 50px;
-                height: 50px;
-                bottom: 15px;
-                right: 15px;
+            body { padding-bottom: 150px; } /* Más espacio para footer en vertical */
+            header h1, .splash-overlay h1 {
+                font-size: 2em !important;
             }
-            .tts-floating-control span {
-                font-size: 20px;
+            header h2, .splash-overlay h2 {
+                font-size: 1.1em !important;
+            }
+            .splash-overlay p {
+                font-size: 1.2em !important;
+            }
+            .feature-list li, .feature-list ul li {
+                padding: 10px;
             }
             .cta-button {
                 padding: 10px 20px;
                 font-size: 0.9em;
+            }
+            .fixed-footer {
+                flex-direction: column; /* Apila los botones en vertical */
+                padding: 10px;
+                gap: 10px;
             }
         }
     </style>
@@ -199,14 +219,7 @@
         <h1 class="font-display" style="font-size: 3em;">INFORME DE PROYECTO</h1>
         <h2 class="font-display" style="color: var(--lol-gold-light);">COACH META MIND</h2>
         <p class="font-display" style="font-size: 1.5em;">Tu ventaja estratégica está lista.</p>
-        
-        <div class="splash-buttons">
-            <button id="start-tts" class="cta-button">Ver Informe y Escuchar Narración</button>
-            
-            <a href="https://couchmetamind.vercel.app/" id="go-to-landing" class="cta-button" target="_blank">
-                Ir a la Página de Lanzamiento
-            </a>
-        </div>
+        <button id="start-tts" class="cta-button">Ver Informe y Escuchar Narración</button>
     </div>
 
     <header>
@@ -230,7 +243,7 @@
                     <h3 style="color: var(--lol-gold-light);">FASE II: La Ventaja Crítica en Tiempo Real</h3>
                     <p>Aquí es donde la magia de la aplicación de escritorio Electron brilla. Al detectar el cliente LCU, el sistema entra en modo de combate, ofreciendo un arsenal de herramientas tácticas:</p>
                     <ul style="list-style: none;">
-                        <li><strong>Asistencia en Draft:</strong> Durante la selección de campeón, la IA proporciona consejos estratégicos en tiempo real, analizando las composiciones de equipo y sugiriendo picks y bans ópticos.</li>
+                        <li><strong>Asistencia en Draft:</strong> Durante la selección de campeón, la IA proporciona consejos estratégicos en tiempo real, analizando las composiciones de equipo y sugiriendo picks y bans óptimos.</li>
                         <li><strong>Overlay Táctico:</strong> Una vez en partida, un overlay transparente y no intrusivo (Nano Banana) muestra consejos contextuales y personalizados que se adaptan dinámicamente al estado del juego y al arquetipo zodiacal del jugador.</li>
                         <li><strong>Inyección de Runas Automatizada:</strong> La joya de la corona. Con un solo clic, el sistema puede enviar comandos directamente al cliente LCU para construir e inyectar una página de runas completa y optimizada por la IA, eliminando errores y ahorrando tiempo crítico.</li>
                     </ul>
@@ -270,124 +283,76 @@
         </section>
     </div>
 
-    <button id="tts-control" class="tts-floating-control" style="display: none;" data-icon="🎤" title="Iniciar Narración">
-        <span id="tts-icon">🎤</span>
-    </button>
+    <div id="fixed-footer" class="fixed-footer">
+        <button id="play-narration-button" class="cta-button play-button">► Escuchar Narración</button>
+        <a href="https://couchmetamind.vercel.app/" target="_blank" class="cta-button">Visitar Landing Page</a>
+    </div>
 
     <script>
-        // Variables globales para la reproducción de voz
-        let currentUtterance = null;
-        const ttsControl = document.getElementById('tts-control');
-        const ttsIcon = document.getElementById('tts-icon');
+        const splashButton = document.getElementById('start-tts');
+        const narrationButton = document.getElementById('play-narration-button');
+        const splashOverlay = document.getElementById('splash');
+        const fixedFooter = document.getElementById('fixed-footer');
 
-        // Función para actualizar el estado visual del botón flotante
-        function updateFloatingControl() {
-            if (window.speechSynthesis.speaking) {
-                ttsIcon.textContent = '🛑'; // Detener
-                ttsControl.title = 'Detener Narración';
-            } else if (window.speechSynthesis.paused) {
-                ttsIcon.textContent = '▶️'; // Reanudar
-                ttsControl.title = 'Reanudar Narración';
-            } else {
-                ttsIcon.textContent = '🎤'; // Iniciar/Finalizado
-                ttsControl.title = 'Iniciar Narración';
-            }
-        }
-        
-        // Función de alternar (Play/Pause/Resume/Restart)
-        function toggleTTS() {
-            if (!window.speechSynthesis) return;
-
-            if (window.speechSynthesis.speaking) {
-                window.speechSynthesis.pause();
-            } else if (window.speechSynthesis.paused) {
-                window.speechSynthesis.resume();
-            } else if (currentUtterance) {
-                // Si está finalizado o cancelado, reiniciamos la reproducción
-                window.speechSynthesis.cancel();
-                speakNow(currentUtterance);
-            }
-            updateFloatingControl();
-        }
-        
-        // Función de extracción de texto
-        function getFullTextForTTS() {
-            let text = "Saludos. La misión ha sido un éxito rotundo. El proyecto Coach Meta Mind, desarrollado por SO IN Soluciones Informáticas, ha sido finalizado, auditado y está listo para producción. El ecosistema de coaching de tres fases, la inyección de runas y el flujo de datos LCU están completamente operativos y alineados. Este informe detalla la arquitectura y las funcionalidades épicas entregadas. ";
-            
-            text += document.querySelector('header').innerText.replace(/\n/g, ". ");
-            
-            document.querySelectorAll('.container section').forEach(section => {
-                // Limpieza: Reemplaza múltiples espacios/saltos de línea con un punto y espacio
-                text += ". " + section.textContent.replace(/[\n\r]+/g, ' ').replace(/\s\s+/g, ' ').trim(); 
-            });
-
-            return text;
-        }
-
-        // Función que realmente llama a .speak() con la lógica de prioridad de voz
-        function speakNow(utterance) {
-            const voices = window.speechSynthesis.getVoices();
-            
-            // 🚨 NUEVA LÓGICA DE PRIORIDAD DE VOZ: Google > cualquier Español 🚨
-            const spanishVoices = voices.filter(voice => voice.lang.startsWith('es'));
-            const googleVoice = spanishVoices.find(voice => voice.name.includes('Google'));
-            const finalVoice = googleVoice || spanishVoices[0];
-
-            if (finalVoice) {
-                utterance.voice = finalVoice;
-            } else {
-                 console.warn("No se encontró ninguna voz en español (ni Google) para la narración.");
-            }
-            
-            // Listener de fin para actualizar el botón flotante
-            utterance.onend = () => {
-                updateFloatingControl(); // Actualiza a 🎤 al finalizar
-            };
-            
-            // CRÍTICO: El .speak() dentro del handler del click inicia la reproducción (fix móvil)
-            window.speechSynthesis.speak(utterance);
-            updateFloatingControl(); // Actualiza a 🛑 Inmediatamente
-        }
-        
-        // 🚨 Listener del botón flotante (permanente)
-        ttsControl.addEventListener('click', toggleTTS);
-
-        // 🚨 Listener del botón del splash screen
-        document.getElementById('start-tts').addEventListener('click', (event) => {
-            const overlay = document.getElementById('splash');
-            
-            // 1. Ocultar el Splash Screen
-            overlay.style.opacity = '0';
-            setTimeout(() => {
-                overlay.style.display = 'none';
-                // 2. Mostrar el control flotante
-                ttsControl.style.display = 'flex';
-            }, 1000);
-
-            // 3. Iniciar la lógica de TTS
+        // --- LÓGICA TTS REUTILIZABLE ---
+        function initiateTTS() {
             if ('speechSynthesis' in window) {
-                const textToSpeak = getFullTextForTTS();
-                
-                // Preparamos la nueva reproducción
-                if (currentUtterance) {
-                    window.speechSynthesis.cancel();
-                }
-                currentUtterance = new SpeechSynthesisUtterance(textToSpeak);
-                currentUtterance.pitch = 1; 
-                currentUtterance.rate = 1;
+                // Detiene cualquier narración anterior antes de empezar una nueva
+                window.speechSynthesis.cancel();
 
-                if (window.speechSynthesis.getVoices().length > 0) {
-                    speakNow(currentUtterance);
-                } else {
-                    // Esperamos a que las voces carguen, luego iniciamos la narración
-                    window.speechSynthesis.onvoiceschanged = () => speakNow(currentUtterance);
+                function getFullTextForTTS() {
+                    let text = "Saludos. La misión ha sido un éxito rotundo. El proyecto Coach Meta Mind, desarrollado por SO IN Soluciones Informáticas, ha sido finalizado, auditado y está listo para producción. El ecosistema de coaching de tres fases, la inyección de runas y el flujo de datos LCU están completamente operativos y alineados. Este informe detalla la arquitectura y las funcionalidades épicas entregadas. ";
+                    text += document.querySelector('header').innerText.replace(/\n/g, ". ");
+                    document.querySelectorAll('.container section').forEach(section => {
+                        text += ". " + section.textContent.replace(/\s\s+/g, ' ').trim(); 
+                    });
+                    return text;
                 }
-                
+
+                const textToSpeak = getFullTextForTTS();
+                const utterance = new SpeechSynthesisUtterance(textToSpeak);
+                utterance.pitch = 1; 
+                utterance.rate = 1;
+
+                function speakNow() {
+                    const voices = window.speechSynthesis.getVoices();
+                    const esVoice = voices.find(voice => voice.lang.startsWith('es'));
+                    if (esVoice) {
+                        utterance.voice = esVoice;
+                    } else {
+                        console.warn("No se encontró una voz en español. Se usará la voz predeterminada del sistema.");
+                    }
+                    window.speechSynthesis.speak(utterance);
+                }
+
+                if (window.speechSynthesis.getVoices().length === 0) {
+                    window.speechSynthesis.onvoiceschanged = speakNow;
+                } else {
+                    speakNow();
+                }
             } else {
                 console.error("El navegador no soporta Speech Synthesis.");
-                alert("Tu navegador no soporta la narración por voz.");
-                ttsControl.style.display = 'none'; // Esconde el botón si no hay TTS
+                alert("Lo sentimos, tu navegador no soporta la narración por voz.");
             }
+        }
+
+        // --- EVENT LISTENERS ---
+        splashButton.addEventListener('click', () => {
+            // Oculta el splash
+            splashOverlay.style.opacity = '0';
+            setTimeout(() => {
+                splashOverlay.style.display = 'none';
+            }, 1000);
+
+            // Muestra el footer de botones
+            fixedFooter.classList.add('visible');
+            
+            // Inicia la narración
+            initiateTTS();
+        });
+
+        narrationButton.addEventListener('click', () => {
+            initiateTTS(); // El botón persistente también inicia la narración
         });
     </script>
 </body>
