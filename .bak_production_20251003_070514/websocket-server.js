@@ -7,14 +7,14 @@ const path = require('path');
 require('dotenv').config({ path: path.resolve(process.cwd(), '.env.local') });
 
 // Importaciones de lógica de negocio desde la carpeta de compilación 'dist'.
-// NOTA: generateStrategicAnalysis debe ser llamada con expectedType!
 const { generateStrategicAnalysis } = require('./dist/lib/ai/strategist');
 const { createChampSelectPrompt, createLiveCoachingPrompt, createPreGamePrompt } = require('./dist/lib/ai/prompts');
 
 const SERVER_PORT = process.env.WS_PORT || 8080;
 const wss = new WebSocket.Server({ port: SERVER_PORT });
 
-// --- VALIDACIÓN Y MANEJO DE ERRORES (sin cambios) ---
+// --- MEJORA 2: VALIDACIÓN DE DATOS (EJEMPLO SIMPLE) ---
+// En un proyecto real, se usaría una librería como Zod para esquemas más complejos.
 const validate = (schema, data) => {
   if (!data) {
     throw new Error(`Datos requeridos por el esquema '${schema}' están ausentes.`);
@@ -22,9 +22,11 @@ const validate = (schema, data) => {
   if (schema === 'userData' && (typeof data.summonerName !== 'string' || !data.zodiacSign)) {
     throw new Error('El objeto userData no tiene el formato esperado (requiere summonerName y zodiacSign).');
   }
+  // Se podrían añadir más validaciones para 'draftData', 'screenshotData', etc.
   return true;
 };
 
+// --- MEJORA 3: MANEJADOR DE ERRORES CENTRALIZADO ---
 const handleError = (error, ws, context = 'general') => {
   const errorMessage = error instanceof Error ? error.message : 'Un error desconocido ocurrió.';
   console.error(`🚨 Error en [${context}]:`, errorMessage);
@@ -33,7 +35,7 @@ const handleError = (error, ws, context = 'general') => {
   }
 };
 
-// --- MANEJADOR DE EVENTOS (CON CONTRATOS DETERMINISTAS) ---
+// --- MEJORA 1: MANEJADOR DE EVENTOS (HANDLER PATTERN) ---
 const eventHandlers = {
   /**
    * Maneja la solicitud de consejo pre-partida.
@@ -41,13 +43,8 @@ const eventHandlers = {
   'QUEUE_UPDATE': async ({ userData }, ws) => {
     validate('userData', userData);
     console.log('[EVENTO] Procesando QUEUE_UPDATE para generar consejo pre-partida...');
-    
-    const model = 'gemini-2.0-flash'; // Modelo ultrarrápido para baja latencia
     const prompt = createPreGamePrompt(userData);
-    
-    // CÓDIGO DETERMINISTA: Espera un 'object'
-    const analysisResult = await generateStrategicAnalysis(prompt, 'object', model);
-    
+    const analysisResult = await generateStrategicAnalysis(prompt);
     console.log('[EVENTO] ✅ Consejo pre-partida generado. Enviando QUEUE_ADVICE...');
     ws.send(JSON.stringify({ eventType: 'QUEUE_ADVICE', data: analysisResult }));
   },
@@ -57,14 +54,10 @@ const eventHandlers = {
    */
   'CHAMP_SELECT_UPDATE': async ({ data, userData }, ws) => {
     validate('userData', userData);
+    // validate('draftData', data); // Aquí se implementaría una validación para 'data'
     console.log('[EVENTO] Procesando CHAMP_SELECT_UPDATE para analizar el draft...');
-    
-    const model = 'gemini-2.0-flash'; // Modelo ultrarrápido para baja latencia
     const prompt = createChampSelectPrompt(data, userData);
-    
-    // CÓDIGO DETERMINISTA: Espera un 'object'
-    const analysisResult = await generateStrategicAnalysis(prompt, 'object', model);
-    
+    const analysisResult = await generateStrategicAnalysis(prompt);
     console.log('[EVENTO] ✅ Análisis de draft generado. Enviando CHAMP_SELECT_ADVICE...');
     ws.send(JSON.stringify({ eventType: 'CHAMP_SELECT_ADVICE', data: analysisResult }));
   },
@@ -74,20 +67,16 @@ const eventHandlers = {
    */
   'IN_GAME_SCREENSHOT_ANALYSIS': async ({ data, userData }, ws) => {
     validate('userData', userData);
+    // validate('screenshotData', data); // Aquí se implementaría una validación para 'data'
     console.log('[EVENTO] Procesando IN_GAME_SCREENSHOT_ANALYSIS para coaching en vivo...');
-    
-    const model = 'gemini-2.0-flash'; // Modelo ultrarrápido para baja latencia
     const prompt = createLiveCoachingPrompt(data, userData.zodiacSign);
-    
-    // CÓDIGO DETERMINISTA: Espera un 'object'
-    const analysisResult = await generateStrategicAnalysis(prompt, 'object', model);
-    
+    const analysisResult = await generateStrategicAnalysis(prompt);
     console.log('[EVENTO] ✅ Consejo en vivo generado. Enviando IN_GAME_ADVICE...');
     ws.send(JSON.stringify({ eventType: 'IN_GAME_ADVICE', data: analysisResult }));
   }
 };
 
-// --- LÓGICA PRINCIPAL DEL SERVIDOR (sin cambios) ---
+// --- LÓGICA PRINCIPAL DEL SERVIDOR ---
 wss.on('connection', (ws) => {
   console.log('[CONEXIÓN] Nueva conexión de cliente (App Electron) establecida.');
 
@@ -103,15 +92,18 @@ wss.on('connection', (ws) => {
       
       console.log('[MENSAJE RECIBIDO]', eventType);
 
+      // Busca el manejador correspondiente al tipo de evento.
       const handler = eventHandlers[eventType];
 
       if (handler) {
+        // Si se encuentra, lo ejecuta pasándole los datos y la conexión.
         await handler(message, ws);
       } else {
         console.warn(`[EVENTO] Tipo de evento no reconocido: ${eventType}`);
         ws.send(JSON.stringify({ eventType: 'ERROR', data: { message: 'Tipo de evento no reconocido.' } }));
       }
     } catch (error) {
+      // Cualquier error (de parseo, validación o ejecución) es capturado aquí.
       handleError(error, ws, message ? message.eventType : 'parsing');
     }
   });
@@ -121,6 +113,7 @@ wss.on('connection', (ws) => {
   });
   
   ws.on('error', (err) => {
+    // Este evento captura errores a nivel de la conexión WebSocket en sí.
     handleError(err, ws, 'connection');
   });
 });

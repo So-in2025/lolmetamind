@@ -14,7 +14,6 @@ export async function POST(request) {
     try {
         const { summoner, draft } = await request.json();
 
-        // 🚨 VALIDACIÓN CRÍTICA: Asegurarse de que summoner y zodiacSign estén presentes
         if (!summoner || !summoner.summonerName || !summoner.zodiacSign) {
             console.error("[API GET-RECOMMENDATIONS] Error: Faltan datos esenciales del invocador para la IA (summonerName, zodiacSign).");
             return NextResponse.json(
@@ -25,16 +24,14 @@ export async function POST(request) {
         
         console.log(`[Strategist] Enviando prompt a Gemini 1.0 Pro para recomendaciones iniciales...`);
 
-        // Crea el prompt con los datos disponibles, sin forzar 'rank' si no existe
         const prompt = createInitialAnalysisPrompt({
             summonerName: summoner.summonerName,
             zodiacSign: summoner.zodiacSign,
-            // Aquí puedes pasar otros datos si los tienes, como roles, campeones, etc.
-            // Por ejemplo: roles: summoner.roles, favoriteChampions: summoner.favoriteChampions
             draft: draft
         });
 
-        const analysis = await generateStrategicAnalysis(prompt);
+        // CÓDIGO DETERMINISTA: Espera un 'object'
+        const analysis = await generateStrategicAnalysis(prompt, 'object');
 
         return NextResponse.json(analysis, { status: 200, headers: CORS_HEADERS });
 

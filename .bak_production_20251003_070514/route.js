@@ -1,6 +1,6 @@
 // src/app/api/ai/live-coach/route.js (ENDPOINT DE COACHING EN TIEMPO REAL)
 
-import { NextResponse, NextRequest } from 'next/server'; // Se añade NextRequest por si acaso
+import { NextResponse } from 'next/server';
 import { generateStrategicAnalysis } from '@/lib/ai/strategist';
 import { createLiveCoachingPrompt } from '@/lib/ai/prompts';
 
@@ -19,9 +19,7 @@ export async function POST(request) {
         }
 
         const prompt = createLiveCoachingPrompt(liveData, userData.zodiacSign);
-        
-        // CÓDIGO DETERMINISTA: Espera un 'object'
-        const analysis = await generateStrategicAnalysis(prompt, 'object');
+        const analysis = await generateStrategicAnalysis(prompt);
         
         return NextResponse.json(analysis, { status: 200, headers: CORS_HEADERS });
 

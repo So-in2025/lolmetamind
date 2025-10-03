@@ -11,8 +11,8 @@ export async function POST(request) {
 
         const prompt = createMetaAnalysisPrompt(patchVersion || 'actual');
         
-        // CORRECCIÓN: Pasar el prompt directamente como una cadena.
-        const metaAnalysis = await generateStrategicAnalysis(prompt);
+        // CÓDIGO DETERMINISTA: Espera un 'object'
+        const metaAnalysis = await generateStrategicAnalysis(prompt, 'object');
 
         return NextResponse.json(metaAnalysis);
 

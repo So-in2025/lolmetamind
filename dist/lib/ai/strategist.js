@@ -5,15 +5,19 @@ Object.defineProperty(exports, "__esModule", {
 });
 exports.generateStrategicAnalysis = void 0;
 var _apiConfig = require("../../services/apiConfig");
-// src/lib/ai/strategist.js - VERSIÓN FINAL CON MODELO CORROBORADO Y PARSEO CORREGIDO
+// src/lib/ai/strategist.js - VERSIÓN FINAL: ROBUSTA, ESCALABLE Y DINÁMICA
 
 /**
  * Función centralizada para comunicarse con la API de Gemini.
+ * Implementa aislamiento de JSON para garantizar un parseo seguro y fiable,
+ * adaptándose al tipo de estructura de datos esperada (objeto o array).
+ *
  * @param {string} prompt - El prompt completo y listo para ser enviado a la IA.
- * @param {string} [modelName='gemini-2.0-flash'] - El nombre del modelo a utilizar. Se usa uno de la lista confirmada.
+ * @param {'object'|'array'} [expectedType='object'] - Define el tipo de JSON esperado ('object' para {...} o 'array' para [...]).
+ * @param {string} [modelName='gemini-2.0-flash'] - Modelo de IA optimizado para baja latencia.
  * @returns {Promise<object>} - Una promesa que se resuelve con el objeto JSON de la IA.
  */
-const generateStrategicAnalysis = async (prompt, modelName = 'gemini-2.0-flash') => {
+const generateStrategicAnalysis = async (prompt, expectedType = 'object', modelName = 'gemini-2.0-flash') => {
   if (!prompt || typeof prompt !== 'string' || prompt.trim().length === 0) {
     console.error('[Strategist] 🚨 Error: Se intentó llamar a la IA sin un prompt válido.');
     throw new Error('Se requiere un prompt para el análisis de la IA.');
@@ -54,30 +58,45 @@ const generateStrategicAnalysis = async (prompt, modelName = 'gemini-2.0-flash')
       console.error(`[Strategist] 🚨 Error de la API de Gemini: ${response.status} - ${errorDetails}`);
       throw new Error(`La API de Gemini devolvió un error: ${response.status}`);
     }
-    if (!responseData.candidates || responseData.candidates.length === 0) {
-      console.error('[Strategist] 🚨 La API devolvió una respuesta sin candidatos.', responseData);
-      throw new Error('La respuesta de la IA no contiene candidatos.');
-    }
-    const candidate = responseData.candidates[0];
-    if (!candidate.content || !candidate.content.parts || !candidate.content.parts[0]) {
-      console.error('[Strategist] 🚨 La respuesta del candidato fue bloqueada por seguridad o está vacía.', candidate);
+    const candidate = responseData.candidates?.[0];
+    const rawTextPart = candidate?.content?.parts?.[0]?.text;
+    if (!rawTextPart) {
+      console.error('[Strategist] 🚨 La respuesta del candidato fue bloqueada o está vacía.', responseData);
       throw new Error('La respuesta de la IA fue bloqueada por filtros de seguridad o está incompleta.');
     }
-    let rawText = candidate.content.parts[0].text; // Declaración de 'rawText' con 'let'
+    let rawText = rawTextPart;
 
-    // --- CORRECCIÓN CLAVE: Eliminar el prefijo y sufijo de bloque de código Markdown si existen ---
+    // --- AISLAMIENTO DE JSON EXPLÍCITO Y A PRUEBA DE FALLOS ---
+
+    // 1. Limpieza de Markdown (patrón común de la IA)
     if (rawText.startsWith('```json')) {
-      rawText = rawText.substring(7); // Elimina '```json\n'
+      rawText = rawText.substring(7);
     }
     if (rawText.endsWith('```')) {
-      rawText = rawText.slice(0, -3); // Elimina '\n```'
+      rawText = rawText.slice(0, -3);
     }
-    rawText = rawText.trim(); // Limpia cualquier espacio o nueva línea extra
 
+    // 2. Definir delimitadores basados en el tipo esperado (determinista)
+    const startChar = expectedType === 'array' ? '[' : '{';
+    const endChar = expectedType === 'array' ? ']' : '}';
+
+    // 3. Aislar el bloque JSON completo (ignora texto antes o después)
+    const startIndex = rawText.indexOf(startChar);
+    const endIndex = rawText.lastIndexOf(endChar);
+
+    // 4. Verificación de seguridad estructural
+    if (startIndex === -1 || endIndex === -1 || endIndex < startIndex) {
+      console.error(`[Strategist] 🚨 La IA devolvió una estructura no esperada (${expectedType}).`, rawText);
+      throw new Error(`La IA no devolvió la estructura JSON esperada (${expectedType}).`);
+    }
+
+    // 5. Recortar la cadena y limpiar
+    rawText = rawText.substring(startIndex, endIndex + 1).trim();
     console.log('[Strategist] ✅ Respuesta recibida de Gemini. Parseando...');
     return JSON.parse(rawText);
   } catch (error) {
-    console.error(`[Strategist] 🚨 Fallo catastrófico al generar análisis: ${error.message}`);
+    const errorMessage = error instanceof Error ? error.message : 'Error desconocido al procesar la respuesta.';
+    console.error(`[Strategist] 🚨 Fallo catastrófico al generar análisis: ${errorMessage}`);
     throw new Error('No se pudo completar el análisis de la IA.');
   }
 };

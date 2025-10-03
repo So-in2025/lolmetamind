@@ -3,32 +3,19 @@
 Object.defineProperty(exports, "__esModule", {
   value: true
 });
-exports.createPreGamePrompt = exports.createPerformanceAnalysisPrompt = exports.createMetaAnalysisPrompt = exports.createLiveCoachingPrompt = exports.createInitialAnalysisPrompt = exports.createChampSelectPrompt = exports.createChallengeGenerationPrompt = void 0;
-// src/lib/ai/prompts.js
+exports.createPerformanceAnalysisPrompt = exports.createMetaAnalysisPrompt = exports.createLiveCoachingPrompt = exports.createInitialAnalysisPrompt = exports.createChampSelectPrompt = exports.createChallengeGenerationPrompt = void 0;
+// src/lib/ai/prompts.js - VERSIÓN CON INSTRUCCIONES CRÍTICAS PARA JSON ESTRICTO Y BAJA LATENCIA
 
 // --- PROMPT PARA COACHING EN SELECCIÓN DE CAMPEÓN ---
 const createChampSelectPrompt = (draftData, summonerData) => {
-  // Accede de forma segura a gameData y sus propiedades.
-  // Los logs indican que draftData tiene un 'gameData' con 'teamOne' y 'teamTwo'.
-  // Asumiremos que los baneos podrían estar en 'gameData.bannedChampions' o similar.
+  // Lógica para mapear datos... (asumimos que la lógica interna sigue siendo la misma)
   const gameData = draftData?.gameData || {};
   const myTeamPicksRaw = gameData.teamOne || [];
   const theirTeamPicksRaw = gameData.teamTwo || [];
-  // A menudo, los baneos están en una propiedad como 'bannedChampions' o similar.
-  // Si la estructura es diferente, ajusta 'gameData.bannedChampions' a la ruta correcta.
   const bansRaw = gameData.bannedChampions || [];
-
-  // Mapear los objetos de campeones a sus nombres.
-  // Usamos optional chaining y un fallback para manejar diferentes estructuras
-  // (ej. si el objeto tiene 'championName' o solo 'name' o 'id' que necesitaría ser resuelto).
   const myTeamPicks = myTeamPicksRaw.map(p => p.championName || p.name || `ChampID:${p.id || ''}`).filter(Boolean);
   const theirTeamPicks = theirTeamPicksRaw.map(p => p.championName || p.name || `ChampID:${p.id || ''}`).filter(Boolean);
   const bans = bansRaw.map(b => b.championName || b.name || `ChampID:${b.id || ''}`).filter(Boolean);
-
-  // Si los baneos no aparecen, podría ser necesario inspeccionar más a fondo el objeto 'draftData' completo.
-  if (bans.length === 0 && bansRaw.length > 0) {
-    console.warn("[PROMPTS] No se pudieron extraer nombres de campeones de los baneos. Estructura de bansRaw:", bansRaw);
-  }
   const {
     summonerName,
     zodiacSign
@@ -37,7 +24,7 @@ const createChampSelectPrompt = (draftData, summonerData) => {
       Eres "MetaMind", un coach de élite de League of Legends. Tu cliente es ${summonerName}.
 
       **PERFIL PSICOLÓGICO DEL JUGADOR:**
-      - **Arquetipo Zodiacal:** ${zodiacSign}. Esto indica una tendencia a [ej: Aries: agresivo, impulsivo, le gusta iniciar; Tauro: paciente, defensivo, metódico; Géminis: adaptable, versátil, le gusta rotar]. Usa este arquetipo para personalizar tus consejos.
+      - **Arquetipo Zodiacal:** ${zodiacSign}. Usa esto para personalizar tus consejos.
 
       **DATOS DEL DRAFT ACTUAL:**
       - Mi Equipo (Picks): [${myTeamPicks.join(', ')}]
@@ -45,7 +32,9 @@ const createChampSelectPrompt = (draftData, summonerData) => {
       - Baneos Globales: [${bans.join(', ')}]
 
       **MISIÓN:**
-      Basado en el draft y el perfil psicológico del jugador, proporciona un análisis estratégico en formato JSON.
+      Proporciona un análisis estratégico.
+
+      **INSTRUCCIÓN CRÍTICA:** Debes responder **SOLO** con el objeto JSON. NO DEBES INCLUIR TEXTO ADICIONAL (SALUDOS, COMENTARIOS O EXPLICACIONES). Tu respuesta debe comenzar **INMEDIATAMENTE** con el carácter '{'.
 
       **FORMATO DE SALIDA (JSON ESTRICTO):**
       {
@@ -65,17 +54,20 @@ const createChampSelectPrompt = (draftData, summonerData) => {
 // --- PROMPT PARA ANÁLISIS DE RENDIMIENTO POST-PARTIDA ---
 exports.createChampSelectPrompt = createChampSelectPrompt;
 const createPerformanceAnalysisPrompt = (matchHistory, summonerData) => {
+  const performanceSummary = JSON.stringify(matchHistory, null, 2);
   return `
       Eres "MetaMind", un coach analítico. Analiza el historial de partidas de ${summonerData.summonerName}, cuyo arquetipo es ${summonerData.zodiacSign}.
 
       **PERFIL PSICOLÓGICO:**
-      - **Arquetipo Zodiacal:** ${summonerData.zodiacSign}. Ten en cuenta si sus acciones en las partidas se alinean con las fortalezas de su arquetipo o si sus debilidades se manifiestan.
+      - **Arquetipo Zodiacal:** ${summonerData.zodiacSign}. Ten en cuenta si sus acciones se alinean con las fortalezas de su arquetipo.
 
       **DATOS DE PARTIDAS:**
-      ${JSON.stringify(matchHistory, null, 2)}
+      ${performanceSummary}
 
       **MISIÓN:**
       Identifica 2 puntos fuertes y 2 puntos a mejorar. Relaciona al menos un punto con su perfil psicológico.
+
+      **INSTRUCCIÓN CRÍTICA:** Debes responder **SOLO** con el objeto JSON. NO DEBES INCLUIR TEXTO ADICIONAL. Tu respuesta debe comenzar **INMEDIATAMENTE** con el carácter '{'.
 
       **FORMATO DE SALIDA (JSON ESTRICTO):**
       {
@@ -92,10 +84,9 @@ const createPerformanceAnalysisPrompt = (matchHistory, summonerData) => {
     `;
 };
 
-// --- PROMPT PARA ANÁLISIS DEL META ACTUAL (Implementación para evitar el error 500) ---
+// --- PROMPT PARA ANÁLISIS DEL META ACTUAL ---
 exports.createPerformanceAnalysisPrompt = createPerformanceAnalysisPrompt;
 const createMetaAnalysisPrompt = patchVersion => {
-  // Definición completa del prompt para evitar el error 500 por 'customPrompt' vacío
   return `
       Eres "MetaMind", un analista de la Grieta del Invocador.
 
@@ -103,14 +94,16 @@ const createMetaAnalysisPrompt = patchVersion => {
       - Versión del Parche Solicitada: ${patchVersion}.
 
       **MISIÓN:**
-      Genera un análisis conciso del estado actual del meta de League of Legends en el parche **${patchVersion}**, centrándose en los cambios más impactantes en el juego profesional (Top, Jungla, Medio, ADC, Soporte).
+      Genera un análisis conciso del estado actual del meta de League of Legends.
+
+      **INSTRUCCIÓN CRÍTICA:** Debes responder **SOLO** con el objeto JSON. NO DEBES INCLUIR TEXTO ADICIONAL. Tu respuesta debe comenzar **INMEDIATAMENTE** con el carácter '{'.
 
       **FORMATO DE SALIDA (JSON ESTRICTO):**
       {
         "type": "meta",
         "patchVersion": "${patchVersion}",
         "tierListChanges": "Un resumen de los 3 campeones que subieron más de tier y los 3 que bajaron más, con una breve explicación.",
-        "strategicFocus": "El objetivo macro principal del juego en este parche (ej: control de visión, peleas de equipo en mid-game, split-push).",
+        "strategicFocus": "El objetivo macro principal del juego en este parche.",
         "keyChampionToMaster": {
             "name": "Nombre de Campeón",
             "reason": "Por qué dominar a este campeón es clave para la victoria en este meta."
@@ -118,9 +111,8 @@ const createMetaAnalysisPrompt = patchVersion => {
       }
     `;
 };
-// --- TUS PROMPTS ORIGINALES (REFINADOS) ---
 
-// Prompt para el análisis inicial del dashboard
+// --- Prompt para el análisis inicial del dashboard ---
 exports.createMetaAnalysisPrompt = createMetaAnalysisPrompt;
 const createInitialAnalysisPrompt = analysisData => {
   const {
@@ -138,6 +130,8 @@ const createInitialAnalysisPrompt = analysisData => {
 
     **MISIÓN:**
     Basado en su arquetipo y su arsenal, genera un análisis de su estilo de juego y recomienda campeones que se alineen con su personalidad o la desafíen para crecer.
+
+    **INSTRUCCIÓN CRÍTICA:** Debes responder **SOLO** con el objeto JSON. NO DEBES INCLUIR TEXTO ADICIONAL. Tu respuesta debe comenzar **INMEDIATAMENTE** con el carácter '{'.
 
     **FORMATO DE SALIDA (JSON ESTRICTO):**
     {
@@ -161,7 +155,7 @@ const createInitialAnalysisPrompt = analysisData => {
   `;
 };
 
-// --- PROMPT PARA GENERAR DESAFÍOS SEMANALES (Implementación para evitar el error 500) ---
+// --- PROMPT PARA GENERAR DESAFÍOS SEMANALES (Único que devuelve un Array) ---
 exports.createInitialAnalysisPrompt = createInitialAnalysisPrompt;
 const createChallengeGenerationPrompt = playerData => {
   const {
@@ -175,26 +169,27 @@ const createChallengeGenerationPrompt = playerData => {
       Eres "MetaMind", un coach de élite de League of Legends enfocado en el crecimiento a largo plazo. Tu cliente es ${summonerName}.
 
       **ANÁLISIS DE RENDIMIENTO RECIENTE (5 Partidas):**
-      Los datos a continuación son un resumen de las métricas clave del jugador en sus partidas recientes. Analiza estas tendencias para identificar áreas de mejora.
       ${performanceSummary}
 
       **MISIÓN:**
-      Genera **3 Desafíos Semanales** altamente personalizados para ${summonerName}. Cada desafío debe ser una meta cuantificable, basada en las métricas de rendimiento y diseñada para mejorar un aspecto específico de su juego (ej: visión, farmeo, control de objetivos).
+      Genera **3 Desafíos Semanales**. Si los datos de rendimiento son insuficientes, genera desafíos genéricos.
+
+      **INSTRUCCIÓN CRÍTICA:** Debes responder **SOLO** con el array JSON. NO DEBES INCLUIR TEXTO ADICIONAL. Tu respuesta debe comenzar **INMEDIATAMENTE** con el carácter '['.
 
       **FORMATO DE SALIDA (JSON ESTRICTO):**
       Un array JSON que contiene 3 objetos. Cada objeto debe seguir estrictamente este esquema, que coincide con la estructura de la tabla 'user_challenges' de la base de datos:
       [
         {
           "title": "Desafío de Visión Estratégica",
-          "description": "Si tu 'averageVisionScore' es bajo, el desafío podría ser: 'Alcanza un promedio de Puntuación de Visión de X en 5 partidas rankeadas.', de lo contrario, enfócate en otra métrica.",
+          "description": "Alcanza un promedio de Puntuación de Visión de X en 5 partidas rankeadas, o un desafío similar si los datos son insuficientes.",
           "challenge_type": "weekly",
-          "metric": "visionScore",       // Opciones: 'visionScore', 'csPerMinute', 'kills', 'deaths', 'goldPerMinute', etc.
-          "goal": 25.5,                  // Valor decimal para la meta (ej: 25.5 o 6.8)
-          "reward": "Cofre MetaMind"     // Una recompensa simple para el cliente.
+          "metric": "visionScore",
+          "goal": 25.5,
+          "reward": "Cofre MetaMind"
         },
         {
           "title": "Dominio del Farmeo Temprano",
-          "description": "Basado en tu 'csPerMinute' promedio, supera esta marca en la fase de líneas.",
+          "description": "Supera tu 'csPerMinute' promedio en la fase de líneas.",
           "challenge_type": "weekly",
           "metric": "csPerMinute",
           "goal": 6.8, 
@@ -202,17 +197,17 @@ const createChallengeGenerationPrompt = playerData => {
         },
         {
           "title": "Control Agresivo de Objetivos",
-          "description": "Mejora tu impacto en los objetivos globales como dragones o torres. El desafío es alcanzar un 'killParticipation' alto.",
+          "description": "Mejora tu impacto en los objetivos globales. El desafío es alcanzar un 'killParticipation' alto.",
           "challenge_type": "weekly",
           "metric": "killParticipation",
-          "goal": 0.65, // Representa 65%
+          "goal": 0.65, 
           "reward": "Ícono de Invocador Único"
         }
       ]
     `;
 };
 
-// Prompt para "Nano Banana" (aquí también puede influir)
+// --- Prompt para el Live Coaching (Utilizado por WebSocket) ---
 exports.createChallengeGenerationPrompt = createChallengeGenerationPrompt;
 const createLiveCoachingPrompt = (liveGameData, zodiacSign) => {
   const gameInfo = JSON.stringify(liveGameData, null, 2);
@@ -223,51 +218,12 @@ const createLiveCoachingPrompt = (liveGameData, zodiacSign) => {
     ${gameInfo}
 
     **MISIÓN:**
-    Considerando la tendencia de un ${zodiacSign} a [ej: ser impulsivo/paciente], genera el consejo más relevante para la situación actual.
+    Genera el consejo más relevante para la situación actual.
+
+    **INSTRUCCIÓN CRÍTICA:** Debes responder **SOLO** con el objeto JSON. NO DEBES INCLUIR TEXTO ADICIONAL. Tu respuesta debe comenzar **INMEDIATAMENTE** con el carácter '{'.
 
     **INSTRUCCIONES DE OUTPUT (JSON ESTRICTO):**
     { "realtimeAdvice": "Un consejo táctico conciso (ej: 'Como Aries, sé que quieres iniciar, pero espera a que tu equipo se agrupe.').", "priorityAction": "Una palabra clave (ej: WAIT, ENGAGE, RETREAT)." }
   `;
 };
-
-// 🚨 LA FUNCIÓN QUE FALTABA 🚨
-// Esta es la función que `websocket-server.js` intentaba llamar y no encontraba.
-// Su misión es crear el prompt para el consejo inicial que se da en el lobby/cola.
 exports.createLiveCoachingPrompt = createLiveCoachingPrompt;
-const createPreGamePrompt = userData => {
-  const {
-    summonerName,
-    zodiacSign,
-    favRole1,
-    favChamp1
-  } = userData;
-  console.log('[PROMPTS] Creando prompt para análisis pre-partida...');
-  return `
-    Eres "MetaMind", un coach de élite de League of Legends con un toque de astrólogo. Tu cliente es ${summonerName}.
-
-    **PERFIL DEL JUGADOR:**
-    - **Arquetipo Psicológico (Zodiaco):** ${zodiacSign}.
-    - **Rol Preferido:** ${favRole1}.
-    - **Campeón Insignia:** ${favChamp1}.
-
-    **MISIÓN:**
-    El jugador acaba de entrar en la cola. Genera un análisis de mentalidad y una recomendación inicial para prepararlo para la partida. El tono debe ser motivador y estratégico.
-
-    **FORMATO DE SALIDA (JSON ESTRICTO):**
-    {
-      "playstyleAnalysis": {
-        "title": "Diagnóstico de Mentalidad Pre-Partida",
-        "style": "Tu arquetipo como jugador basado en tus preferencias (ej: 'Mago de Control Paciente')",
-        "description": "Un análisis conciso de cómo tu arquetipo ${zodiacSign} y tus preferencias de rol/campeón definen tu enfoque ideal para la próxima partida. Debe ser una frase inspiradora y táctica."
-      },
-      "newChampionRecommendations": {
-        "title": "Sugerencia del Coach",
-        "synergy": {
-          "champion": "Nombre de un campeón",
-          "reason": "Por qué este campeón se alinea perfectamente con tu estilo de juego ${zodiacSign} y tu rol ${favRole1} en el meta actual."
-        }
-      }
-    }
-  `;
-};
-exports.createPreGamePrompt = createPreGamePrompt;

@@ -15,8 +15,8 @@ export async function POST(request) {
         
         const prompt = createPerformanceAnalysisPrompt(matchHistory || [], summonerData);
         
-        // CORRECCIÓN: Pasar el prompt directamente como una cadena.
-        const analysis = await generateStrategicAnalysis(prompt);
+        // CÓDIGO DETERMINISTA: Espera un 'object'
+        const analysis = await generateStrategicAnalysis(prompt, 'object');
 
         return NextResponse.json(analysis);
 

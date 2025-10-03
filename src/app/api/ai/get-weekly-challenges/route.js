@@ -18,8 +18,8 @@ export async function POST(request) {
             recentMatchesPerformance: recentMatchesPerformance || {} 
         });
         
-        // CORRECCIÓN: Pasar el prompt directamente como una cadena.
-        const challenges = await generateStrategicAnalysis(prompt);
+        // CÓDIGO DETERMINISTA: Espera un 'array'
+        const challenges = await generateStrategicAnalysis(prompt, 'array');
 
         return NextResponse.json(challenges);
 
