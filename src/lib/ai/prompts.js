@@ -2,7 +2,28 @@
 
 // --- PROMPT PARA COACHING EN SELECCIÓN DE CAMPEÓN ---
 export const createChampSelectPrompt = (draftData, summonerData) => {
-    const { myTeamPicks, theirTeamPicks, bans } = draftData;
+    // Accede de forma segura a gameData y sus propiedades.
+    // Los logs indican que draftData tiene un 'gameData' con 'teamOne' y 'teamTwo'.
+    // Asumiremos que los baneos podrían estar en 'gameData.bannedChampions' o similar.
+    const gameData = draftData?.gameData || {};
+    const myTeamPicksRaw = gameData.teamOne || [];
+    const theirTeamPicksRaw = gameData.teamTwo || [];
+    // A menudo, los baneos están en una propiedad como 'bannedChampions' o similar.
+    // Si la estructura es diferente, ajusta 'gameData.bannedChampions' a la ruta correcta.
+    const bansRaw = gameData.bannedChampions || []; 
+
+    // Mapear los objetos de campeones a sus nombres.
+    // Usamos optional chaining y un fallback para manejar diferentes estructuras
+    // (ej. si el objeto tiene 'championName' o solo 'name' o 'id' que necesitaría ser resuelto).
+    const myTeamPicks = myTeamPicksRaw.map(p => p.championName || p.name || `ChampID:${p.id || ''}`).filter(Boolean);
+    const theirTeamPicks = theirTeamPicksRaw.map(p => p.championName || p.name || `ChampID:${p.id || ''}`).filter(Boolean);
+    const bans = bansRaw.map(b => b.championName || b.name || `ChampID:${b.id || ''}`).filter(Boolean);
+
+    // Si los baneos no aparecen, podría ser necesario inspeccionar más a fondo el objeto 'draftData' completo.
+    if (bans.length === 0 && bansRaw.length > 0) {
+        console.warn("[PROMPTS] No se pudieron extraer nombres de campeones de los baneos. Estructura de bansRaw:", bansRaw);
+    }
+    
     const { summonerName, zodiacSign } = summonerData;
     
     return `
