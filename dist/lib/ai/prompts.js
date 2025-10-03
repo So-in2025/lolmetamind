@@ -4,7 +4,7 @@ Object.defineProperty(exports, "__esModule", {
   value: true
 });
 exports.createPreGamePrompt = exports.createPerformanceAnalysisPrompt = exports.createMetaAnalysisPrompt = exports.createLiveCoachingPrompt = exports.createInitialAnalysisPrompt = exports.createChampSelectPrompt = exports.createChallengeGenerationPrompt = void 0;
-// src/lib/ai/prompts.js - VERSIÓN CON INSTRUCCIONES CRÍTICAS PARA JSON ESTRICTO Y BAJA LATENCIA
+// src/lib/ai/prompts.js - VERSIÓN FINAL Y COMPLETA (ASTRO-TÉCNICA INTERNA)
 
 // --- PROMPT PARA COACHING EN SELECCIÓN DE CAMPEÓN ---
 const createChampSelectPrompt = (draftData, summonerData) => {
@@ -106,9 +106,9 @@ const createLiveCoachingPrompt = (liveGameData, zodiacSign) => {
   `;
 };
 
-// --- 💎 NUEVO PROMPT ASTRO-TÉCNICO PARA PRE-PARTIDA 💎 ---
+// --- 💎 PROMPT ASTRO-TÉCNICO PARA PRE-PARTIDA (INTERNO) 💎 ---
 exports.createLiveCoachingPrompt = createLiveCoachingPrompt;
-const createPreGamePrompt = (userData, dailyHoroscope, performanceData) => {
+const createPreGamePrompt = (userData, performanceData) => {
   const {
     zodiacSign,
     favRole1,
@@ -116,18 +116,19 @@ const createPreGamePrompt = (userData, dailyHoroscope, performanceData) => {
   } = userData;
   const performanceSummary = JSON.stringify(performanceData, null, 2);
   return `
-    Eres "MetaMind", un coach astro-técnico de League of Legends. Tu tarea es preparar mentalmente a un jugador para su próxima partida.
+    Eres "MetaMind", un coach astro-técnico de League of Legends con amplio conocimiento en arcanos y estrategia.
+    Tu tarea es preparar mentalmente a un jugador para su próxima partida.
 
-    **CONTEXTO ASTROLÓGICO DEL DÍA:**
-    - **Predicción del Horóscopo para ${zodiacSign} hoy:** "${dailyHoroscope}"
-    
+    **CONTEXTO ASTROLÓGICO DEL DÍA (AUTO-GENERADO):**
+    - **INSTRUCCIÓN CRÍTICA:** Como experto en astrología y League of Legends, genera un **consejo de horóscopo del día específico para el signo ${zodiacSign}** y aplícalo a la mentalidad de juego.
+
     **PERFIL DEL JUGADOR:**
     - **Arquetipo Psicológico (Zodiaco):** ${zodiacSign}.
     - **Enfoque Principal:** Rol ${favRole1} con ${favChamp1}.
-    - **Historial de Rendimiento (Puntos a Mejorar):** ${performanceSummary}
+    - **Historial de Rendimiento (Puntos Clave a Mejorar):** ${performanceSummary}
 
     **MISIÓN:**
-    Basado en la predicción astral del día y los puntos débiles detectados en su historial, genera un consejo de mentalidad pre-partida y un punto de enfoque técnico. No menciones campeones.
+    Basado en la predicción astral auto-generada y los puntos débiles detectados en su historial, genera un consejo de mentalidad pre-partida y un punto de enfoque técnico. No menciones el nombre de invocador ni campeones.
 
     **INSTRUCCIÓN CRÍTICA:** Responde **SOLO** con el objeto JSON. NO DEBES INCLUIR TEXTO ADICIONAL. Tu respuesta debe comenzar **INMEDIATAMENTE** con '{'.
 

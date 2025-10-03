@@ -1,4 +1,4 @@
-// src/lib/ai/prompts.js - VERSIÓN FINAL Y COMPLETA (ASTRO-TÉCNICA INTERNA)
+// src/lib/ai/prompts.js - VERSIÓN CON INSTRUCCIONES CRÍTICAS PARA JSON ESTRICTO Y BAJA LATENCIA
 
 // --- PROMPT PARA COACHING EN SELECCIÓN DE CAMPEÓN ---
 export const createChampSelectPrompt = (draftData, summonerData) => {
@@ -90,25 +90,24 @@ export const createLiveCoachingPrompt = (liveGameData, zodiacSign) => {
   `;
 };
 
-// --- 💎 PROMPT ASTRO-TÉCNICO PARA PRE-PARTIDA (INTERNO) 💎 ---
-export const createPreGamePrompt = (userData, performanceData) => {
+// --- 💎 NUEVO PROMPT ASTRO-TÉCNICO PARA PRE-PARTIDA 💎 ---
+export const createPreGamePrompt = (userData, dailyHoroscope, performanceData) => {
   const { zodiacSign, favRole1, favChamp1 } = userData;
   const performanceSummary = JSON.stringify(performanceData, null, 2);
 
   return `
-    Eres "MetaMind", un coach astro-técnico de League of Legends con amplio conocimiento en arcanos y estrategia.
-    Tu tarea es preparar mentalmente a un jugador para su próxima partida.
+    Eres "MetaMind", un coach astro-técnico de League of Legends. Tu tarea es preparar mentalmente a un jugador para su próxima partida.
 
-    **CONTEXTO ASTROLÓGICO DEL DÍA (AUTO-GENERADO):**
-    - **INSTRUCCIÓN CRÍTICA:** Como experto en astrología y League of Legends, genera un **consejo de horóscopo del día específico para el signo ${zodiacSign}** y aplícalo a la mentalidad de juego.
-
+    **CONTEXTO ASTROLÓGICO DEL DÍA:**
+    - **Predicción del Horóscopo para ${zodiacSign} hoy:** "${dailyHoroscope}"
+    
     **PERFIL DEL JUGADOR:**
     - **Arquetipo Psicológico (Zodiaco):** ${zodiacSign}.
     - **Enfoque Principal:** Rol ${favRole1} con ${favChamp1}.
-    - **Historial de Rendimiento (Puntos Clave a Mejorar):** ${performanceSummary}
+    - **Historial de Rendimiento (Puntos a Mejorar):** ${performanceSummary}
 
     **MISIÓN:**
-    Basado en la predicción astral auto-generada y los puntos débiles detectados en su historial, genera un consejo de mentalidad pre-partida y un punto de enfoque técnico. No menciones el nombre de invocador ni campeones.
+    Basado en la predicción astral del día y los puntos débiles detectados en su historial, genera un consejo de mentalidad pre-partida y un punto de enfoque técnico. No menciones campeones.
 
     **INSTRUCCIÓN CRÍTICA:** Responde **SOLO** con el objeto JSON. NO DEBES INCLUIR TEXTO ADICIONAL. Tu respuesta debe comenzar **INMEDIATAMENTE** con '{'.
 
