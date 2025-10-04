@@ -1,7 +1,7 @@
 // src/app/api/ai/live-coach/route.js (ENDPOINT DE COACHING EN TIEMPO REAL)
 
-import { NextResponse, NextRequest } from 'next/server'; // Se añade NextRequest por si acaso
-import { generateStrategicAnalysis } from '@/lib/ai/strategist';
+import { NextResponse, NextRequest } from 'next/server';
+import { runStrategicAnalysis } from '@/lib/ai/strategist'; // 🚨 FIX: Se usa el nombre de la función de multi-proveedor
 import { createLiveCoachingPrompt } from '@/lib/ai/prompts';
 
 const CORS_HEADERS = {
@@ -21,7 +21,8 @@ export async function POST(request) {
         const prompt = createLiveCoachingPrompt(liveData, userData.zodiacSign);
         
         // CÓDIGO DETERMINISTA: Espera un 'object'
-        const analysis = await generateStrategicAnalysis(prompt, 'object');
+        // Llama al orquestador multi-proveedor
+        const analysis = await runStrategicAnalysis(prompt, 'object'); // ✅ Uso de runStrategicAnalysis
         
         return NextResponse.json(analysis, { status: 200, headers: CORS_HEADERS });
 

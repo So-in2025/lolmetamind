@@ -1,7 +1,7 @@
 // src/app/api/ai/get-weekly-challenges/route.js
 
 import { NextResponse } from 'next/server';
-import { generateStrategicAnalysis } from '@/lib/ai/strategist';
+import { runStrategicAnalysis } from '@/lib/ai/strategist'; // 🚨 FIX: Se usa el nombre de la función de multi-proveedor
 import { createChallengeGenerationPrompt } from '@/lib/ai/prompts';
 
 export async function POST(request) {
@@ -19,7 +19,7 @@ export async function POST(request) {
         });
         
         // CÓDIGO DETERMINISTA: Espera un 'array'
-        const challenges = await generateStrategicAnalysis(prompt, 'array');
+        const challenges = await runStrategicAnalysis(prompt, 'array'); // ✅ Se usa runStrategicAnalysis
 
         return NextResponse.json(challenges);
 

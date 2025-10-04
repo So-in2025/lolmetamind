@@ -1,7 +1,7 @@
 // lolmetamind/src/app/api/ai/get-recommendations/route.js
 
 import { NextResponse } from 'next/server';
-import { generateStrategicAnalysis } from '@/lib/ai/strategist';
+import { runStrategicAnalysis } from '@/lib/ai/strategist'; // 🚨 FIX: Se usa el nombre de la función de multi-proveedor
 import { createInitialAnalysisPrompt } from '@/lib/ai/prompts'; 
 
 const CORS_HEADERS = {
@@ -31,7 +31,7 @@ export async function POST(request) {
         });
 
         // CÓDIGO DETERMINISTA: Espera un 'object'
-        const analysis = await generateStrategicAnalysis(prompt, 'object');
+        const analysis = await runStrategicAnalysis(prompt, 'object'); // ✅ Se usa runStrategicAnalysis
 
         return NextResponse.json(analysis, { status: 200, headers: CORS_HEADERS });
 
