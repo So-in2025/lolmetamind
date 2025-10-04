@@ -79,17 +79,24 @@ const eventHandlers = {
     ws.send(JSON.stringify({ eventType: 'CHAMP_SELECT_ADVICE', data: analysisResult }));
   },
 
-  /**
-   * Maneja el análisis de capturas de pantalla para coaching en vivo.
+   /**
+   * Maneja el análisis de datos en vivo (Ahora con nombre limpio).
    */
-  'IN_GAME_SCREENSHOT_ANALYSIS': async ({ data, userData }, ws) => {
+  'LIVE_COACHING_UPDATE': async ({ data, userData }, ws) => { // NOMBRE CORREGIDO
     validate('userData', userData);
-    console.log('[EVENTO] Procesando IN_GAME_SCREENSHOT_ANALYSIS para coaching en vivo...');
     
-    const model = 'gemini-2.0-flash'; // Modelo ultrarrápido para baja latencia
-    const prompt = createLiveCoachingPrompt(data, userData.zodiacSign);
+    // CRÍTICO: El payload debe contener la clave 'liveGameData'
+    if (!data.liveGameData) {
+        console.error('[EVENTO] Datos de juego en vivo faltantes. Abortando solicitud de IA.');
+        return; 
+    }
     
-    // CÓDIGO DETERMINISTA: Espera un 'object'
+    console.log('[EVENTO] Procesando LIVE_COACHING_UPDATE para coaching en vivo...');
+    
+    const model = 'gemini-2.0-flash';
+    // Se extrae la data del juego en vivo del objeto 'data'
+    const prompt = createLiveCoachingPrompt(data.liveGameData, userData.zodiacSign);
+    
     const analysisResult = await generateStrategicAnalysis(prompt, 'object', model);
     
     console.log('[EVENTO] ✅ Consejo en vivo generado. Enviando IN_GAME_ADVICE...');

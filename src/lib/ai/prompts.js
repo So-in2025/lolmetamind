@@ -1,24 +1,35 @@
 // src/lib/ai/prompts.js - VERSIÓN FINAL Y COMPLETA (ASTRO-TÉCNICA INTERNA)
 
-// --- PROMPT PARA COACHING EN SELECCIÓN DE CAMPEÓN ---
+// --- PROMPT PARA COACHING EN SELECCIÓN DE CAMPEÓN (DRAFT MIND-MAP) ---
 export const createChampSelectPrompt = (draftData, summonerData) => {
     const gameData = draftData?.gameData || {};
     const myTeamPicks = (gameData.teamOne || []).map(p => p.championName || p.name).filter(Boolean);
     const theirTeamPicks = (gameData.teamTwo || []).map(p => p.championName || p.name).filter(Boolean);
     const bans = (gameData.bannedChampions || []).map(b => b.championName || b.name).filter(Boolean);
-    const { zodiacSign } = summonerData;
+    const { zodiacSign, favRole1 } = summonerData;
     return `
       Eres "MetaMind", un coach de élite de League of Legends.
-      **PERFIL PSICOLÓGICO:** Arquetipo Zodiacal: ${zodiacSign}.
+      Tu objetivo es proporcionar una Matriz de Prioridad de Draft inmediata y actionable.
+      
+      **PERFIL PSICOLÓGICO:** Arquetipo Zodiacal: ${zodiacSign}. Rol principal: ${favRole1}.
       **DRAFT ACTUAL:** Mi Equipo: [${myTeamPicks.join(', ')}], Equipo Enemigo: [${theirTeamPicks.join(', ')}], Baneos: [${bans.join(', ')}].
-      **MISIÓN:** Proporciona un análisis estratégico.
+      
+      **MISIÓN:** Analiza el draft y genera 4 métricas concisas para el jugador.
       **INSTRUCCIÓN CRÍTICA:** Responde SOLO con el objeto JSON. No incluyas texto adicional. Tu respuesta debe comenzar INMEDIATAMENTE con '{'.
+      
       **FORMATO DE SALIDA (JSON ESTRICTO):**
       {
-        "strategy": "Un consejo táctico conciso sobre la estrategia general, adaptado a la personalidad ${zodiacSign}.",
-        "earlyGame": "Un consejo clave para los primeros minutos.",
-        "firstItems": "Una recomendación de primer objeto crucial.",
-        "runes": {"name": "MetaMind: Runas","primaryStyleId":8200,"subStyleId":8100,"selectedPerkIds":[8214,8226,8210,8237,8126,8135,5008,5002,5003],"current":true}
+        "draftScore": 78, // Métrica: 0-100, puntuación de ventaja/desventaja de la composición.
+        "metaAdvantage": "La composición de poke enemiga es débil contra tu iniciación sorpresa. Aprovecha la prioridad en Mid para asegurar la visión en Dragón.", // Breve resumen estratégico
+        "phaseFocus": "MID-GAME", // Fase crítica: EARLY-GAME, MID-GAME, LATE-GAME.
+        "playerRoleAction": "STALL & CONTROL", // Acción clave para su rol y campeón actual (ej: ROAM DECISIVO, SPLIT-PUSH, ENGAGE RÁPIDO).
+        "runes": {
+          "name": "MetaMind: Runas",
+          "primaryStyleId": 8200,
+          "subStyleId": 8100,
+          "selectedPerkIds": [8214, 8226, 8210, 8237, 8126, 8135, 5008, 5002, 5003],
+          "current": true
+        }
       }
     `;
 };

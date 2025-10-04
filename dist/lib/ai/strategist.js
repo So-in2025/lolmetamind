@@ -3,28 +3,38 @@
 Object.defineProperty(exports, "__esModule", {
   value: true
 });
-exports.generateStrategicAnalysis = void 0;
+exports.runStrategicAnalysis = void 0;
 var _apiConfig = require("../../services/apiConfig");
-// src/lib/ai/strategist.js - VERSIÓN FINAL: ROBUSTA, ESCALABLE Y DINÁMICA
+// src/lib/ai/strategist.js
+// Adaptadores multi-proveedor para generar análisis de juego:
+// Gemini (Google) y OpenAI (GPT), con manejo de errores y fallback automático.
 
 /**
- * Función centralizada para comunicarse con la API de Gemini.
- * Implementa aislamiento de JSON para garantizar un parseo seguro y fiable,
- * adaptándose al tipo de estructura de datos esperada (objeto o array).
- *
- * @param {string} prompt - El prompt completo y listo para ser enviado a la IA.
- * @param {'object'|'array'} [expectedType='object'] - Define el tipo de JSON esperado ('object' para {...} o 'array' para [...]).
- * @param {string} [modelName='gemini-2.0-flash'] - Modelo de IA optimizado para baja latencia.
- * @returns {Promise<object>} - Una promesa que se resuelve con el objeto JSON de la IA.
+ * parseJSONResponse
+ * Limpia el texto devuelto por la IA y lo parsea a JSON seguro.
  */
-const generateStrategicAnalysis = async (prompt, expectedType = 'object', modelName = 'gemini-2.0-flash') => {
-  if (!prompt || typeof prompt !== 'string' || prompt.trim().length === 0) {
-    console.error('[Strategist] 🚨 Error: Se intentó llamar a la IA sin un prompt válido.');
-    throw new Error('Se requiere un prompt para el análisis de la IA.');
+function parseJSONResponse(rawText, expectedType) {
+  if (rawText.startsWith('```json')) rawText = rawText.slice(7);
+  if (rawText.endsWith('```')) rawText = rawText.slice(0, -3);
+  const startChar = expectedType === 'array' ? '[' : '{';
+  const endChar = expectedType === 'array' ? ']' : '}';
+  const startIndex = rawText.indexOf(startChar);
+  const endIndex = rawText.lastIndexOf(endChar);
+  if (startIndex === -1 || endIndex === -1 || endIndex < startIndex) {
+    throw new Error(`Estructura JSON no encontrada (${expectedType}). Texto devuelto: ${rawText}`);
   }
-  const API_URL = `https://generativelanguage.googleapis.com/v1/models/${modelName}:generateContent?key=${_apiConfig.GEMINI_API_KEY}`;
-  try {
-    console.log(`[Strategist] Enviando prompt a ${modelName}...`);
+  const clean = rawText.substring(startIndex, endIndex + 1).trim();
+  return JSON.parse(clean);
+}
+
+/**
+ * Gemini Provider
+ * Llama a la API de Google Gemini para generar contenido de IA.
+ */
+const geminiProvider = {
+  name: 'Gemini',
+  call: async (prompt, expectedType = 'object', modelName = 'gemini-2.0-flash') => {
+    const API_URL = `https://generativelanguage.googleapis.com/v1/models/${modelName}:generateContent?key=${_apiConfig.GEMINI_API_KEY}`;
     const bodyPayload = {
       contents: [{
         parts: [{
@@ -52,52 +62,67 @@ const generateStrategicAnalysis = async (prompt, expectedType = 'object', modelN
       },
       body: JSON.stringify(bodyPayload)
     });
-    const responseData = await response.json();
-    if (!response.ok) {
-      const errorDetails = responseData.error ? JSON.stringify(responseData.error) : 'Sin detalles adicionales.';
-      console.error(`[Strategist] 🚨 Error de la API de Gemini: ${response.status} - ${errorDetails}`);
-      throw new Error(`La API de Gemini devolvió un error: ${response.status}`);
-    }
-    const candidate = responseData.candidates?.[0];
-    const rawTextPart = candidate?.content?.parts?.[0]?.text;
-    if (!rawTextPart) {
-      console.error('[Strategist] 🚨 La respuesta del candidato fue bloqueada o está vacía.', responseData);
-      throw new Error('La respuesta de la IA fue bloqueada por filtros de seguridad o está incompleta.');
-    }
-    let rawText = rawTextPart;
-
-    // --- AISLAMIENTO DE JSON EXPLÍCITO Y A PRUEBA DE FALLOS ---
-
-    // 1. Limpieza de Markdown (patrón común de la IA)
-    if (rawText.startsWith('```json')) {
-      rawText = rawText.substring(7);
-    }
-    if (rawText.endsWith('```')) {
-      rawText = rawText.slice(0, -3);
-    }
-
-    // 2. Definir delimitadores basados en el tipo esperado (determinista)
-    const startChar = expectedType === 'array' ? '[' : '{';
-    const endChar = expectedType === 'array' ? ']' : '}';
-
-    // 3. Aislar el bloque JSON completo (ignora texto antes o después)
-    const startIndex = rawText.indexOf(startChar);
-    const endIndex = rawText.lastIndexOf(endChar);
-
-    // 4. Verificación de seguridad estructural
-    if (startIndex === -1 || endIndex === -1 || endIndex < startIndex) {
-      console.error(`[Strategist] 🚨 La IA devolvió una estructura no esperada (${expectedType}).`, rawText);
-      throw new Error(`La IA no devolvió la estructura JSON esperada (${expectedType}).`);
-    }
-
-    // 5. Recortar la cadena y limpiar
-    rawText = rawText.substring(startIndex, endIndex + 1).trim();
-    console.log('[Strategist] ✅ Respuesta recibida de Gemini. Parseando...');
-    return JSON.parse(rawText);
-  } catch (error) {
-    const errorMessage = error instanceof Error ? error.message : 'Error desconocido al procesar la respuesta.';
-    console.error(`[Strategist] 🚨 Fallo catastrófico al generar análisis: ${errorMessage}`);
-    throw new Error('No se pudo completar el análisis de la IA.');
+    const data = await response.json();
+    if (!response.ok) throw new Error(`Gemini error: ${response.status} - ${JSON.stringify(data.error || {})}`);
+    const rawText = data.candidates?.[0]?.content?.parts?.[0]?.text;
+    if (!rawText) throw new Error('Gemini devolvió respuesta vacía');
+    return parseJSONResponse(rawText, expectedType);
   }
 };
-exports.generateStrategicAnalysis = generateStrategicAnalysis;
+
+/**
+ * OpenAI Provider
+ * Llama a la API de OpenAI GPT para generar contenido de IA.
+ */
+const openAIProvider = {
+  name: 'OpenAI',
+  call: async (prompt, expectedType = 'object', modelName = 'gpt-4o-mini') => {
+    const API_URL = 'https://api.openai.com/v1/chat/completions';
+    const bodyPayload = {
+      model: modelName,
+      messages: [{
+        role: 'user',
+        content: prompt
+      }],
+      temperature: 0
+    };
+    const response = await fetch(API_URL, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${_apiConfig.OPENAI_API_KEY}`
+      },
+      body: JSON.stringify(bodyPayload)
+    });
+    const data = await response.json();
+    if (!response.ok) throw new Error(`OpenAI error: ${response.status} - ${JSON.stringify(data.error || {})}`);
+    const rawText = data.choices?.[0]?.message?.content;
+    if (!rawText) throw new Error('OpenAI devolvió respuesta vacía');
+    return parseJSONResponse(rawText, expectedType);
+  }
+};
+
+/**
+ * runStrategicAnalysis
+ * Función central que intenta primero Gemini, luego OpenAI si Gemini falla.
+ */
+const runStrategicAnalysis = async (prompt, expectedType = 'object') => {
+  if (!prompt || typeof prompt !== 'string' || prompt.trim().length === 0) {
+    throw new Error('Se requiere un prompt válido.');
+  }
+  const providers = [geminiProvider, openAIProvider];
+  let lastError;
+  for (const provider of providers) {
+    try {
+      console.log(`[Strategist] Intentando con ${provider.name}...`);
+      const result = await provider.call(prompt, expectedType);
+      console.log(`[Strategist] ✅ ${provider.name} respondió correctamente.`);
+      return result;
+    } catch (err) {
+      console.warn(`[Strategist] ⚠️ ${provider.name} falló: ${err.message}`);
+      lastError = err;
+    }
+  }
+  throw lastError || new Error("Ningún proveedor pudo completar la tarea");
+};
+exports.runStrategicAnalysis = runStrategicAnalysis;
