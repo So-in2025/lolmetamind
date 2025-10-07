@@ -1,46 +1,61 @@
-// src/lib/ai/strategist.js
-// Adaptadores multi-proveedor para generar análisis de juego:
-// Gemini (Google) y OpenAI (GPT), con manejo de errores y fallback automático.
+// ============================================================
+// 🧠 Strategist v5.2
+// Multi-Provider AI Adapter (Gemini + OpenAI)
+// - Fallback automático y logs PRO-DEV
+// - Parsing robusto de JSON y manejo de errores refinado
+// - Totalmente compatible con aiOrchestrator.js
+// ============================================================
+
 import { GEMINI_API_KEY, OPENAI_API_KEY } from '@/services/apiConfig';
 
-/**
- * parseJSONResponse
- * Limpia el texto devuelto por la IA y lo parsea a JSON seguro.
- */
-function parseJSONResponse(rawText, expectedType) {
-  if (rawText.startsWith('```json')) rawText = rawText.slice(7);
-  if (rawText.endsWith('```')) rawText = rawText.slice(0, -3);
+const DEFAULT_TEMPERATURE = 0;
+const SAFETY_SETTINGS = [
+  { category: "HARM_CATEGORY_HARASSMENT", threshold: "BLOCK_NONE" },
+  { category: "HARM_CATEGORY_HATE_SPEECH", threshold: "BLOCK_NONE" },
+  { category: "HARM_CATEGORY_SEXUALLY_EXPLICIT", threshold: "BLOCK_NONE" },
+  { category: "HARM_CATEGORY_DANGEROUS_CONTENT", threshold: "BLOCK_NONE" },
+];
 
-  const startChar = expectedType === 'array' ? '[' : '{';
-  const endChar = expectedType === 'array' ? ']' : '}';
+// ---------------------------
+// 🧩 JSON Parsing Safe Utility
+// ---------------------------
+function parseJSONResponse(rawText, expectedType = 'object') {
+  try {
+    let text = rawText.trim();
+    if (text.startsWith('```json')) text = text.slice(7);
+    if (text.endsWith('```')) text = text.slice(0, -3);
 
-  const startIndex = rawText.indexOf(startChar);
-  const endIndex = rawText.lastIndexOf(endChar);
+    const startChar = expectedType === 'array' ? '[' : '{';
+    const endChar = expectedType === 'array' ? ']' : '}';
 
-  if (startIndex === -1 || endIndex === -1 || endIndex < startIndex) {
-    throw new Error(`Estructura JSON no encontrada (${expectedType}). Texto devuelto: ${rawText}`);
+    const startIndex = text.indexOf(startChar);
+    const endIndex = text.lastIndexOf(endChar);
+
+    if (startIndex === -1 || endIndex === -1 || endIndex < startIndex) {
+      throw new Error(`No se encontró estructura JSON válida.`);
+    }
+
+    const clean = text.substring(startIndex, endIndex + 1).trim();
+    return JSON.parse(clean);
+  } catch (err) {
+    console.error('[Strategist] ❌ Error parseando JSON:', err.message);
+    console.error('Texto devuelto:', rawText);
+    throw new Error('Error al parsear JSON devuelto por la IA.');
   }
-
-  const clean = rawText.substring(startIndex, endIndex + 1).trim();
-  return JSON.parse(clean);
 }
 
-/**
- * Gemini Provider
- * Llama a la API de Google Gemini para generar contenido de IA.
- */
+// ---------------------------
+// ⚙️ Gemini Provider
+// ---------------------------
 const geminiProvider = {
   name: 'Gemini',
   call: async (prompt, expectedType = 'object', modelName = 'gemini-2.0-flash') => {
+    const t0 = performance.now();
     const API_URL = `https://generativelanguage.googleapis.com/v1/models/${modelName}:generateContent?key=${GEMINI_API_KEY}`;
+
     const bodyPayload = {
       contents: [{ parts: [{ text: prompt }] }],
-      safetySettings: [
-        { category: "HARM_CATEGORY_HARASSMENT", threshold: "BLOCK_NONE" },
-        { category: "HARM_CATEGORY_HATE_SPEECH", threshold: "BLOCK_NONE" },
-        { category: "HARM_CATEGORY_SEXUALLY_EXPLICIT", threshold: "BLOCK_NONE" },
-        { category: "HARM_CATEGORY_DANGEROUS_CONTENT", threshold: "BLOCK_NONE" },
-      ],
+      safetySettings: SAFETY_SETTINGS,
     };
 
     const response = await fetch(API_URL, {
@@ -49,66 +64,80 @@ const geminiProvider = {
       body: JSON.stringify(bodyPayload),
     });
 
+    const elapsed = (performance.now() - t0).toFixed(0);
     const data = await response.json();
-    if (!response.ok) throw new Error(`Gemini error: ${response.status} - ${JSON.stringify(data.error || {})}`);
+
+    if (!response.ok) throw new Error(`Gemini error ${response.status}: ${JSON.stringify(data.error || {})}`);
 
     const rawText = data.candidates?.[0]?.content?.parts?.[0]?.text;
     if (!rawText) throw new Error('Gemini devolvió respuesta vacía');
 
+    console.log(`[Strategist] ✅ Gemini OK (${modelName}) en ${elapsed}ms`);
     return parseJSONResponse(rawText, expectedType);
-  }
+  },
 };
 
-/**
- * OpenAI Provider
- * Llama a la API de OpenAI GPT para generar contenido de IA.
- */
+// ---------------------------
+// ⚙️ OpenAI Provider
+// ---------------------------
 const openAIProvider = {
   name: 'OpenAI',
   call: async (prompt, expectedType = 'object', modelName = 'gpt-4o-mini') => {
+    const t0 = performance.now();
     const API_URL = 'https://api.openai.com/v1/chat/completions';
+
     const bodyPayload = {
       model: modelName,
+      temperature: DEFAULT_TEMPERATURE,
       messages: [{ role: 'user', content: prompt }],
-      temperature: 0,
     };
 
     const response = await fetch(API_URL, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${OPENAI_API_KEY}`
+        'Authorization': `Bearer ${OPENAI_API_KEY}`,
       },
       body: JSON.stringify(bodyPayload),
     });
 
+    const elapsed = (performance.now() - t0).toFixed(0);
     const data = await response.json();
-    if (!response.ok) throw new Error(`OpenAI error: ${response.status} - ${JSON.stringify(data.error || {})}`);
+
+    if (!response.ok) throw new Error(`OpenAI error ${response.status}: ${JSON.stringify(data.error || {})}`);
 
     const rawText = data.choices?.[0]?.message?.content;
     if (!rawText) throw new Error('OpenAI devolvió respuesta vacía');
 
+    console.log(`[Strategist] ✅ OpenAI OK (${modelName}) en ${elapsed}ms`);
     return parseJSONResponse(rawText, expectedType);
-  }
+  },
 };
 
-/**
- * runStrategicAnalysis
- * Función central que intenta primero Gemini, luego OpenAI si Gemini falla.
- */
-export const generateStrategicAnalysis = async (prompt, expectedType = 'object') => {
-  if (!prompt || typeof prompt !== 'string' || prompt.trim().length === 0) {
-    throw new Error('Se requiere un prompt válido.');
+// ---------------------------
+// 🎯 Función Principal
+// ---------------------------
+export const generateStrategicAnalysis = async (
+  prompt,
+  expectedType = 'object',
+  modelName = 'gemini-2.0-flash'
+) => {
+  if (!prompt || typeof prompt !== 'string' || !prompt.trim()) {
+    throw new Error('Prompt vacío o inválido.');
   }
 
-  const providers = [geminiProvider, openAIProvider];
+  const isGemini = modelName.startsWith('gemini');
+  const providers = isGemini
+    ? [geminiProvider, openAIProvider]
+    : [openAIProvider, geminiProvider];
+
   let lastError;
 
   for (const provider of providers) {
     try {
-      console.log(`[Strategist] Intentando con ${provider.name}...`);
-      const result = await provider.call(prompt, expectedType);
-      console.log(`[Strategist] ✅ ${provider.name} respondió correctamente.`);
+      console.log(`[Strategist] 🔍 Intentando con ${provider.name} (${modelName})...`);
+      const result = await provider.call(prompt, expectedType, modelName);
+      console.log(`[Strategist] 🧠 ${provider.name} respondió correctamente.`);
       return result;
     } catch (err) {
       console.warn(`[Strategist] ⚠️ ${provider.name} falló: ${err.message}`);
@@ -116,5 +145,13 @@ export const generateStrategicAnalysis = async (prompt, expectedType = 'object')
     }
   }
 
-  throw lastError || new Error("Ningún proveedor pudo completar la tarea");
+  throw lastError || new Error('Ningún proveedor pudo completar la tarea.');
+};
+
+// Alias retrocompatible
+export const runStrategicAnalysis = generateStrategicAnalysis;
+
+export default {
+  generateStrategicAnalysis,
+  runStrategicAnalysis,
 };

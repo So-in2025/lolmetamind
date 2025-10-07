@@ -1,3 +1,14 @@
+"use strict";
+
+Object.defineProperty(exports, "__esModule", {
+  value: true
+});
+exports.default = void 0;
+exports.getOrchestratedResponse = getOrchestratedResponse;
+exports.precachePrompts = precachePrompts;
+var _crypto = _interopRequireDefault(require("crypto"));
+var _strategist = require("./strategist");
+function _interopRequireDefault(e) { return e && e.__esModule ? e : { default: e }; }
 // src/lib/ai/aiOrchestrator.js
 // ============================================================
 // AI Orchestrator (v1.1)
@@ -6,8 +17,7 @@
 // - PRO-DEV logs.
 // ============================================================
 
-import crypto from 'crypto';
-import { generateStrategicAnalysis } from './strategist'; // tu orquestador multi-proveedor existente
+// tu orquestador multi-proveedor existente
 
 // ---------------------------
 // Config
@@ -15,8 +25,10 @@ import { generateStrategicAnalysis } from './strategist'; // tu orquestador mult
 const DEFAULT_TTL_MS = 10 * 60 * 1000; // 10 min
 const COALESCE_WINDOW_MS = 60; // 60ms para coalescing dedupe
 const MODEL_MAP = {
-  realtime: 'gemini-2.0-flash',      // ultra rápido, bajo costo -> live/draft
-  analysis: 'gpt-4o-mini',           // análisis profundo -> post-game / challenges
+  realtime: 'gemini-2.0-flash',
+  // ultra rápido, bajo costo -> live/draft
+  analysis: 'gpt-4o-mini',
+  // análisis profundo -> post-game / challenges
   default: 'gemini-2.0-flash'
 };
 
@@ -29,14 +41,17 @@ const SUPPORTS_SSML = String(process.env.SUPPORTS_SSML || 'false').toLowerCase()
 // ---------------------------
 const memoryCache = new Map(); // key -> { value, expiresAt }
 
-function now() { return Date.now(); }
-
+function now() {
+  return Date.now();
+}
 function setMemoryCache(key, value, ttlMs = DEFAULT_TTL_MS) {
   const expiresAt = now() + ttlMs;
-  memoryCache.set(key, { value, expiresAt });
+  memoryCache.set(key, {
+    value,
+    expiresAt
+  });
   console.log(`[AI-ORCH] Cache SET key=${key} ttl=${ttlMs}ms`);
 }
-
 function getMemoryCache(key) {
   const entry = memoryCache.get(key);
   if (!entry) return null;
@@ -48,7 +63,6 @@ function getMemoryCache(key) {
   // console.log(`[AI-ORCH] Cache HIT key=${key}`);
   return entry.value;
 }
-
 setInterval(() => {
   const t = now();
   for (const [k, v] of memoryCache.entries()) {
@@ -69,7 +83,7 @@ if (REDIS_URL) {
     const IORedis = require('ioredis');
     redisClient = new IORedis(REDIS_URL);
     redisClient.on('connect', () => console.log('[AI-ORCH] Redis conectado.'));
-    redisClient.on('error', (err) => console.warn('[AI-ORCH] Redis error', err));
+    redisClient.on('error', err => console.warn('[AI-ORCH] Redis error', err));
   } catch (err) {
     console.warn('[AI-ORCH] ioredis no disponible. Usando cache en memoria.', err.message);
     redisClient = null;
@@ -82,7 +96,7 @@ if (REDIS_URL) {
 const inFlight = new Map(); // promptHash -> Promise
 
 function hashPrompt(prompt, options = {}) {
-  const h = crypto.createHash('sha256');
+  const h = _crypto.default.createHash('sha256');
   h.update(typeof prompt === 'string' ? prompt : JSON.stringify(prompt));
   if (options.model) h.update(`|model:${options.model}`);
   if (options.type) h.update(`|type:${options.type}`);
@@ -96,7 +110,9 @@ async function recordMetric(metric) {
   console.log('[AI-ORCH][METRIC]', JSON.stringify(metric));
   try {
     // eslint-disable-next-line global-require
-    const { getSql } = require('@/lib/db');
+    const {
+      getSql
+    } = require("../db");
     if (getSql) {
       const sql = getSql();
       const q = `INSERT INTO ai_requests (provider, model, duration_ms, success, fallback, prompt_hash, created_at) VALUES ($1,$2,$3,$4,$5,$6,NOW())`;
@@ -129,7 +145,6 @@ function isLikelySSML(text) {
  */
 function ssmlToPlain(ssml) {
   if (!ssml || typeof ssml !== 'string') return ssml || '';
-
   let t = String(ssml);
 
   // Normalizar wrapper speak
@@ -152,7 +167,6 @@ function ssmlToPlain(ssml) {
 
   // Asegurar puntuación final
   if (t && !/[.!?…]$/.test(t)) t = `${t}.`;
-
   return t;
 }
 
@@ -163,12 +177,10 @@ function composeFullTextFromParts(parts = {}) {
   const title = (parts.title || '').trim();
   const mantra = (parts.astralMantra || parts.mantra || '').trim();
   const focus = (parts.technicalFocus || parts.focus || '').trim();
-
   const pieces = [];
   if (title) pieces.push(title);
   if (mantra) pieces.push(mantra);
   if (focus) pieces.push(focus);
-
   const text = pieces.join('. ').replace(/\.\s*$/, '').trim();
   return text.endsWith('.') ? text : `${text}.`;
 }
@@ -178,7 +190,6 @@ function composeFullTextFromParts(parts = {}) {
  */
 function normalizeContainer(obj) {
   if (!obj || typeof obj !== 'object') return obj;
-
   const out = Object.assign({}, obj);
 
   // If there's SSML and the runtime DOESN'T support SSML, convert
@@ -210,24 +221,25 @@ function normalizeContainer(obj) {
     // If consumer supports SSML, we keep SSML only
     out.fullText = out.fullTextSSML;
   }
-
   return out;
 }
 
 // ---------------------------
 // Core: getOrchestratedResponse
 // ---------------------------
-export async function getOrchestratedResponse({
+async function getOrchestratedResponse({
   prompt,
   expectedType = 'object',
   kind = 'realtime',
   cacheTTL = DEFAULT_TTL_MS,
-  forceRefresh = false,
+  forceRefresh = false
 } = {}) {
   if (!prompt) throw new Error('Prompt requerido para getOrchestratedResponse');
-
   const model = MODEL_MAP[kind] || MODEL_MAP.default;
-  const promptHash = hashPrompt(prompt, { model, type: kind });
+  const promptHash = hashPrompt(prompt, {
+    model,
+    type: kind
+  });
   const cacheKey = `ai:${kind}:${promptHash}`;
 
   // 1) CACHE check
@@ -253,17 +265,15 @@ export async function getOrchestratedResponse({
     console.log(`[AI-ORCH] Coalescing request para promptHash=${promptHash}`);
     return inFlight.get(promptHash);
   }
-
   const p = (async () => {
     const startedAt = Date.now();
     let providerUsed = null;
     let result = null;
     let success = false;
     let fallback = false;
-
     try {
       console.log(`[AI-ORCH] Llamando generateStrategicAnalysis (model=${model}, kind=${kind})`);
-      result = await generateStrategicAnalysis(prompt, expectedType, model);
+      result = await (0, _strategist.generateStrategicAnalysis)(prompt, expectedType, model);
       providerUsed = model;
       success = true;
       console.log('[AI-ORCH] Resultado recibido OK.');
@@ -273,7 +283,7 @@ export async function getOrchestratedResponse({
       try {
         const fallbackModel = model === MODEL_MAP.realtime ? MODEL_MAP.analysis : MODEL_MAP.realtime;
         console.log(`[AI-ORCH] Intentando fallback model=${fallbackModel}`);
-        result = await generateStrategicAnalysis(prompt, expectedType, fallbackModel);
+        result = await (0, _strategist.generateStrategicAnalysis)(prompt, expectedType, fallbackModel);
         providerUsed = fallbackModel;
         success = true;
       } catch (err2) {
@@ -282,7 +292,14 @@ export async function getOrchestratedResponse({
       }
     } finally {
       const durationMs = Date.now() - startedAt;
-      recordMetric({ provider: providerUsed, model, durationMs, success, fallback, promptHash }).catch(() => {});
+      recordMetric({
+        provider: providerUsed,
+        model,
+        durationMs,
+        success,
+        fallback,
+        promptHash
+      }).catch(() => {});
     }
 
     // NORMALIZAR: asegurar fullText plano si es necesario
@@ -318,22 +335,19 @@ export async function getOrchestratedResponse({
     } catch (err) {
       console.warn('[AI-ORCH] No se pudo guardar en cache:', err.message);
     }
-
     return result;
   })();
-
   inFlight.set(promptHash, p);
   p.finally(() => {
     setTimeout(() => inFlight.delete(promptHash), COALESCE_WINDOW_MS * 2);
   });
-
   return p;
 }
 
 // ---------------------------
 // Helper: precache (serie de prompts)
 // ---------------------------
-export async function precachePrompts(entries = [], options = {}) {
+async function precachePrompts(entries = [], options = {}) {
   console.log(`[AI-ORCH] Precache iniciado: ${entries.length} items`);
   const results = [];
   for (const e of entries) {
@@ -357,7 +371,7 @@ export async function precachePrompts(entries = [], options = {}) {
 // ---------------------------
 // Exports
 // ---------------------------
-export default {
+var _default = exports.default = {
   getOrchestratedResponse,
-  precachePrompts,
+  precachePrompts
 };
