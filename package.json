@@ -11,7 +11,7 @@
     "build": "next build",
     "start": "next start -H 0.0.0.0 -p $PORT",
     "lint": "next lint",
-    "start:ws": "npm run build:server && node websocket-server.js",
+    "start:ws": "npm run build:server && PORT=$PORT node websocket-server.js",
     "build:server": "rm -rf dist && babel --config-file ./babel.config.server.js src/lib --out-dir dist/lib && babel --config-file ./babel.config.server.js src/services --out-dir dist/services"
   },
   "dependencies": {

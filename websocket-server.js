@@ -22,7 +22,10 @@ try {
   prompts = require('./src/lib/ai/prompts');
 }
 
-const SERVER_PORT = process.env.WS_PORT || 8080;
+// 🚨 CORRECCIÓN CRÍTICA: Render pasa el puerto requerido en process.env.PORT
+// Se usa 8080 solo como fallback local si la variable PORT no existe.
+const SERVER_PORT = process.env.PORT || 8080; // Leer el puerto asignado por Render (ej. 10000)
+
 const wss = new WebSocket.Server({ port: SERVER_PORT });
 
 // ============================================================
