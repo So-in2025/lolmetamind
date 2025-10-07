@@ -1,0 +1,64 @@
+{
+  "name": "lol-metamind",
+  "version": "0.1.0",
+  "private": true,
+  "main": "main.js",
+  "build": {
+    "appId": "com.lolmetamind.app"
+  },
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start -H 0.0.0.0 -p $PORT",
+    "lint": "next lint",
+    "start:ws": "npm run build:server && node websocket-server.js",
+    "build:server": "rm -rf dist && babel --config-file ./babel.config.server.js src/lib --out-dir dist/lib && babel --config-file ./babel.config.server.js src/services --out-dir dist/services"
+  },
+  "dependencies": {
+    "@clerk/nextjs": "^6.32.2",
+    "@tailwindcss/aspect-ratio": "^0.4.2",
+    "@vercel/analytics": "^1.5.0",
+    "autoprefixer": "^10.4.21",
+    "axios": "^1.12.2",
+    "bcryptjs": "^3.0.2",
+    "concurrently": "^8.2.2",
+    "dotenv": "^17.2.2",
+    "electron": "^22.3.27",
+    "electron-builder": "^23.6.0",
+    "electron-is-dev": "^3.0.1",
+    "fluent-ffmpeg": "^2.1.3",
+    "framer-motion": "^12.23.18",
+    "googleapis": "^160.0.0",
+    "jsonwebtoken": "^9.0.2",
+    "nano": "^11.0.1",
+    "next": "^14.2.32",
+    "next-auth": "^4.24.11",
+    "passport": "^0.7.0",
+    "passport-google-oauth20": "^2.0.0",
+    "pg": "^8.16.3",
+    "postgres": "^3.4.7",
+    "react": "^18",
+    "react-dom": "^18",
+    "react-hook-form": "^7.52.0",
+    "react-icons": "^5.5.0",
+    "react-youtube": "^10.1.0",
+    "tailwindcss": "^3.4.17",
+    "tailwindcss-textshadow": "^2.1.3",
+    "uuid": "^13.0.0",
+    "wait-on": "^7.2.0",
+    "ws": "^8.18.3"
+  },
+  "devDependencies": {
+    "@babel/cli": "^7.24.7",
+    "@babel/core": "^7.24.7",
+    "@babel/preset-env": "^7.24.7",
+    "@babel/preset-react": "^7.24.7",
+    "babel-plugin-module-resolver": "^5.0.2",
+    "eslint": "^8",
+    "eslint-config-next": "14.2.4",
+    "postcss": "^8.5.6"
+  },
+  "engines": {
+    "node": "22.x"
+  }
+}

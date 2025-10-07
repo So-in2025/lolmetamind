@@ -1,0 +1,156 @@
+openapi: 3.0.0
+info:
+  title: LoL MetaMind Gamification API
+  description: |-
+    API para gestionar las funcionalidades de gamificación de la plataforma LoL MetaMind.
+    Incluye rankings zodiacales, retos semanales y sistema de recompensas para los usuarios.
+  version: 1.0.0
+servers:
+  - url: https://api.metamind.soin.com/v1
+    description: Servidor de producción
+
+security:
+  - BearerAuth: []
+
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: "Token de autenticación JWT obtenido tras el login."
+  schemas:
+    ZodiacRanking:
+      type: object
+      properties:
+        rank:
+          type: integer
+          description: "Posición en el ranking."
+          example: 1
+        sign:
+          type: string
+          description: "Signo zodiacal."
+          example: "Aries"
+        points:
+          type: integer
+          description: "Puntos acumulados durante la semana."
+          example: 12500
+        winrate:
+          type: number
+          format: float
+          description: "Porcentaje de victorias del signo."
+          example: 58.5
+    WeeklyChallenge:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: "ID único del reto."
+          example: "a1b2c3d4-e5f6-7890-1234-567890abcdef"
+        title:
+          type: string
+          description: "Título del reto."
+          example: "Dominancia de Asesino"
+        description:
+          type: string
+          description: "Descripción detallada de lo que hay que hacer."
+          example: "Consigue 10 asesinatos en 3 partidas con un campeón de arquetipo 'Asesino'."
+        progress:
+          type: integer
+          description: "Progreso actual del usuario."
+          example: 7
+        goal:
+          type: integer
+          description: "Objetivo a alcanzar para completar el reto."
+          example: 10
+        reward:
+          type: string
+          description: "Recompensa obtenida al completar el reto."
+          example: "Badge exclusivo 'Sombra Zodiacal'"
+        isCompleted:
+          type: boolean
+          description: "Indica si el reto ya fue completado y reclamado."
+          example: false
+    Error:
+      type: object
+      properties:
+        code:
+          type: string
+          description: "Código de error."
+        message:
+          type: string
+          description: "Mensaje descriptivo del error."
+
+paths:
+  /rankings/zodiac:
+    get:
+      tags:
+        - Rankings
+      summary: Obtener Ranking Zodiacal Semanal
+      description: Devuelve una lista ordenada de los signos zodiacales basada en su rendimiento acumulado (puntos, winrate) durante la semana en curso.
+      responses:
+        '200':
+          description: Ranking semanal obtenido con éxito.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/ZodiacRanking'
+              example:
+                - rank: 1
+                  sign: "Leo"
+                  points: 15230
+                  winrate: 61.2
+                - rank: 2
+                  sign: "Scorpio"
+                  points: 14890
+                  winrate: 59.8
+        '401':
+          description: No Autorizado. El token de autenticación no fue proporcionado o es inválido.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                code: "UNAUTHORIZED"
+                message: "Authentication token is required."
+  /challenges/weekly:
+    get:
+      tags:
+        - Challenges
+      summary: Obtener Retos Semanales del Usuario
+      description: Devuelve la lista de retos semanales disponibles para el usuario autenticado, incluyendo su progreso actual en cada uno de ellos.
+      responses:
+        '200':
+          description: Lista de retos semanales obtenida con éxito.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/WeeklyChallenge'
+        '401':
+          description: No Autorizado.
+  /challenges/{id}/complete:
+    post:
+      tags:
+        - Challenges
+      summary: Marcar un Reto como Completado
+      description: Permite al usuario reclamar la recompensa de un reto.
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: El ID del reto que se quiere completar.
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Reto completado y recompensa otorgada con éxito.
+        '401':
+          description: No Autorizado.
+        '404':
+          description: No Encontrado.

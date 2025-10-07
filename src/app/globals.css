@@ -1,0 +1,21 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@font-face {
+  font-family: 'BeaufortforLOL-Bold';
+  src: url('/fonts/BeaufortforLOL-Bold.woff2') format('woff2');
+  font-weight: bold;
+  font-style: normal;
+}
+
+@import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700;900&family=Roboto:wght@400;700&display=swap');
+
+/* Puedes eliminar los estilos predeterminados que no uses, pero asegúrate de mantener los que sí, como los colores de fondo y texto si los has modificado */
+body {
+  margin: 0;
+  padding: 0;
+  font-family: 'Roboto', sans-serif;
+  background-color: #010A13;
+  color: #F0E6D2;
+}

@@ -1,0 +1,390 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Informe Final: Proyecto COACH META MIND</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@700;900&family=Roboto:wght@400;700&display=swap');
+        
+        :root {
+            --lol-dark-blue: #010A13;
+            --lol-medium-blue: #0A1428;
+            --lol-gold: #C89B3C;
+            --lol-gold-light: #F0E6D2;
+            --lol-accent: #0BC6E3;
+        }
+
+        body {
+            background-color: var(--lol-dark-blue);
+            color: var(--lol-gold-light);
+            font-family: 'Roboto', sans-serif;
+            margin: 0;
+            padding: 0 0 120px 0; /* Añadido padding inferior para que el footer no tape el contenido */
+            line-height: 1.6;
+            transition: background-color 0.5s;
+            -webkit-text-size-adjust: 100%;
+        }
+
+        h1, h2, h3, .font-display {
+            font-family: 'Cinzel', serif;
+            color: var(--lol-gold);
+            text-shadow: 0 0 8px rgba(200, 155, 60, 0.4);
+            word-wrap: break-word;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 40px 20px;
+        }
+
+        header {
+            background-color: var(--lol-medium-blue);
+            padding: 40px 15px;
+            text-align: center;
+            border-bottom: 4px solid var(--lol-gold);
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+        }
+
+        .card {
+            background-color: var(--lol-medium-blue);
+            padding: 30px;
+            margin-bottom: 30px;
+            border: 1px solid var(--lol-gold);
+            box-shadow: 0 0 15px rgba(200, 155, 60, 0.2);
+            border-radius: 5px;
+        }
+
+        .feature-list li {
+            background-color: #010A13;
+            padding: 15px;
+            margin-bottom: 10px;
+            border-left: 5px solid var(--lol-accent);
+            border-radius: 3px;
+            transition: transform 0.3s;
+        }
+
+        .feature-list li:hover {
+            transform: translateX(5px);
+            box-shadow: 0 0 10px rgba(11, 198, 227, 0.5);
+        }
+        
+        .feature-list ul {
+            padding-left: 20px;
+            margin-top: 10px;
+        }
+        .feature-list ul li {
+            border-left: 5px solid var(--lol-gold) !important;
+        }
+        
+        .status-badge {
+            display: inline-block;
+            padding: 5px 10px;
+            border-radius: 4px;
+            font-weight: bold;
+            font-size: 0.8em;
+            text-transform: uppercase;
+        }
+
+        .status-complete {
+            background-color: #4CAF50;
+            color: white;
+        }
+
+        .status-ready {
+            background-color: var(--lol-accent);
+            color: var(--lol-dark-blue);
+        }
+
+        .splash-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: var(--lol-dark-blue);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            flex-direction: column;
+            z-index: 1000;
+            transition: opacity 1s ease-out;
+            padding: 15px;
+            text-align: center;
+        }
+        
+        .cta-button {
+            background-color: var(--lol-gold);
+            color: var(--lol-dark-blue);
+            border: 2px solid var(--lol-accent);
+            padding: 12px 24px;
+            text-transform: uppercase;
+            font-family: 'Cinzel', serif;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.3s;
+            text-decoration: none;
+            display: inline-block;
+            font-size: 1em;
+        }
+        
+        .cta-button:hover {
+            background-color: var(--lol-accent);
+            border-color: var(--lol-gold);
+        }
+        
+        /* --- NUEVO FOOTER FIJO CON BOTONES --- */
+        .fixed-footer {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            background-color: var(--lol-medium-blue);
+            border-top: 2px solid var(--lol-gold);
+            box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.5);
+            padding: 15px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 20px;
+            z-index: 999;
+            transform: translateY(100%); /* Oculto por defecto */
+            transition: transform 0.5s ease-in-out;
+        }
+
+        .fixed-footer.visible {
+            transform: translateY(0); /* Lo hace visible */
+        }
+
+        .fixed-footer .cta-button {
+            padding: 10px 20px;
+            font-size: 0.9em;
+        }
+
+        .play-button {
+            background-color: var(--lol-accent);
+            border-color: var(--lol-gold-light);
+        }
+        .play-button:hover {
+            background-color: var(--lol-gold);
+            border-color: var(--lol-accent);
+        }
+
+        /* --- ESTILOS RESPONSIVE --- */
+        @media (max-width: 768px) {
+            .container {
+                padding: 20px 15px;
+            }
+            .card {
+                padding: 20px;
+            }
+            header h1, .splash-overlay h1 {
+                font-size: 2.5em !important;
+            }
+            header h2, .splash-overlay h2 {
+                font-size: 1.3em !important;
+            }
+        }
+        
+        @media (max-width: 480px) {
+            body { padding-bottom: 150px; } /* Más espacio para footer en vertical */
+            header h1, .splash-overlay h1 {
+                font-size: 2em !important;
+            }
+            header h2, .splash-overlay h2 {
+                font-size: 1.1em !important;
+            }
+            .splash-overlay p {
+                font-size: 1.2em !important;
+            }
+            .feature-list li, .feature-list ul li {
+                padding: 10px;
+            }
+            .cta-button {
+                padding: 10px 20px;
+                font-size: 0.9em;
+            }
+            .fixed-footer {
+                flex-direction: column; /* Apila los botones en vertical */
+                padding: 10px;
+                gap: 10px;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <div id="splash" class="splash-overlay">
+        <h1 class="font-display" style="font-size: 3em;">INFORME DE PROYECTO</h1>
+        <h2 class="font-display" style="color: var(--lol-gold-light);">COACH META MIND</h2>
+        <p class="font-display" style="font-size: 1.5em;">Tu ventaja estratégica está lista.</p>
+        <button id="start-tts" class="cta-button">Ver Informe y Escuchar Narración</button>
+    </div>
+
+    <header>
+        <h1 style="font-size: 3em;">COACH META MIND</h1>
+        <h2 style="font-size: 1.5em;">Plataforma de Coaching con IA para League of Legends</h2>
+        <p class="font-display">Una solución integral desarrollada por el equipo de élite de <strong style="color: var(--lol-accent);">SO->IN Soluciones Informaticas</strong>.</p>
+        <p class="font-display"><span class="status-badge status-ready">SISTEMA EN ESTADO DE PRODUCCIÓN (100% OPERATIVO)</span></p>
+    </header>
+
+    <div class="container">
+         <section id="vision" class="card">
+            <h2 class="font-display">La Visión: Un Ecosistema de Coaching Inteligente</h2>
+            <p>El equipo de **SO->IN Soluciones Informaticas** ha diseñado y ejecutado una proeza de la ingeniería de software: un sistema de alto rendimiento que fusiona la identidad única de cada jugador (Astrología y Perfil de Maestría) con la potencia de la inteligencia artificial (Gemini) y un flujo de datos en tiempo real desde el corazón de League of Legends (Riot Games API y Cliente LCU). Este ecosistema opera en un ciclo continuo y sinérgico de tres fases críticas, garantizando una ventaja competitiva sin precedentes.</p>
+
+            <ul class="feature-list" style="list-style: none; padding: 0;">
+                <li>
+                    <h3 style="color: var(--lol-gold-light);">FASE I: Onboarding y Análisis Estratégico</h3>
+                    <p>El viaje comienza con un sistema de autenticación seguro (JWT). Una vez dentro, la IA realiza un análisis profundo del historial del jugador, cruzando datos de maestría y estadísticas con su arquetipo zodiacal para forjar un perfil psicométrico. Basado en este perfil, el sistema genera recomendaciones de campeones y desafíos semanales personalizados, sentando las bases para un crecimiento medible y enfocado.</p>
+                </li>
+                <li>
+                    <h3 style="color: var(--lol-gold-light);">FASE II: La Ventaja Crítica en Tiempo Real</h3>
+                    <p>Aquí es donde la magia de la aplicación de escritorio Electron brilla. Al detectar el cliente LCU, el sistema entra en modo de combate, ofreciendo un arsenal de herramientas tácticas:</p>
+                    <ul style="list-style: none;">
+                        <li><strong>Asistencia en Draft:</strong> Durante la selección de campeón, la IA proporciona consejos estratégicos en tiempo real, analizando las composiciones de equipo y sugiriendo picks y bans óptimos.</li>
+                        <li><strong>Overlay Táctico:</strong> Una vez en partida, un overlay transparente y no intrusivo (Nano Banana) muestra consejos contextuales y personalizados que se adaptan dinámicamente al estado del juego y al arquetipo zodiacal del jugador.</li>
+                        <li><strong>Inyección de Runas Automatizada:</strong> La joya de la corona. Con un solo clic, el sistema puede enviar comandos directamente al cliente LCU para construir e inyectar una página de runas completa y optimizada por la IA, eliminando errores y ahorrando tiempo crítico.</li>
+                    </ul>
+                </li>
+                <li>
+                    <h3 style="color: var(--lol-gold-light);">FASE III: Mejora Continua a través del Análisis Post-Partida</h3>
+                    <p>Al concluir la batalla, la IA no descansa. Analiza exhaustivamente las métricas de la partida finalizada, identificando con precisión quirúrgica 2 fortalezas clave a reforzar y 2 debilidades críticas a corregir. Crucialmente, vincula al menos una de estas observaciones al perfil psicológico del jugador (zodiacSign), transformando datos brutos en sabiduría accionable para la siguiente conquista.</p>
+                </li>
+            </ul>
+        </section>
+        
+        <section id="architecture" class="card">
+            <h2 class="font-display">Arquitectura: La Obra Maestra de SO->IN</h2>
+            <p>El proyecto se entrega como una solución dual, robusta y perfectamente sincronizada, demostrando la maestría técnica de **SO->IN Soluciones Informaticas** en la creación de arquitecturas complejas y eficientes.</p>
+
+            <h3 style="color: var(--lol-accent);">1. Backend (lolmetamind): El Cerebro Neurálgico <span class="status-badge status-complete">COMPLETO</span></h3>
+            <ul>
+                <li><strong>Stack Tecnológico:</strong> Construido sobre Next.js para un enrutamiento de API veloz y escalable, con una base de datos PostgreSQL gestionada por el driver `postgres.js` para un rendimiento óptimo.</li>
+                <li><strong>Seguridad de Grado Militar:</strong> La integridad del sistema es absoluta. Se implementó una autenticación basada en JWT y un hasheo de contraseñas de alta seguridad con `bcryptjs`. Todas las comunicaciones con el motor de IA están protegidas tras esta fortaleza digital.</li>
+                <li><strong>Motor de IA Avanzado:</strong> El corazón del sistema es Gemini (v2.5-flash-lite), configurado por los ingenieros de SO->IN para inyectar `responseMimeType: "application/json"`. Esta configuración crítica asegura que las respuestas de la IA sean siempre estables, predecibles y fáciles de integrar, eliminando cualquier posibilidad de error en el parseo.</li>
+                <li><strong>Flujo de Datos Centralizado:</strong> Actúa como el centro de comando, recibiendo el estado del juego en vivo desde el cliente Electron a través del endpoint <code>/api/live-game/update</code> para persistir los datos y alimentar los modelos de IA.</li>
+            </ul>
+
+            <h3 style="color: var(--lol-accent);">2. Aplicación de Escritorio (lolmetamind-electron): El Agente en Campo <span class="status-badge status-complete">COMPLETO</span></h3>
+            <ul>
+                <li><strong>Tecnología Híbrida:</strong> Utiliza el poder de Electron para crear un shell de escritorio nativo, mientras que la interfaz de usuario está renderizada con la fluidez y reactividad de React/Next.js.</li>
+                <li><strong>LCU Core (<code>lol-client-api.js</code>):</strong> El componente más impresionante y complejo, una obra de arte de la ingeniería inversa y la automatización. Este módulo, desarrollado íntegramente por SO->IN, es capaz de:
+                    <ol>
+                        <li>Detectar el cliente de League of Legends en ejecución y extraer de forma segura las credenciales de autenticación necesarias usando scripts de PowerShell.</li>
+                        <li>Mantener un sondeo (polling) constante y eficiente (<code>pollLcuDataAndSend</code>) que actualiza tanto el Dashboard principal como el Overlay en tiempo real y de forma sincronizada.</li>
+                        <li>Ejecutar comandos de bajo nivel sobre la API del LCU para realizar la inyección de runas (<code>sendLcuCommand</code>), una funcionalidad de altísima complejidad técnica.</li>
+                    </ol>
+                </li>
+                <li><strong>Gestión de Ventanas Inteligente:</strong> El flujo de la aplicación está meticulosamente controlado: Splash Screen → Login → Dashboard. La ventana del Overlay (<strong>OverlayWindow</strong>) se crea estratégicamente solo tras un login exitoso, garantizando que todos los componentes estén siempre sincronizados con el estado del backend.</li>
+                <li><strong>Seguridad de la API Key:</strong> El manejo de la clave de Riot API es impecable. Se almacena de forma segura en la <strong>Electron Store</strong> local tras el primer login y solo es accesible por el proceso principal (<code>main.js</code>), nunca exponiéndola al código del renderer.</li>
+            </ul>
+        </section>
+
+        <section id="widgets" class="card">
+    <h2 class="font-display">Widgets y Overlays: La Ventaja Visual en Tiempo Real</h2>
+    <p>El proyecto incorpora un conjunto de widgets flotantes y overlays que brindan información crítica y recomendaciones adaptativas durante toda la partida. Este sistema asegura que el jugador tenga acceso inmediato a datos estratégicos y a la guía de la IA sin interrumpir la experiencia de juego.</p>
+    
+    <ul class="feature-list" style="list-style: none; padding: 0;">
+        <li>
+            <h3 style="color: var(--lol-gold-light);">Widget de Draft Inteligente</h3>
+            <p>Analiza las composiciones de equipo en tiempo real y proporciona sugerencias de picks y bans óptimos. Además, considera el perfil psicológico y zodiacal del jugador para ofrecer recomendaciones personalizadas, mejorando la toma de decisiones estratégicas desde el inicio.</p>
+        </li>
+        <li>
+            <h3 style="color: var(--lol-gold-light);">Overlay de Partida</h3>
+            <p>Overlay transparente y no intrusivo que entrega consejos dinámicos basados en el estado actual del juego. Incluye alertas sobre objetivos, rotaciones, momentos de ventaja y recomendaciones tácticas, todo adaptado a la estrategia personal del jugador.</p>
+        </li>
+        <li>
+            <h3 style="color: var(--lol-gold-light);">Widget de Análisis Post-Partida</h3>
+            <p>Al final de cada partida, este widget resume fortalezas y debilidades detectadas por la IA, conectando observaciones clave con el perfil psicológico del jugador. Facilita la creación de planes de mejora continuos y medibles para las partidas futuras.</p>
+        </li>
+        <li>
+            <h3 style="color: var(--lol-gold-light);">Nano Banana – Overlay Minimalista</h3>
+            <p>Overlay ligero y completamente personalizable, diseñado para superponerse sobre el cliente de League of Legends sin afectar la visibilidad ni el rendimiento del juego. Ofrece una visualización de datos clara, relevante y estratégicamente priorizada.</p>
+        </li>
+        <li>
+            <h3 style="color: var(--lol-gold-light);">Panel de Monitoreo en Tiempo Real</h3>
+            <p>Centraliza todas las métricas de juego y consejos de IA en un solo panel, accesible desde el dashboard o como overlay independiente. Permite al jugador ver recomendaciones, estadísticas y alertas en tiempo real, sin necesidad de alternar entre ventanas.</p>
+        </li>
+    </ul>
+    </section>
+
+</div>
+
+    <div id="fixed-footer" class="fixed-footer">
+        <button id="play-narration-button" class="cta-button play-button">► Escuchar Narración</button>
+        <a href="https://couchmetamind.vercel.app/" target="_blank" class="cta-button">Visitar Landing Page</a>
+    </div>
+
+    <script>
+        const splashButton = document.getElementById('start-tts');
+        const narrationButton = document.getElementById('play-narration-button');
+        const splashOverlay = document.getElementById('splash');
+        const fixedFooter = document.getElementById('fixed-footer');
+
+        // --- LÓGICA TTS REUTILIZABLE ---
+        function initiateTTS() {
+            if ('speechSynthesis' in window) {
+                // Detiene cualquier narración anterior antes de empezar una nueva
+                window.speechSynthesis.cancel();
+
+                function getFullTextForTTS() {
+                    let text = "Saludos. La misión ha sido un éxito rotundo. El proyecto Coach Meta Mind, desarrollado por SO IN Soluciones Informáticas, ha sido finalizado, auditado y está listo para producción. El ecosistema de coaching de tres fases, la inyección de runas y el flujo de datos LCU están completamente operativos y alineados. Este informe detalla la arquitectura y las funcionalidades épicas entregadas. ";
+                    text += document.querySelector('header').innerText.replace(/\n/g, ". ");
+                    document.querySelectorAll('.container section').forEach(section => {
+                        text += ". " + section.textContent.replace(/\s\s+/g, ' ').trim(); 
+                    });
+                    return text;
+                }
+
+                const textToSpeak = getFullTextForTTS();
+                const utterance = new SpeechSynthesisUtterance(textToSpeak);
+                utterance.pitch = 1; 
+                utterance.rate = 1;
+
+                function speakNow() {
+                    const voices = window.speechSynthesis.getVoices();
+                    const esVoice = voices.find(voice => voice.lang.startsWith('es'));
+                    if (esVoice) {
+                        utterance.voice = esVoice;
+                    } else {
+                        console.warn("No se encontró una voz en español. Se usará la voz predeterminada del sistema.");
+                    }
+                    window.speechSynthesis.speak(utterance);
+                }
+
+                if (window.speechSynthesis.getVoices().length === 0) {
+                    window.speechSynthesis.onvoiceschanged = speakNow;
+                } else {
+                    speakNow();
+                }
+            } else {
+                console.error("El navegador no soporta Speech Synthesis.");
+                alert("Lo sentimos, tu navegador no soporta la narración por voz.");
+            }
+        }
+
+        // --- EVENT LISTENERS ---
+        splashButton.addEventListener('click', () => {
+            // Oculta el splash
+            splashOverlay.style.opacity = '0';
+            setTimeout(() => {
+                splashOverlay.style.display = 'none';
+            }, 1000);
+
+            // Muestra el footer de botones
+            fixedFooter.classList.add('visible');
+            
+            // Inicia la narración
+            initiateTTS();
+        });
+
+        narrationButton.addEventListener('click', () => {
+            initiateTTS(); // El botón persistente también inicia la narración
+        });
+    </script>
+    <script defer src="/_vercel/insights/script.js"></script>
+
+</body>
+</html>
