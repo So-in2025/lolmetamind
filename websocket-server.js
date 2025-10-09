@@ -1,15 +1,15 @@
-// websocket-server.js (versión final PRO con Autenticación JWT)
+// websocket-server.js (versión final PRO con Autenticación JWT y FIX de RENDER PORT)
 // ============================================================
 // WebSocket Server con integración AI, autenticación JWT y conexión estable
-// - Bidireccional heartbeat (PING/PONG)
-// - Handler USER_AUTH: verifica el token JWT antes de cualquier operación.
-// - safeSend() para evitar cierres por errores en send()
+// - Adjuntado a servidor HTTP para compatibilidad con Proxy de Render.
+// - Heartbeat, autenticación JWT, y guardias de acceso a la IA.
 // ============================================================
 
 const WebSocket = require('ws');
 const path = require('path');
 const crypto = require('crypto');
-const jwt = require('jsonwebtoken'); // 🚨 NUEVO: Importar JWT
+const jwt = require('jsonwebtoken'); 
+const http = require('http'); // ✅ FIX CRÍTICO: Módulo HTTP importado
 require('dotenv').config({ path: path.resolve(process.cwd(), '.env.local') });
 
 let aiOrchestrator = null;
@@ -25,13 +25,12 @@ try {
 // 🚨 CLAVE SECRETA: Usar la misma clave de fallback que los endpoints Next.js
 const JWT_SECRET = process.env.JWT_SECRET || 'p2s5v8y/B?E(H+MbQeThWmZq4t7w!z%C&F)J@NcRfUjXn2r5u8x/A?D*G-KaPdSg'; 
 
-// 🚨 CORRECCIÓN CRÍTICA: Render pasa el puerto requerido en process.env.PORT
+// 🚨 CORRECCIÓN CRÍTICA: Usar el puerto inyectado por Render ($PORT)
 const SERVER_PORT = process.env.PORT || 8080;
 
-// Crear un servidor HTTP estándar
+// Crear un servidor HTTP estándar que maneje el upgrade de protocolo
 const server = http.createServer((req, res) => {
-  // Render hace proxy a la URL raíz del puerto HTTP para checks de salud.
-  // Tu WebSocket Server no es un servidor HTTP normal, pero responder a "/" es buena práctica.
+  // Respuesta simple para checks de salud HTTP (si Render lo usa)
   if (req.url === '/') {
     res.writeHead(200, { 'Content-Type': 'text/plain' });
     res.end('WebSocket server is running (HTTP proxy works).\n');
@@ -41,7 +40,7 @@ const server = http.createServer((req, res) => {
   }
 });
 
-const wss = new WebSocket.Server({ server }); // <-- ¡Aquí se adjunta al servidor HTTP!
+const wss = new WebSocket.Server({ server }); // Adjunta el WS al servidor HTTP
 
 // ============================================================
 // CONFIGURACIÓN KEEPALIVE
@@ -63,7 +62,6 @@ const validate = (schema, data) => {
 const handleError = (error, ws, context = 'general') => {
   const errorMessage = error instanceof Error ? error.message : String(error);
   console.error(`🚨 Error [${context}]:`, errorMessage);
-  // Solo enviar ERROR si la conexión está abierta para evitar safeSend/log loop
   if (ws && ws.readyState === WebSocket.OPEN) {
     safeSend(ws, { eventType: 'ERROR', data: { message: `Server error: ${errorMessage}` } });
   }
@@ -80,12 +78,6 @@ function safeSend(ws, payload) {
   }
 }
 
-/**
- * Función de guardia: verifica si el cliente está autenticado.
- * @param {WebSocket} ws 
- * @param {string} context 
- * @returns {boolean}
- */
 const ensureAuthenticated = (ws, context = 'Acceso a IA') => {
     if (!ws.isAuthenticated || !ws.userId) {
         handleError(new Error('Acceso denegado. Cliente no autenticado.'), ws, context);
@@ -99,19 +91,16 @@ const ensureAuthenticated = (ws, context = 'Acceso a IA') => {
 // ============================================================
 const eventHandlers = {
   'PING': (_, ws) => {
-    // 👋 Respuesta al ping del cliente
     safeSend(ws, { eventType: 'PONG' });
     ws.isAlive = true;
   },
   
-  // 🚨 NUEVO HANDLER: CRÍTICO para el momento 1 de la conexión
   'USER_AUTH': ({ token, userId, username }, ws) => {
       try {
           if (!token) throw new Error('Token de autenticación JWT faltante.');
 
           const decoded = jwt.verify(token, JWT_SECRET);
           
-          // Almacenar datos en el objeto WebSocket
           ws.userId = decoded.id;
           ws.username = decoded.username;
           ws.isAuthenticated = true;
@@ -121,19 +110,17 @@ const eventHandlers = {
 
       } catch (err) {
           handleError(new Error('Token JWT inválido o expirado.'), ws, 'USER_AUTH');
-          // En caso de fallo de autenticación, cerramos la conexión
           ws.terminate(); 
       }
   },
 
   'QUEUE_UPDATE': async ({ userData }, ws) => {
-    if (!ensureAuthenticated(ws, 'QUEUE_UPDATE')) return; // GUARDIA
+    if (!ensureAuthenticated(ws, 'QUEUE_UPDATE')) return;
 
     try {
       validate('userData', userData);
       console.log(`[EVENT] QUEUE_UPDATE -> preparando prompt preGame para: ${ws.username}`);
 
-      // Usar los datos de rendimiento de ejemplo como en la versión original
       const performanceData = {
         weakness1: 'Control de oleadas en early',
         weakness2: 'Posicionamiento en teamfights tardías'
@@ -155,7 +142,7 @@ const eventHandlers = {
   },
 
   'CHAMP_SELECT_UPDATE': async ({ data, userData }, ws) => {
-    if (!ensureAuthenticated(ws, 'CHAMP_SELECT_UPDATE')) return; // GUARDIA
+    if (!ensureAuthenticated(ws, 'CHAMP_SELECT_UPDATE')) return;
 
     try {
       validate('userData', userData);
@@ -174,7 +161,7 @@ const eventHandlers = {
   },
 
   'LIVE_COACHING_UPDATE': async ({ data, userData }, ws) => {
-    if (!ensureAuthenticated(ws, 'LIVE_COACHING_UPDATE')) return; // GUARDIA
+    if (!ensureAuthenticated(ws, 'LIVE_COACHING_UPDATE')) return;
 
     try {
       validate('userData', userData);
@@ -200,7 +187,6 @@ const eventHandlers = {
 wss.on('connection', (ws) => {
   ws.id = crypto.randomBytes(6).toString('hex');
   ws.isAlive = true;
-  // Inicializar estado de autenticación a falso
   ws.isAuthenticated = false; 
   ws.userId = null;
   ws.username = 'Unauthenticated';
@@ -216,7 +202,6 @@ wss.on('connection', (ws) => {
       const { eventType } = message;
       if (!eventType) throw new Error("Message missing 'eventType'");
       
-      // Mostrar solo el ID si no está autenticado, el username si lo está
       const clientIdentifier = ws.isAuthenticated ? ws.username : `id=${ws.id}`;
       console.log(`[WS:${clientIdentifier}] 📩 Recibido evento: ${eventType}`);
 
@@ -240,11 +225,6 @@ wss.on('connection', (ws) => {
   ws.on('error', (err) => handleError(err, ws, 'connection'));
 });
 
-// === STARTUP ===
-server.listen(RENDER_INJECTED_PORT, () => { // <-- El servidor HTTP escucha el puerto correcto
-    console.log(`✅ WebSocket server iniciado en puerto ${RENDER_INJECTED_PORT}`);
-});
-
 // ============================================================
 // HEARTBEAT SERVIDOR -> CLIENTE
 // ============================================================
@@ -264,4 +244,7 @@ heartbeatInterval.unref?.();
 // ============================================================
 // STARTUP
 // ============================================================
-console.log(`✅ WebSocket server iniciado en puerto ${SERVER_PORT}`);
+// 🚨 CRÍTICO: El servidor HTTP/WS escucha el puerto inyectado por Render ($PORT)
+server.listen(SERVER_PORT, () => {
+    console.log(`✅ WebSocket server iniciado en puerto ${SERVER_PORT}`);
+});
