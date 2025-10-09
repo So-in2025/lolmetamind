@@ -28,7 +28,20 @@ const JWT_SECRET = process.env.JWT_SECRET || 'p2s5v8y/B?E(H+MbQeThWmZq4t7w!z%C&F
 // 🚨 CORRECCIÓN CRÍTICA: Render pasa el puerto requerido en process.env.PORT
 const SERVER_PORT = process.env.PORT || 8080;
 
-const wss = new WebSocket.Server({ port: SERVER_PORT });
+// Crear un servidor HTTP estándar
+const server = http.createServer((req, res) => {
+  // Render hace proxy a la URL raíz del puerto HTTP para checks de salud.
+  // Tu WebSocket Server no es un servidor HTTP normal, pero responder a "/" es buena práctica.
+  if (req.url === '/') {
+    res.writeHead(200, { 'Content-Type': 'text/plain' });
+    res.end('WebSocket server is running (HTTP proxy works).\n');
+  } else {
+    res.writeHead(404);
+    res.end();
+  }
+});
+
+const wss = new WebSocket.Server({ server }); // <-- ¡Aquí se adjunta al servidor HTTP!
 
 // ============================================================
 // CONFIGURACIÓN KEEPALIVE
@@ -225,6 +238,11 @@ wss.on('connection', (ws) => {
   });
 
   ws.on('error', (err) => handleError(err, ws, 'connection'));
+});
+
+// === STARTUP ===
+server.listen(RENDER_INJECTED_PORT, () => { // <-- El servidor HTTP escucha el puerto correcto
+    console.log(`✅ WebSocket server iniciado en puerto ${RENDER_INJECTED_PORT}`);
 });
 
 // ============================================================
