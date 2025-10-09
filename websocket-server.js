@@ -1,15 +1,14 @@
-// websocket-server.js (versión final PRO con Autenticación JWT y FIX de RENDER PORT)
+// websocket-server.js (VERSÍON FINAL, CLEANUP Y PROXY FIX)
 // ============================================================
 // WebSocket Server con integración AI, autenticación JWT y conexión estable
-// - Adjuntado a servidor HTTP para compatibilidad con Proxy de Render.
-// - Heartbeat, autenticación JWT, y guardias de acceso a la IA.
+// - Corregido para garantizar escucha en el puerto correcto de Render.
 // ============================================================
 
 const WebSocket = require('ws');
 const path = require('path');
 const crypto = require('crypto');
 const jwt = require('jsonwebtoken'); 
-const http = require('http'); // ✅ FIX CRÍTICO: Módulo HTTP importado
+const http = require('http'); // Módulo HTTP necesario para Render Proxy
 require('dotenv').config({ path: path.resolve(process.cwd(), '.env.local') });
 
 let aiOrchestrator = null;
@@ -25,7 +24,8 @@ try {
 // 🚨 CLAVE SECRETA: Usar la misma clave de fallback que los endpoints Next.js
 const JWT_SECRET = process.env.JWT_SECRET || 'p2s5v8y/B?E(H+MbQeThWmZq4t7w!z%C&F)J@NcRfUjXn2r5u8x/A?D*G-KaPdSg'; 
 
-// 🚨 CORRECCIÓN CRÍTICA: Usar el puerto inyectado por Render ($PORT)
+// 🚨 CORRECCIÓN CRÍTICA: Render pasa el puerto requerido en process.env.PORT
+// Este es el puerto dinámico que Render inyecta.
 const SERVER_PORT = process.env.PORT || 8080;
 
 // Crear un servidor HTTP estándar que maneje el upgrade de protocolo
