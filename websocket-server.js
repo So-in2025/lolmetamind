@@ -1,256 +1,242 @@
-// websocket-server.js (VERSION FINAL, ROBUSTA Y OPTIMIZADA PARA RENDER WSS)
+// src/hooks/useWebSocketCoach.js (ÚLTIMA VERSIÓN, CON DEPENDENCIA CORREGIDA)
 // ============================================================
-// ARQUITECTURA: HTTP/WS Server adjunto para compatibilidad con el Proxy de Render.
-// SEGURIDAD: Autenticación JWT estricta para todas las operaciones de IA.
-// RESILIENCIA: Heartbeat para mantener la conexión viva y limpieza de recursos.
-// ============================================================
-
-const WebSocket = require('ws');
-const path = require('path');
-const crypto = require('crypto');
-const jwt = require('jsonwebtoken'); 
-const http = require('http'); // ✅ CRÍTICO: Módulo HTTP para manejar el upgrade de protocolo
-require('dotenv').config({ path: path.resolve(process.cwd(), '.env.local') });
-
-let aiOrchestrator = null;
-let prompts = null;
-try {
-  aiOrchestrator = require('./dist/lib/ai/aiOrchestrator').default;
-  prompts = require('./dist/lib/ai/prompts');
-} catch (err) {
-  aiOrchestrator = require('./src/lib/ai/aiOrchestrator').default;
-  prompts = require('./src/lib/ai/prompts');
-}
-
-// 🚨 CLAVE SECRETA: Clave de fallback para la verificación JWT
-const JWT_SECRET = process.env.JWT_SECRET || 'p2s5v8y/B?E(H+MbQeThWmZq4t7w!z%C&F)J@NcRfUjXn2r5u8x/A?D*G-KaPdSg'; 
-
-// 🚨 CONFIGURACIÓN DE RED: Usar el puerto dinámico inyectado por Render ($PORT)
-const SERVER_PORT = process.env.PORT || 8080;
-
-// ============================================================
-// SETUP DEL SERVIDOR HTTP (PARA COMPATIBILIDAD CON PROXY)
+// ARQUITECTURA: Implementa Cola de Mensajes y FIX de Dependencia de Token
+// ESTADO ANTERIOR: El useEffect no se disparaba al llegar el token
+// ESTADO ACTUAL: El useEffect usa `userData` como dependencia para garantizar el disparo.
 // ============================================================
 
-// 1. Crear el servidor HTTP que escuchará el puerto
-const server = http.createServer((req, res) => {
-  // Manejador básico HTTP para health checks de Render.
-  if (req.url === '/') {
-    res.writeHead(200, { 'Content-Type': 'text/plain' });
-    res.end('WebSocket server is running (HTTP proxy works).\n');
-  } else {
-    res.writeHead(404);
-    res.end();
+import { useState, useEffect, useCallback, useRef } from 'react';
+import { useTTS } from './useTTS';
+
+// ============================================================
+// CONFIGURACIÓN CENTRALIZADA
+// ============================================================
+
+const getWsUrl = () => {
+  const RENDER_WS_URL = 'wss://lolmetamind-ws.onrender.com';
+  if (process.env.NODE_ENV === 'production' || !process.env.NEXT_PUBLIC_WS_URL) {
+    console.log(`[WS:CLIENT] 🚀 Entorno de producción detectado. Usando WS de Render: ${RENDER_WS_URL}`);
+    return RENDER_WS_URL;
   }
-});
-
-// 2. Adjuntar el servidor WebSocket a la instancia HTTP
-const wss = new WebSocket.Server({ server }); 
-
-// ============================================================
-// CONFIGURACIÓN KEEPALIVE
-// ============================================================
-const HEARTBEAT_INTERVAL = 30 * 1000; // 30s
-console.log(`⚙️  WebSocket KeepAlive configurado cada ${HEARTBEAT_INTERVAL / 1000}s`);
-
-// ============================================================
-// UTILIDADES (GUARDIAS Y ENVÍO SEGURO)
-// ============================================================
-const validate = (schema, data) => {
-  if (!data) throw new Error(`Schema '${schema}' missing data.`);
-  if (schema === 'userData' && (typeof data.summonerName !== 'string' || !data.zodiacSign)) {
-    throw new Error('userData invalid (requires summonerName and zodiacSign).');
-  }
-  return true;
+  console.log(`[WS:CLIENT] 💻 Entorno de desarrollo. Usando WS local (de .env.local): ${process.env.NEXT_PUBLIC_WS_URL}`);
+  return process.env.NEXT_PUBLIC_WS_URL;
 };
 
-const handleError = (error, ws, context = 'general') => {
-  const errorMessage = error instanceof Error ? error.message : String(error);
-  console.error(`🚨 Error [${context}]:`, errorMessage);
-  if (ws && ws.readyState === WebSocket.OPEN) {
-    safeSend(ws, { eventType: 'ERROR', data: { message: `Server error: ${errorMessage}` } });
-  }
-};
-
-function safeSend(ws, payload) {
-  if (!ws || ws.readyState !== WebSocket.OPEN) return false;
-  try {
-    ws.send(JSON.stringify(payload));
-    return true;
-  } catch (err) {
-    console.warn('[WS] safeSend failed:', err.message);
-    return false;
-  }
-}
-
-const ensureAuthenticated = (ws, context = 'Acceso a IA') => {
-    // Verifica que la bandera de autenticación y el userId estén presentes
-    if (!ws.isAuthenticated || !ws.userId) {
-        handleError(new Error('Acceso denegado. Cliente no autenticado.'), ws, context);
-        return false;
-    }
-    return true;
-};
+const WS_URL = getWsUrl();
+const HEARTBEAT_INTERVAL = 25000;
 
 // ============================================================
-// EVENTOS CUSTOM DE LA IA Y AUTENTICACIÓN
+// HOOK PRINCIPAL: useWebSocketCoach
 // ============================================================
-const eventHandlers = {
-  'PING': (_, ws) => {
-    safeSend(ws, { eventType: 'PONG' });
-    ws.isAlive = true;
-  },
+export function useWebSocketCoach({ userData, targetEvent, fallbackTTS = true }) {
   
-  'USER_AUTH': ({ token }, ws) => {
+  // --- ESTADO Y REFS ---
+  const [aiAdvice, setAiAdvice] = useState(null);
+  const [wsStatus, setWsStatus] = useState('WAITING_FOR_USER');
+
+  const wsRef = useRef(null); 
+  const reconnectTimeoutRef = useRef(null);
+  const heartbeatRef = useRef(null);
+  const reconnectAttemptsRef = useRef(0);
+  const messageQueueRef = useRef([]); // Cola para mensajes no enviados
+
+  const { speak } = useTTS();
+
+  // ------------------------------------------------------------
+  // FUNCIÓN DE VACIADO DE COLA
+  // ------------------------------------------------------------
+  const drainMessageQueue = useCallback(() => {
+    const ws = wsRef.current;
+    if (ws && ws.readyState === WebSocket.OPEN) {
+      console.log(`[WS:CLIENT] 💧 Vaciando cola de mensajes: ${messageQueueRef.current.length} elementos.`);
+      while (messageQueueRef.current.length > 0) {
+        const message = messageQueueRef.current.shift();
+        ws.send(JSON.stringify(message));
+        console.log(`[WS:CLIENT] ⬆️ Enviado mensaje en cola: ${message.eventType}`);
+      }
+    }
+  }, []);
+
+  // ------------------------------------------------------------
+  // FUNCIÓN DE CONEXIÓN
+  // ------------------------------------------------------------
+  const connectWebSocket = useCallback(() => {
+    // [GUARDIA 1] NECESARIO: Detiene intentos si no hay token (evita bucle de fallo en el server)
+    if (!userData || !userData.token) {
+      console.log('[WS:CLIENT] 🟡 Pausado. Esperando datos de usuario para conectar.');
+      setWsStatus('WAITING_FOR_USER');
+      return;
+    }
+
+    const ws = wsRef.current;
+    if (ws && (ws.readyState === WebSocket.OPEN || ws.readyState === WebSocket.CONNECTING)) {
+      console.log(`[WS:CLIENT] ✅ Conexión ya está en estado. No se requiere acción.`);
+      if (ws.readyState === WebSocket.OPEN) {
+          drainMessageQueue();
+      }
+      return;
+    }
+
+    clearTimeout(reconnectTimeoutRef.current);
+    if (heartbeatRef.current) clearInterval(heartbeatRef.current);
+
+    console.log(`[WS:CLIENT] 🔌 Intentando conectar a ${WS_URL}... (Intento #${reconnectAttemptsRef.current + 1})`);
+    setWsStatus('CONNECTING');
+
+    const newWs = new WebSocket(WS_URL);
+    wsRef.current = newWs;
+
+    // ------------------ MANEJADORES DE EVENTOS DEL WEBSOCKET ------------------
+    
+    newWs.onopen = () => {
+      console.log('[WS:CLIENT] ✅ ¡Conexión establecida con el servidor!');
+      setWsStatus('CONNECTED');
+      reconnectAttemptsRef.current = 0;
+
+      const authPayload = { eventType: 'USER_AUTH', token: userData.token, userId: userData.id };
+      newWs.send(JSON.stringify(authPayload));
+      console.log('[WS:CLIENT] 🔐 Token de autenticación enviado al servidor.');
+      drainMessageQueue(); // VACIADO DE COLA AQUÍ
+
+      // Iniciar Heartbeat
+      if (heartbeatRef.current) clearInterval(heartbeatRef.current);
+      heartbeatRef.current = setInterval(() => {
+        if (newWs.readyState === WebSocket.OPEN) {
+          console.log('[WS:CLIENT] ❤️ Enviando Heartbeat (ping)...');
+          newWs.send(JSON.stringify({ eventType: 'PING' }));
+        }
+      }, HEARTBEAT_INTERVAL);
+    };
+
+    newWs.onmessage = (event) => {
       try {
-          if (!token) throw new Error('Token de autenticación JWT faltante.');
+        const message = JSON.parse(event.data);
+        const { eventType, data } = message;
 
-          const decoded = jwt.verify(token, JWT_SECRET);
-          
-          ws.userId = decoded.id;
-          ws.username = decoded.username;
-          ws.isAuthenticated = true;
+        if (eventType === 'PONG') {
+          console.log('[WS:CLIENT] ❤️ Pong recibido del servidor. La conexión está viva.');
+          return;
+        }
 
-          safeSend(ws, { eventType: 'AUTH_SUCCESS', data: { username: decoded.username } });
-          console.log(`[WS:${ws.id}] 🔐 Cliente autenticado: ${decoded.username}`);
+        console.log('[WS:CLIENT] 🧠 Mensaje recibido del servidor:', message);
 
+        if (eventType === targetEvent) {
+          console.log(`[WS:CLIENT] 🎯 ¡Evento esperado ('${targetEvent}') recibido! Actualizando estado.`);
+          setAiAdvice(data);
+          if (fallbackTTS && data?.fullText) {
+            console.log('[WS:CLIENT] 🔊 Reproduciendo consejo con TTS...');
+            speak(data.fullText);
+          }
+        } else if (eventType === 'ERROR') {
+          console.error('[WS:CLIENT] 🚨 Error explícito desde el servidor:', data?.message);
+        } else {
+          console.log(`[WS:CLIENT] ⚙️ Evento ('${eventType}') recibido pero no es el esperado ('${targetEvent}'). Se ignora.`);
+        }
       } catch (err) {
-          handleError(new Error('Token JWT inválido o expirado.'), ws, 'USER_AUTH');
-          ws.terminate(); 
+        console.error('[WS:CLIENT] ❌ Error fatal al parsear mensaje del servidor:', err, 'Data recibida:', event.data);
       }
-  },
+    };
 
-  'QUEUE_UPDATE': async ({ userData }, ws) => {
-    if (!ensureAuthenticated(ws, 'QUEUE_UPDATE')) return;
-
-    try {
-      validate('userData', userData);
-      console.log(`[EVENT] QUEUE_UPDATE -> preparando prompt preGame para: ${ws.username}`);
-
-      const performanceData = {
-        weakness1: 'Control de oleadas en early',
-        weakness2: 'Posicionamiento en teamfights tardías'
-      };
-
-      const prompt = prompts.createPreGamePrompt(userData, performanceData);
-      aiOrchestrator.getOrchestratedResponse({
-        prompt,
-        expectedType: 'object',
-        kind: 'realtime',
-        cacheTTL: 8 * 60 * 1000
-      }).then((res) => {
-        console.log('[EVENT] QUEUE_ADVICE -> enviado al cliente');
-        safeSend(ws, { eventType: 'QUEUE_ADVICE', data: res });
-      }).catch(err => handleError(err, ws, 'QUEUE_UPDATE'));
-    } catch (err) {
-      handleError(err, ws, 'QUEUE_UPDATE');
-    }
-  },
-
-  'CHAMP_SELECT_UPDATE': async ({ data, userData }, ws) => {
-    if (!ensureAuthenticated(ws, 'CHAMP_SELECT_UPDATE')) return;
-
-    try {
-      validate('userData', userData);
-      console.log(`[EVENT] CHAMP_SELECT_UPDATE -> generando análisis de draft para: ${ws.username}`);
-      const prompt = prompts.createChampSelectPrompt(data, userData);
-      const res = await aiOrchestrator.getOrchestratedResponse({
-        prompt,
-        expectedType: 'object',
-        kind: 'realtime',
-        cacheTTL: 5 * 60 * 1000
-      });
-      safeSend(ws, { eventType: 'CHAMP_SELECT_ADVICE', data: res });
-    } catch (err) {
-      handleError(err, ws, 'CHAMP_SELECT_UPDATE');
-    }
-  },
-
-  'LIVE_COACHING_UPDATE': async ({ data, userData }, ws) => {
-    if (!ensureAuthenticated(ws, 'LIVE_COACHING_UPDATE')) return;
-
-    try {
-      validate('userData', userData);
-      if (!data || !data.liveGameData) throw new Error('liveGameData missing');
-      console.log(`[EVENT] LIVE_COACHING_UPDATE -> generando consejo en vivo para: ${ws.username}`);
-      const prompt = prompts.createLiveCoachingPrompt(data.liveGameData, userData.zodiacSign);
-      const res = await aiOrchestrator.getOrchestratedResponse({
-        prompt,
-        expectedType: 'object',
-        kind: 'realtime',
-        cacheTTL: 60 * 1000
-      });
-      safeSend(ws, { eventType: 'IN_GAME_ADVICE', data: res });
-    } catch (err) {
-      handleError(err, ws, 'LIVE_COACHING_UPDATE');
-    }
-  }
-};
-
-// ============================================================
-// GESTIÓN DE CONEXIONES
-// ============================================================
-wss.on('connection', (ws) => {
-  ws.id = crypto.randomBytes(6).toString('hex');
-  ws.isAlive = true;
-  ws.isAuthenticated = false; 
-  ws.userId = null;
-  ws.username = 'Unauthenticated';
-
-  console.log(`[WS] ✅ Cliente conectado -> id=${ws.id}`);
-
-  ws.on('pong', () => { ws.isAlive = true; });
-
-  ws.on('message', async (rawMessage) => {
-    let message;
-    try {
-      message = JSON.parse(rawMessage.toString());
-      const { eventType } = message;
-      if (!eventType) throw new Error("Message missing 'eventType'");
+    newWs.onclose = (ev) => {
+      console.warn(`[WS:CLIENT] ⚠️ Conexión cerrada. Código=${ev.code}, Razón=${ev.reason}`);
       
-      const clientIdentifier = ws.isAuthenticated ? ws.username : `id=${ws.id}`;
-      console.log(`[WS:${clientIdentifier}] 📩 Recibido evento: ${eventType}`);
-
-      const handler = eventHandlers[eventType];
-      if (typeof handler === 'function') {
-        await handler(message, ws);
+      if (heartbeatRef.current) clearInterval(heartbeatRef.current);
+      
+      if (ev.code !== 1000) {
+        setWsStatus('RECONNECTING');
+        reconnectAttemptsRef.current += 1;
+        const delay = Math.min(30000, 1000 * 2 ** reconnectAttemptsRef.current);
+        console.log(`[WS:CLIENT] ⏱️ Programando reconexión en ${delay / 1000} segundos...`);
+        reconnectTimeoutRef.current = setTimeout(connectWebSocket, delay);
       } else {
-        console.warn(`[WS:${clientIdentifier}] ⚠️ Evento desconocido: ${eventType}`);
-        safeSend(ws, { eventType: 'ERROR', data: { message: 'Unknown event type' } });
+        setWsStatus('DISCONNECTED');
       }
-    } catch (err) {
-      handleError(err, ws, 'message');
+    };
+
+    newWs.onerror = (err) => {
+      console.error('[WS:CLIENT] ❌ Error crítico en la conexión WebSocket. El `onclose` se disparará a continuación.', err);
+      setWsStatus('ERROR');
+    };
+  }, [userData, targetEvent, fallbackTTS, speak, drainMessageQueue]);
+
+
+  // ============================================================
+  // EFECTO DE MONTAJE Y CONEXIÓN (FIX FINAL ESTRUCTURAL)
+  // ============================================================
+  useEffect(() => {
+    // Limpieza de timers/intervalos.
+    clearTimeout(reconnectTimeoutRef.current); 
+    if (heartbeatRef.current) clearInterval(heartbeatRef.current);
+
+    // [CORRECCIÓN CRÍTICA] Si el token está disponible, iniciar conexión.
+    if (userData?.token) {
+        console.log('[WS:CLIENT] 🔑 Token disponible. Iniciando o reanudando conexión...');
+        connectWebSocket();
+    } else {
+        console.log('[WS:CLIENT] 🟡 Montado. Aún esperando token de usuario...');
+        setWsStatus('WAITING_FOR_USER');
     }
-  });
 
-  ws.on('close', (code, reason) => {
-    const clientIdentifier = ws.username || `id=${ws.id}`;
-    console.log(`[WS:${clientIdentifier}] ❌ Cliente desconectado (code=${code}, reason=${reason || 'none'})`);
-  });
+    // --- FUNCIÓN DE LIMPIEZA ---
+    return () => {
+      console.log('[WS:CLIENT] 🧹 Realizando limpieza completa del hook...');
+      
+      clearTimeout(reconnectTimeoutRef.current); 
+      if (heartbeatRef.current) clearInterval(heartbeatRef.current);
 
-  ws.on('error', (err) => handleError(err, ws, 'connection'));
-});
+      if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
+          wsRef.current.close(1000, 'Componente desmontado'); 
+          console.log('[WS:CLIENT] 🔌 Conexión cerrada voluntariamente.');
+      }
+      wsRef.current = null;
+    };
+    // CRÍTICO: Usar el objeto completo `userData` para asegurar que React dispare el efecto
+    // cuando el token se carga (incluso si es en un render posterior al inicial).
+  }, [userData, connectWebSocket]); 
 
-// ============================================================
-// HEARTBEAT SERVIDOR -> CLIENTE
-// ============================================================
-const heartbeatInterval = setInterval(() => {
-  wss.clients.forEach((ws) => {
-    if (ws.isAlive === false) {
-      const clientIdentifier = ws.username || `id=${ws.id}`;
-      console.log(`[WS] 🔴 Cliente inactivo, terminando conexión -> ${clientIdentifier}`);
-      return ws.terminate();
-    }
-    ws.isAlive = false;
-    try { ws.ping(() => {}); } catch (e) { /* ignore */ }
-  });
-}, HEARTBEAT_INTERVAL);
-heartbeatInterval.unref?.();
 
-// ============================================================
-// STARTUP (LISTENER FINAL)
-// ============================================================
-// 🚨 CRÍTICO: Vinculación explícita al host 0.0.0.0
-server.listen(SERVER_PORT, '0.0.0.0', () => {
-    console.log(`✅ WebSocket server iniciado en host 0.0.0.0 en puerto ${SERVER_PORT}`);
-});
+  // ============================================================
+  // FUNCIONES DE ENVÍO DE DATOS AL SERVIDOR (CON COLA)
+  // ============================================================
+  
+  const sendMessage = useCallback((eventType, data = {}) => {
+      const ws = wsRef.current;
+      const message = { eventType, data, userData };
+
+      if (ws && ws.readyState === WebSocket.OPEN) {
+        // Opción 1: Enviar inmediatamente si está abierto
+        ws.send(JSON.stringify(message));
+        console.log(`[WS:CLIENT] 📤 Enviando evento '${eventType}' directamente.`);
+        return true;
+      }
+      
+      // Opción 2: Poner en cola si no está abierto (soluciona la carrera de tiempo)
+      messageQueueRef.current.push(message);
+      console.warn(`[WS:CLIENT] 📥 Mensaje '${eventType}' puesto en cola. Estado WS: ${ws?.readyState || 'undefined'}`);
+      
+      // FIX AGRESIVO: Si hay un mensaje en cola y la conexión no está activa, forzar un intento
+      if (userData?.token && (!ws || (ws.readyState !== WebSocket.CONNECTING && ws.readyState !== WebSocket.OPEN))) {
+          console.log('[WS:CLIENT] ⚠️ Forzando conexión inmediata para drenar cola (Token disponible).');
+          connectWebSocket();
+      }
+      
+      return false;
+    }, [userData, connectWebSocket]
+  );
+
+  // --- Wrappers específicos ---
+  const sendQueueUpdate = useCallback(() => sendMessage('QUEUE_UPDATE'), [sendMessage]);
+  const sendChampSelectUpdate = useCallback((draftData) => sendMessage('CHAMP_SELECT_UPDATE', draftData), [sendMessage]);
+  const sendInGameUpdate = useCallback((liveGameData) => sendMessage('LIVE_COACHING_UPDATE', { liveGameData }), [sendMessage]);
+
+  // ============================================================
+  // VALORES RETORNADOS POR EL HOOK
+  // ============================================================
+  return {
+    aiAdvice,
+    wsStatus,
+    sendQueueUpdate,
+    sendChampSelectUpdate,
+    sendInGameUpdate
+  };
+}
