@@ -1,14 +1,15 @@
-// websocket-server.js (VERSÍON FINAL, CLEANUP Y PROXY FIX)
+// websocket-server.js (VERSION FINAL, ROBUSTA Y OPTIMIZADA PARA RENDER WSS)
 // ============================================================
-// WebSocket Server con integración AI, autenticación JWT y conexión estable
-// - Corregido para garantizar escucha en el puerto correcto de Render.
+// ARQUITECTURA: HTTP/WS Server adjunto para compatibilidad con el Proxy de Render.
+// SEGURIDAD: Autenticación JWT estricta para todas las operaciones de IA.
+// RESILIENCIA: Heartbeat para mantener la conexión viva y limpieza de recursos.
 // ============================================================
 
 const WebSocket = require('ws');
 const path = require('path');
 const crypto = require('crypto');
 const jwt = require('jsonwebtoken'); 
-const http = require('http'); // Módulo HTTP necesario para Render Proxy
+const http = require('http'); // ✅ CRÍTICO: Módulo HTTP para manejar el upgrade de protocolo
 require('dotenv').config({ path: path.resolve(process.cwd(), '.env.local') });
 
 let aiOrchestrator = null;
@@ -21,16 +22,19 @@ try {
   prompts = require('./src/lib/ai/prompts');
 }
 
-// 🚨 CLAVE SECRETA: Usar la misma clave de fallback que los endpoints Next.js
+// 🚨 CLAVE SECRETA: Clave de fallback para la verificación JWT
 const JWT_SECRET = process.env.JWT_SECRET || 'p2s5v8y/B?E(H+MbQeThWmZq4t7w!z%C&F)J@NcRfUjXn2r5u8x/A?D*G-KaPdSg'; 
 
-// 🚨 CORRECCIÓN CRÍTICA: Render pasa el puerto requerido en process.env.PORT
-// Este es el puerto dinámico que Render inyecta.
+// 🚨 CONFIGURACIÓN DE RED: Usar el puerto dinámico inyectado por Render ($PORT)
 const SERVER_PORT = process.env.PORT || 8080;
 
-// Crear un servidor HTTP estándar que maneje el upgrade de protocolo
+// ============================================================
+// SETUP DEL SERVIDOR HTTP (PARA COMPATIBILIDAD CON PROXY)
+// ============================================================
+
+// 1. Crear el servidor HTTP que escuchará el puerto
 const server = http.createServer((req, res) => {
-  // Respuesta simple para checks de salud HTTP (si Render lo usa)
+  // Manejador básico HTTP para health checks de Render.
   if (req.url === '/') {
     res.writeHead(200, { 'Content-Type': 'text/plain' });
     res.end('WebSocket server is running (HTTP proxy works).\n');
@@ -40,7 +44,8 @@ const server = http.createServer((req, res) => {
   }
 });
 
-const wss = new WebSocket.Server({ server }); // Adjunta el WS al servidor HTTP
+// 2. Adjuntar el servidor WebSocket a la instancia HTTP
+const wss = new WebSocket.Server({ server }); 
 
 // ============================================================
 // CONFIGURACIÓN KEEPALIVE
@@ -49,7 +54,7 @@ const HEARTBEAT_INTERVAL = 30 * 1000; // 30s
 console.log(`⚙️  WebSocket KeepAlive configurado cada ${HEARTBEAT_INTERVAL / 1000}s`);
 
 // ============================================================
-// UTILIDADES
+// UTILIDADES (GUARDIAS Y ENVÍO SEGURO)
 // ============================================================
 const validate = (schema, data) => {
   if (!data) throw new Error(`Schema '${schema}' missing data.`);
@@ -79,6 +84,7 @@ function safeSend(ws, payload) {
 }
 
 const ensureAuthenticated = (ws, context = 'Acceso a IA') => {
+    // Verifica que la bandera de autenticación y el userId estén presentes
     if (!ws.isAuthenticated || !ws.userId) {
         handleError(new Error('Acceso denegado. Cliente no autenticado.'), ws, context);
         return false;
@@ -95,7 +101,7 @@ const eventHandlers = {
     ws.isAlive = true;
   },
   
-  'USER_AUTH': ({ token, userId, username }, ws) => {
+  'USER_AUTH': ({ token }, ws) => {
       try {
           if (!token) throw new Error('Token de autenticación JWT faltante.');
 
@@ -242,9 +248,9 @@ const heartbeatInterval = setInterval(() => {
 heartbeatInterval.unref?.();
 
 // ============================================================
-// STARTUP
+// STARTUP (LISTENER FINAL)
 // ============================================================
-// 🚨 CRÍTICO: El servidor HTTP/WS escucha el puerto inyectado por Render ($PORT)
-server.listen(SERVER_PORT, () => {
-    console.log(`✅ WebSocket server iniciado en puerto ${SERVER_PORT}`);
+// 🚨 CRÍTICO: Vinculación explícita al host 0.0.0.0
+server.listen(SERVER_PORT, '0.0.0.0', () => {
+    console.log(`✅ WebSocket server iniciado en host 0.0.0.0 en puerto ${SERVER_PORT}`);
 });
