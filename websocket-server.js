@@ -26,13 +26,26 @@ try {
 // 🚨 CLAVE SECRETA: Clave de fallback para la verificación JWT
 const JWT_SECRET = process.env.JWT_SECRET || 'p2s5v8y/B?E(H+MbQeThWmZq4t7w!z%C&F)J@NcRfUjXn2r5u8x/A?D*G-KaPdSg'; 
 
-// 🚨 CONFIGURACIÓN DE RED: Usar el puerto dinámico inyectado por Render ($PORT)
-const SERVER_PORT = process.env.PORT || 8080;
+// Usa $PORT para el servidor HTTP de Railway (para que sepa que el servicio está vivo)
+const SERVER_PORT = process.env.PORT || 8080; 
 
-// ============================================================
-// SETUP DEL SERVIDOR HTTP (PARA COMPATIBILIDAD CON PROXY)
-// ============================================================
+// Si estás usando Railway, el proceso debe vincularse a $PORT. 
+// La clave está en asegurar que este servicio esté configurado como
+// un servicio web separado en Railway.
 
+// El problema está en la concurrencia. El código en sí es correcto para 
+// un solo servicio web. Si son dos servicios diferentes, ambos deben usar $PORT. 
+// El problema es que el proxy de Railway (o tu salud/warmup) falla al 
+// conectarse al servidor HTTP *del WebSocket*.
+
+// Vamos a enfocarnos en la solución a nivel de Railway:
+// EL CÓDIGO NO REQUIERE UN CAMBIO AQUÍ si está desplegado como un servicio separado, 
+// **salvo que** quieras asegurarte de que tu Next.js Backend y tu WS Server 
+// no intenten coexistir en un mismo dominio público y necesites una URL separada.
+// Mantendremos el código como está y arreglaremos el despliegue.
+
+// Si necesitas que el servidor WS responda a un health check HTTP:
+// El servidor WS ya tiene un handler HTTP básico:
 const server = http.createServer((req, res) => {
   if (req.url === '/') {
     res.writeHead(200, { 'Content-Type': 'text/plain' });
@@ -42,6 +55,8 @@ const server = http.createServer((req, res) => {
     res.end();
   }
 });
+// Esto debería responder 200/404 al ping de salud. Si falla con 502, es un 
+// problema de tiempo de vida (crash) o binding fallido.
 
 const wss = new WebSocket.Server({ server }); // Adjunta el WS al servidor HTTP
 
