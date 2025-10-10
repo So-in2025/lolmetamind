@@ -27,9 +27,10 @@ try {
 const JWT_SECRET = process.env.JWT_SECRET || 'p2s5v8y/B?E(H+MbQeThWmZq4t7w!z%C&F)J@NcRfUjXn2r5u8x/A?D*G-KaPdSg'; 
 
 // Usa $PORT para el servidor HTTP de Railway (para que sepa que el servicio está vivo)
-const SERVER_PORT = 8081; 
-const HOST = process.env.HOST || '0.0.0.0'; 
-
+const PORT = process.env.PORT || 8080;
+server.listen(PORT, '0.0.0.0', () => {
+  console.log(`✅ WebSocket server escuchando en 0.0.0.0:${PORT}`);
+});
 // Si estás usando Railway, el proceso debe vincularse a $PORT. 
 // La clave está en asegurar que este servicio esté configurado como
 // un servicio web separado en Railway.
@@ -259,11 +260,3 @@ const heartbeatInterval = setInterval(() => {
   });
 }, HEARTBEAT_INTERVAL);
 heartbeatInterval.unref?.();
-
-// ============================================================
-// STARTUP (LISTENER FINAL)
-// ============================================================
-// 🚨 CRÍTICO: Vinculación explícita al host 0.0.0.0
-server.listen(SERVER_PORT, '0.0.0.0', () => {
-    console.log(`✅ WebSocket server iniciado en host 0.0.0.0 en puerto ${SERVER_PORT}`);
-});
