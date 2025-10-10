@@ -27,7 +27,8 @@ try {
 const JWT_SECRET = process.env.JWT_SECRET || 'p2s5v8y/B?E(H+MbQeThWmZq4t7w!z%C&F)J@NcRfUjXn2r5u8x/A?D*G-KaPdSg'; 
 
 // Usa $PORT para el servidor HTTP de Railway (para que sepa que el servicio está vivo)
-const SERVER_PORT = process.env.PORT || 8080; 
+const SERVER_PORT = 8081; 
+const HOST = process.env.HOST || '0.0.0.0'; 
 
 // Si estás usando Railway, el proceso debe vincularse a $PORT. 
 // La clave está en asegurar que este servicio esté configurado como
