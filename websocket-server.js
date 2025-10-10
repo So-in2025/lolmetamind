@@ -1,8 +1,7 @@
-// websocket-server.js (VERSIÓN FINAL Y 100% CLEANUP)
+// websocket-server-debug.js
 // ============================================================
-// WebSocket Server con integración AI, autenticación JWT y conexión estable
-// - Corregido: Se eliminó la importación incorrecta de useTTS.
-// - Adjuntado a servidor HTTP para compatibilidad con Proxy de Render.
+// WebSocket Server FULL DEBUG / PRO-DEV
+// Integración AI + JWT + Logs detallados + Heartbeat robusto
 // ============================================================
 
 const WebSocket = require('ws');
@@ -12,43 +11,34 @@ const jwt = require('jsonwebtoken');
 const http = require('http'); 
 require('dotenv').config({ path: path.resolve(process.cwd(), '.env.local') });
 
+// ========================
+// IMPORTS AI
+// ========================
 let aiOrchestrator = null;
 let prompts = null;
+
 try {
-  // Las referencias a módulos de la IA deben mantenerse para el servidor
   aiOrchestrator = require('./dist/lib/ai/aiOrchestrator').default;
   prompts = require('./dist/lib/ai/prompts');
+  console.log('[DEBUG] Módulos AI cargados desde dist ✅');
 } catch (err) {
   aiOrchestrator = require('./src/lib/ai/aiOrchestrator').default;
   prompts = require('./src/lib/ai/prompts');
+  console.log('[DEBUG] Módulos AI cargados desde src ✅');
 }
 
-// 🚨 CLAVE SECRETA: Clave de fallback para la verificación JWT
-const JWT_SECRET = process.env.JWT_SECRET || 'p2s5v8y/B?E(H+MbQeThWmZq4t7w!z%C&F)J@NcRfUjXn2r5u8x/A?D*G-KaPdSg'; 
+// ========================
+// CONFIG JWT
+// ========================
+const JWT_SECRET = process.env.JWT_SECRET || 'fallback_super_secret_key';
+console.log('[DEBUG] JWT_SECRET cargado ✅');
 
-// Usa $PORT para el servidor HTTP de Railway (para que sepa que el servicio está vivo)
+// ========================
+// SERVIDOR HTTP (proxy/healthcheck)
+// ========================
 const PORT = process.env.PORT || 8080;
-server.listen(PORT, '0.0.0.0', () => {
-  console.log(`✅ WebSocket server escuchando en 0.0.0.0:${PORT}`);
-});
-// Si estás usando Railway, el proceso debe vincularse a $PORT. 
-// La clave está en asegurar que este servicio esté configurado como
-// un servicio web separado en Railway.
-
-// El problema está en la concurrencia. El código en sí es correcto para 
-// un solo servicio web. Si son dos servicios diferentes, ambos deben usar $PORT. 
-// El problema es que el proxy de Railway (o tu salud/warmup) falla al 
-// conectarse al servidor HTTP *del WebSocket*.
-
-// Vamos a enfocarnos en la solución a nivel de Railway:
-// EL CÓDIGO NO REQUIERE UN CAMBIO AQUÍ si está desplegado como un servicio separado, 
-// **salvo que** quieras asegurarte de que tu Next.js Backend y tu WS Server 
-// no intenten coexistir en un mismo dominio público y necesites una URL separada.
-// Mantendremos el código como está y arreglaremos el despliegue.
-
-// Si necesitas que el servidor WS responda a un health check HTTP:
-// El servidor WS ya tiene un handler HTTP básico:
 const server = http.createServer((req, res) => {
+  console.log(`[DEBUG][HTTP] Request -> ${req.method} ${req.url}`);
   if (req.url === '/') {
     res.writeHead(200, { 'Content-Type': 'text/plain' });
     res.end('WebSocket server is running (HTTP proxy works).\n');
@@ -57,20 +47,30 @@ const server = http.createServer((req, res) => {
     res.end();
   }
 });
-// Esto debería responder 200/404 al ping de salud. Si falla con 502, es un 
-// problema de tiempo de vida (crash) o binding fallido.
 
-const wss = new WebSocket.Server({ server }); // Adjunta el WS al servidor HTTP
+// ========================
+// ESCUCHA SERVER
+// ========================
+server.listen(PORT, '0.0.0.0', () => {
+  console.log(`✅ WebSocket server listening on 0.0.0.0:${PORT}`);
+  console.log('[DEBUG] Revisa que el puerto esté disponible y no haya conflicto de binding.');
+});
 
-// ============================================================
-// CONFIGURACIÓN KEEPALIVE
-// ============================================================
+// ========================
+// INICIALIZAR WEBSOCKET
+// ========================
+const wss = new WebSocket.Server({ server });
+console.log('[DEBUG] WebSocket.Server inicializado ✅');
+
+// ========================
+// KEEPALIVE HEARTBEAT
+// ========================
 const HEARTBEAT_INTERVAL = 30 * 1000; // 30s
-console.log(`⚙️  WebSocket KeepAlive configurado cada ${HEARTBEAT_INTERVAL / 1000}s`);
+console.log(`[DEBUG] Heartbeat configurado cada ${HEARTBEAT_INTERVAL / 1000}s`);
 
-// ============================================================
-// UTILIDADES (GUARDIAS Y ENVÍO SEGURO)
-// ============================================================
+// ========================
+// UTILIDADES
+// ========================
 const validate = (schema, data) => {
   if (!data) throw new Error(`Schema '${schema}' missing data.`);
   if (schema === 'userData' && (typeof data.summonerName !== 'string' || !data.zodiacSign)) {
@@ -81,156 +81,138 @@ const validate = (schema, data) => {
 
 const handleError = (error, ws, context = 'general') => {
   const errorMessage = error instanceof Error ? error.message : String(error);
-  console.error(`🚨 Error [${context}]:`, errorMessage);
+  console.error(`🚨 [ERROR][${context}]:`, errorMessage);
   if (ws && ws.readyState === WebSocket.OPEN) {
     safeSend(ws, { eventType: 'ERROR', data: { message: `Server error: ${errorMessage}` } });
   }
 };
 
 function safeSend(ws, payload) {
-  if (!ws || ws.readyState !== WebSocket.OPEN) return false;
+  if (!ws || ws.readyState !== WebSocket.OPEN) {
+    console.warn('[DEBUG][safeSend] Socket no abierto o null');
+    return false;
+  }
   try {
     ws.send(JSON.stringify(payload));
+    console.log(`[DEBUG][safeSend] Evento enviado: ${payload.eventType}`);
     return true;
   } catch (err) {
-    console.warn('[WS] safeSend failed:', err.message);
+    console.warn('[DEBUG][safeSend] Falló:', err.message);
     return false;
   }
 }
 
 const ensureAuthenticated = (ws, context = 'Acceso a IA') => {
-    if (!ws.isAuthenticated || !ws.userId) {
-        handleError(new Error('Acceso denegado. Cliente no autenticado.'), ws, context);
-        return false;
-    }
-    return true;
+  if (!ws.isAuthenticated || !ws.userId) {
+    handleError(new Error('Acceso denegado. Cliente no autenticado.'), ws, context);
+    return false;
+  }
+  return true;
 };
 
-// ============================================================
-// EVENTOS CUSTOM DE LA IA Y AUTENTICACIÓN
-// ============================================================
+// ========================
+// EVENT HANDLERS
+// ========================
 const eventHandlers = {
   'PING': (_, ws) => {
     safeSend(ws, { eventType: 'PONG' });
     ws.isAlive = true;
+    console.log(`[DEBUG][PING] Cliente vivo: ${ws.username}`);
   },
-  
+
   'USER_AUTH': ({ token }, ws) => {
-      try {
-          if (!token) throw new Error('Token de autenticación JWT faltante.');
-
-          const decoded = jwt.verify(token, JWT_SECRET);
-          
-          ws.userId = decoded.id;
-          ws.username = decoded.username;
-          ws.isAuthenticated = true;
-
-          safeSend(ws, { eventType: 'AUTH_SUCCESS', data: { username: decoded.username } });
-          console.log(`[WS:${ws.id}] 🔐 Cliente autenticado: ${decoded.username}`);
-
-      } catch (err) {
-          handleError(new Error('Token JWT inválido o expirado.'), ws, 'USER_AUTH');
-          ws.terminate(); 
-      }
+    console.log('[DEBUG][USER_AUTH] Intentando autenticación...');
+    try {
+      if (!token) throw new Error('Token JWT faltante');
+      const decoded = jwt.verify(token, JWT_SECRET);
+      ws.userId = decoded.id;
+      ws.username = decoded.username;
+      ws.isAuthenticated = true;
+      safeSend(ws, { eventType: 'AUTH_SUCCESS', data: { username: decoded.username } });
+      console.log(`[DEBUG][USER_AUTH] Autenticación exitosa: ${ws.username}`);
+    } catch (err) {
+      handleError(new Error('Token JWT inválido o expirado'), ws, 'USER_AUTH');
+      ws.terminate();
+      console.log('[DEBUG][USER_AUTH] Cliente terminado por JWT inválido ❌');
+    }
   },
 
   'QUEUE_UPDATE': async ({ userData }, ws) => {
+    console.log(`[DEBUG][QUEUE_UPDATE] Evento recibido`);
     if (!ensureAuthenticated(ws, 'QUEUE_UPDATE')) return;
-
     try {
       validate('userData', userData);
-      console.log(`[EVENT] QUEUE_UPDATE -> preparando prompt preGame para: ${ws.username}`);
-
-      const performanceData = {
-        weakness1: 'Control de oleadas en early',
-        weakness2: 'Posicionamiento en teamfights tardías'
-      };
-
+      const performanceData = { weakness1: 'Control de oleadas early', weakness2: 'Posicionamiento late' };
       const prompt = prompts.createPreGamePrompt(userData, performanceData);
-      aiOrchestrator.getOrchestratedResponse({
-        prompt,
-        expectedType: 'object',
-        kind: 'realtime',
-        cacheTTL: 8 * 60 * 1000
-      }).then((res) => {
-        console.log('[EVENT] QUEUE_ADVICE -> enviado al cliente');
-        safeSend(ws, { eventType: 'QUEUE_ADVICE', data: res });
-      }).catch(err => handleError(err, ws, 'QUEUE_UPDATE'));
+      const res = await aiOrchestrator.getOrchestratedResponse({
+        prompt, expectedType: 'object', kind: 'realtime', cacheTTL: 8*60*1000
+      });
+      safeSend(ws, { eventType: 'QUEUE_ADVICE', data: res });
+      console.log('[DEBUG][QUEUE_UPDATE] Advice enviado al cliente');
     } catch (err) {
       handleError(err, ws, 'QUEUE_UPDATE');
     }
   },
 
   'CHAMP_SELECT_UPDATE': async ({ data, userData }, ws) => {
+    console.log('[DEBUG][CHAMP_SELECT_UPDATE] Evento recibido');
     if (!ensureAuthenticated(ws, 'CHAMP_SELECT_UPDATE')) return;
-
     try {
       validate('userData', userData);
-      console.log(`[EVENT] CHAMP_SELECT_UPDATE -> generando análisis de draft para: ${ws.username}`);
       const prompt = prompts.createChampSelectPrompt(data, userData);
-      const res = await aiOrchestrator.getOrchestratedResponse({
-        prompt,
-        expectedType: 'object',
-        kind: 'realtime',
-        cacheTTL: 5 * 60 * 1000
-      });
-      safeSend(ws, { eventType: 'CHAMP_SELECT_ADVICE', data: res });
+      const res = await aiOrchestrator.getOrchestratedResponse({ prompt, expectedType:'object', kind:'realtime', cacheTTL:5*60*1000 });
+      safeSend(ws, { eventType:'CHAMP_SELECT_ADVICE', data:res });
+      console.log('[DEBUG][CHAMP_SELECT_UPDATE] Advice enviado al cliente');
     } catch (err) {
       handleError(err, ws, 'CHAMP_SELECT_UPDATE');
     }
   },
 
   'LIVE_COACHING_UPDATE': async ({ data, userData }, ws) => {
+    console.log('[DEBUG][LIVE_COACHING_UPDATE] Evento recibido');
     if (!ensureAuthenticated(ws, 'LIVE_COACHING_UPDATE')) return;
-
     try {
       validate('userData', userData);
       if (!data || !data.liveGameData) throw new Error('liveGameData missing');
-      console.log(`[EVENT] LIVE_COACHING_UPDATE -> generando consejo en vivo para: ${ws.username}`);
       const prompt = prompts.createLiveCoachingPrompt(data.liveGameData, userData.zodiacSign);
-      const res = await aiOrchestrator.getOrchestratedResponse({
-        prompt,
-        expectedType: 'object',
-        kind: 'realtime',
-        cacheTTL: 60 * 1000
-      });
-      safeSend(ws, { eventType: 'IN_GAME_ADVICE', data: res });
+      const res = await aiOrchestrator.getOrchestratedResponse({ prompt, expectedType:'object', kind:'realtime', cacheTTL:60*1000 });
+      safeSend(ws, { eventType:'IN_GAME_ADVICE', data:res });
+      console.log('[DEBUG][LIVE_COACHING_UPDATE] Advice en vivo enviado');
     } catch (err) {
       handleError(err, ws, 'LIVE_COACHING_UPDATE');
     }
   }
 };
 
-// ============================================================
+// ========================
 // GESTIÓN DE CONEXIONES
-// ============================================================
-wss.on('connection', (ws) => {
+// ========================
+wss.on('connection', ws => {
   ws.id = crypto.randomBytes(6).toString('hex');
   ws.isAlive = true;
-  ws.isAuthenticated = false; 
+  ws.isAuthenticated = false;
   ws.userId = null;
   ws.username = 'Unauthenticated';
 
-  console.log(`[WS] ✅ Cliente conectado -> id=${ws.id}`);
+  console.log(`[DEBUG][CONNECTION] Cliente conectado -> id=${ws.id}`);
 
-  ws.on('pong', () => { ws.isAlive = true; });
+  ws.on('pong', () => {
+    ws.isAlive = true;
+    console.log(`[DEBUG][PONG] Cliente responde -> ${ws.username}`);
+  });
 
-  ws.on('message', async (rawMessage) => {
-    let message;
+  ws.on('message', async rawMessage => {
+    console.log(`[DEBUG][MESSAGE] Recibido: ${rawMessage}`);
     try {
-      message = JSON.parse(rawMessage.toString());
+      const message = JSON.parse(rawMessage.toString());
       const { eventType } = message;
       if (!eventType) throw new Error("Message missing 'eventType'");
-      
       const clientIdentifier = ws.isAuthenticated ? ws.username : `id=${ws.id}`;
-      console.log(`[WS:${clientIdentifier}] 📩 Recibido evento: ${eventType}`);
-
       const handler = eventHandlers[eventType];
-      if (typeof handler === 'function') {
-        await handler(message, ws);
-      } else {
-        console.warn(`[WS:${clientIdentifier}] ⚠️ Evento desconocido: ${eventType}`);
-        safeSend(ws, { eventType: 'ERROR', data: { message: 'Unknown event type' } });
+      if (typeof handler === 'function') await handler(message, ws);
+      else {
+        console.warn(`[DEBUG][MESSAGE] Evento desconocido: ${eventType}`);
+        safeSend(ws, { eventType:'ERROR', data:{ message:'Unknown event type' } });
       }
     } catch (err) {
       handleError(err, ws, 'message');
@@ -238,25 +220,25 @@ wss.on('connection', (ws) => {
   });
 
   ws.on('close', (code, reason) => {
-    const clientIdentifier = ws.username || `id=${ws.id}`;
-    console.log(`[WS:${clientIdentifier}] ❌ Cliente desconectado (code=${code}, reason=${reason || 'none'})`);
+    console.log(`[DEBUG][CLOSE] Cliente desconectado -> id=${ws.id}, code=${code}, reason=${reason || 'none'}`);
   });
 
-  ws.on('error', (err) => handleError(err, ws, 'connection'));
+  ws.on('error', err => handleError(err, ws, 'connection'));
 });
 
-// ============================================================
-// HEARTBEAT SERVIDOR -> CLIENTE
-// ============================================================
+// ========================
+// HEARTBEAT SERVER -> CLIENT
+// ========================
 const heartbeatInterval = setInterval(() => {
-  wss.clients.forEach((ws) => {
+  wss.clients.forEach(ws => {
     if (ws.isAlive === false) {
-      const clientIdentifier = ws.username || `id=${ws.id}`;
-      console.log(`[WS] 🔴 Cliente inactivo, terminando conexión -> ${clientIdentifier}`);
+      console.log(`[DEBUG][HEARTBEAT] Cliente inactivo, terminando -> ${ws.username}`);
       return ws.terminate();
     }
     ws.isAlive = false;
-    try { ws.ping(() => {}); } catch (e) { /* ignore */ }
+    try { ws.ping(() => {}); } catch(e){ console.log('[DEBUG][HEARTBEAT] ping fallo'); }
   });
 }, HEARTBEAT_INTERVAL);
 heartbeatInterval.unref?.();
+
+console.log('[DEBUG] WebSocket server debug listo 🚀');
