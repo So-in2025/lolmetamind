@@ -1,10 +1,9 @@
-// src/app/api/user/profile/route.js - BLOQUE COMPLETO Y CORREGIDO FINAL (v2)
+// src/app/api/user/profile/route.js - BLOQUE COMPLETO Y CORREGIDO FINAL (v4)
 
 import { NextResponse, NextRequest } from 'next/server';
 import jwt from 'jsonwebtoken';
 import { getSql } from '@/lib/db';
 
-// 🚨 CRÍTICO: La misma clave usada en Login y WebSocket Server.
 const JWT_SECRET = process.env.JWT_SECRET || 'p2s5v8y/B?E(H+MbQeThWmZq4t7w!z%C&F)J@NcRfUjXn2r5u8x/A?D*G-KaPdSg';
 
 const CORS_HEADERS = {
@@ -40,23 +39,26 @@ export async function GET(request) {
     try {
         const userId = decodedToken.id;
         
-        // 🚨 CRÍTICO: Leer el token de la DB y luego complementarlo con el ENV si es necesario.
+        // 🚨 CRÍTICO: SOLO SELECCIONAMOS LAS COLUMNAS CONFIRMADAS QUE EXISTEN EN LA DB
         const ENV_HF_TOKEN = process.env.HUGGING_FACE_TOKEN || process.env.HF_API_TOKEN; 
 
         const queryText = `
             SELECT 
                 id,
                 username,
+                email,
+                google_id,
                 "summonerName",
                 tagline, 
                 region,
+                puuid,
+                summoner_id,
+                paddle_customer_id,
                 "zodiacSign",
                 "favRole1",
                 "favRole2",
                 "favChamp1",
-                "favChamp2",
-                "riotApiKey",
-                "hfApiToken"
+                "favChamp2"
             FROM users 
             WHERE id = $1
         `;
@@ -72,13 +74,16 @@ export async function GET(request) {
         
         const profile = result[0];
         
-        // 🚨 CRÍTICO: Sobrescribir el hfApiToken de la DB con el token de entorno SOLO SI el de la DB es null.
-        // Esto permite que el cliente siempre tenga un token válido si el ENV existe.
+        // Añadir hfApiToken y riotApiKey (si existen en el ENV como fallback)
+        // El cliente de Electron los gestiona si no vienen del servidor.
         if (!profile.hfApiToken && ENV_HF_TOKEN) {
             profile.hfApiToken = ENV_HF_TOKEN;
             console.log('[API USER/PROFILE] ℹ️ Usando HF Token de variable de entorno como fallback.');
         }
 
+        // Si la columna riotApiKey no existe en la DB, el cliente la lee del Store, no la sobrescribimos.
+        // Si el cliente necesita riotApiKey y no está en la DB, lo dejará en NULL o usará el Store de Electron.
+        
         console.log(`[API USER/PROFILE] ✅ Perfil encontrado para usuario: ${profile.username}`);
 
         return NextResponse.json(profile, { status: 200, headers: CORS_HEADERS });
