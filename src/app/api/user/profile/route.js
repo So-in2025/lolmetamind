@@ -58,7 +58,9 @@ export async function GET(request) {
                 "favRole1",
                 "favRole2",
                 "favChamp1",
-                "favChamp2"
+                "favChamp2",
+                "ai_strength_analysis", 
+                "ai_weakness_analysis"
             FROM users 
             WHERE id = $1
         `;
