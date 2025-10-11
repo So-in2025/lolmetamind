@@ -113,104 +113,58 @@ async function recordMetric(metric) {
 // SSML -> Plain helpers
 // ---------------------------
 
-/**
- * Detecta si un texto tiene etiquetas SSML
- */
 function isLikelySSML(text) {
   if (!text || typeof text !== 'string') return false;
   return /<speak|<break|<emphasis|<prosody|<\/[a-z]/i.test(text);
 }
 
-/**
- * Convierte SSML simple a texto plano legible:
- * - <break time="Xms"/> -> ' … ' (o '. ' si largo)
- * - elimina tags de énfasis conservando el texto
- * - elimina cualquier tag restante
- */
 function ssmlToPlain(ssml) {
   if (!ssml || typeof ssml !== 'string') return ssml || '';
-
   let t = String(ssml);
-
-  // Normalizar wrapper speak
   t = t.replace(/<speak[^>]*>/gi, '').replace(/<\/speak>/gi, '');
-
-  // Reemplazar break tags por pausas: breaks >= 400ms -> '.  ' (respiración), else ' … '
-  t = t.replace(/<break[^>]*time=["']?(\d+)ms["']?[^>]*\/?>/gi, (_, ms) => {
-    const n = parseInt(ms, 10) || 300;
-    return n >= 400 ? '.  ' : ' … ';
-  });
-
-  // Reemplazar semánticamente etiquetas de énfasis por comas o mayúsculas (mantener contenido)
+  t = t.replace(/<break[^>]*time=["']?(\d+)ms["']?[^>]*\/?>/gi, (_, ms) => (parseInt(ms, 10) >= 400 ? '.  ' : ' … '));
   t = t.replace(/<\/?emphasis[^>]*>/gi, '');
-
-  // Quitar otras etiquetas conservando texto
   t = t.replace(/<[^>]+>/g, '');
-
-  // Limpiar espacios
   t = t.replace(/\s+/g, ' ').trim();
-
-  // Asegurar puntuación final
   if (t && !/[.!?…]$/.test(t)) t = `${t}.`;
-
   return t;
 }
 
-/**
- * Compose full text from fragments if necessary
- */
 function composeFullTextFromParts(parts = {}) {
   const title = (parts.title || '').trim();
   const mantra = (parts.astralMantra || parts.mantra || '').trim();
   const focus = (parts.technicalFocus || parts.focus || '').trim();
-
   const pieces = [];
   if (title) pieces.push(title);
   if (mantra) pieces.push(mantra);
   if (focus) pieces.push(focus);
-
   const text = pieces.join('. ').replace(/\.\s*$/, '').trim();
   return text.endsWith('.') ? text : `${text}.`;
 }
 
-/**
- * Normalize container: ensure it has plain fullText (never raw SSML unless SUPPORTS_SSML)
- */
 function normalizeContainer(obj) {
   if (!obj || typeof obj !== 'object') return obj;
-
   const out = Object.assign({}, obj);
-
-  // If there's SSML and the runtime DOESN'T support SSML, convert
   if (out.fullTextSSML && !SUPPORTS_SSML) {
     try {
       out.fullText = ssmlToPlain(out.fullTextSSML);
-      // keep fullTextSSML for consumers who might want it, but fullText is authoritative
       console.log('[AI-ORCH] Converted fullTextSSML -> fullText (plain) because SUPPORTS_SSML=false');
     } catch (e) {
       console.warn('[AI-ORCH] Failed to convert SSML to plain:', e.message);
     }
   }
-
-  // If fullText exists but contains SSML tags (eg backend returned SSML in fullText), strip
   if (out.fullText && isLikelySSML(out.fullText) && !SUPPORTS_SSML) {
     out.fullText = ssmlToPlain(out.fullText);
     console.log('[AI-ORCH] Stripped SSML from fullText -> plain text');
   }
-
-  // If there's no fullText but there are parts, compose them
   if ((!out.fullText || out.fullText.trim().length === 0) && (out.title || out.astralMantra || out.technicalFocus)) {
     const composed = composeFullTextFromParts(out);
     out.fullText = composed;
     console.log('[AI-ORCH] Composed fullText from parts');
   }
-
-  // Ensure plain fallback: if still missing fullText but fullTextSSML exists and SUPPORTS_SSML true, leave it
   if ((!out.fullText || out.fullText.trim().length === 0) && out.fullTextSSML && SUPPORTS_SSML) {
-    // If consumer supports SSML, we keep SSML only
     out.fullText = out.fullTextSSML;
   }
-
   return out;
 }
 
@@ -223,22 +177,18 @@ export async function getOrchestratedResponse({
   kind = 'realtime',
   cacheTTL = DEFAULT_TTL_MS,
   forceRefresh = false,
-} = {}) {
+}) {
   if (!prompt) throw new Error('Prompt requerido para getOrchestratedResponse');
 
   const model = MODEL_MAP[kind] || MODEL_MAP.default;
   const promptHash = hashPrompt(prompt, { model, type: kind });
   const cacheKey = `ai:${kind}:${promptHash}`;
 
-  // 1) CACHE check
   if (!forceRefresh) {
     try {
       if (redisClient) {
         const raw = await redisClient.get(cacheKey);
-        if (raw) {
-          console.log(`[AI-ORCH] Redis cache HIT ${cacheKey}`);
-          return JSON.parse(raw);
-        }
+        if (raw) return JSON.parse(raw);
       } else {
         const mem = getMemoryCache(cacheKey);
         if (mem) return mem;
@@ -248,9 +198,7 @@ export async function getOrchestratedResponse({
     }
   }
 
-  // 2) COALESCE
   if (inFlight.has(promptHash)) {
-    console.log(`[AI-ORCH] Coalescing request para promptHash=${promptHash}`);
     return inFlight.get(promptHash);
   }
 
@@ -260,54 +208,51 @@ export async function getOrchestratedResponse({
     let result = null;
     let success = false;
     let fallback = false;
-    let lastError; // ✅ ÚNICA LÍNEA AÑADIDA PARA CORREGIR EL CRASH
-
+    let lastError; // ✅ CORRECCIÓN 1: 'lastError' está declarado.
 
     // *********************************************************
-// 💡 LÓGICA DE CLAVES Y LLAMADA A STRATEGIST CORREGIDA
-// *********************************************************
-try {
-console.log([AI-ORCH] 🔍 Delegando al strategist con el modelo preferido: ${model}...);
-code
-Code
-// Preparamos los arrays de claves para enviarlos al strategist
-    const geminiKeys = [process.env.GEMINI_API_KEY, process.env.GEMINI_API_KEY_2].filter(Boolean);
-    const openAIKeys = [process.env.OPENAI_API_KEY, process.env.OPENAI_API_KEY_2].filter(Boolean);
+    // 💡 LÓGICA DE CLAVES Y LLAMADA A STRATEGIST CORREGIDA
+    // *********************************************************
+    try {
+        // ✅ CORRECCIÓN 3: Se añaden los backticks (``) para una cadena válida.
+        console.log(`[AI-ORCH] 🔍 Delegando al strategist con el modelo preferido: ${model}...`);
+        
+        // Preparamos los arrays de claves para enviarlos al strategist.
+        const geminiKeys = [process.env.GEMINI_API_KEY, process.env.GEMINI_API_KEY_2].filter(Boolean);
+        const openAIKeys = [process.env.OPENAI_API_KEY, process.env.OPENAI_API_KEY_2].filter(Boolean);
 
-    // Llamamos al strategist una sola vez, pasándole todos los recursos que necesita.
-    const strategicResult = await generateStrategicAnalysis(
-        prompt, 
-        expectedType, 
-        model, 
-        geminiKeys, 
-        openAIKeys
-    );
-    
-    // Procesamos el resultado que devuelve el strategist
-    result = strategicResult.data;
-    providerUsed = strategicResult.providerUsed;
-    fallback = strategicResult.fallbackUsed;
-    success = true; // Si estamos aquí, es porque el strategist tuvo éxito
-    
-    console.log(`[AI-ORCH] Resultado recibido OK del strategist. Proveedor usado: ${providerUsed}.`);
+        // Llamamos al strategist una sola vez, pasándole todos los recursos que necesita.
+        const strategicResult = await generateStrategicAnalysis(
+            prompt, 
+            expectedType, 
+            model, 
+            geminiKeys, 
+            openAIKeys
+        );
+        
+        // Procesamos el resultado que devuelve el strategist.
+        result = strategicResult.data;
+        providerUsed = strategicResult.providerUsed;
+        fallback = strategicResult.fallbackUsed;
+        success = true; // Si estamos aquí, es porque el strategist tuvo éxito.
+        
+        console.log(`[AI-ORCH] Resultado recibido OK del strategist. Proveedor usado: ${providerUsed}.`);
 
-} catch (err) {
-    console.warn(`[AI-ORCH] ⚠️ Strategist falló después de todos los intentos: ${err.message}`);
-    lastError = err; // Guardamos el error final que nos devuelve el strategist
-}
+    } catch (err) {
+        console.warn(`[AI-ORCH] ⚠️ Strategist falló después de todos los intentos: ${err.message}`);
+        lastError = err; // Guardamos el error final que nos devuelve el strategist.
+    }
 
-// Si no hubo éxito, lanzamos el error para que sea capturado y registrado
-if (!success && lastError) {
-    recordMetric({ provider: providerUsed, model, durationMs: Date.now() - startedAt, success: false, fallback: true, promptHash });
-    throw lastError;
-}
-// *********************************************************
-
+    // Si no hubo éxito, lanzamos el error para que sea capturado y registrado.
+    if (!success && lastError) {
+        recordMetric({ provider: providerUsed, model, durationMs: Date.now() - startedAt, success: false, fallback: true, promptHash });
+        throw lastError;
+    }
+    // *********************************************************
 
     // NORMALIZAR: asegurar fullText plano si es necesario
     try {
       if (result && typeof result === 'object') {
-        // buscar contenedor común
         const containers = ['preGameAnalysis', 'realtimeAdvice', 'draftAnalysis', 'performance', 'data', 'analysis'];
         let applied = false;
         for (const c of containers) {
@@ -317,7 +262,6 @@ if (!success && lastError) {
           }
         }
         if (!applied) {
-          // si la respuesta parece ser el objeto objetivo en root, normalizar root
           result = normalizeContainer(result);
         }
       }
@@ -325,12 +269,16 @@ if (!success && lastError) {
       console.warn('[AI-ORCH] Warning normalizing result:', e.message);
     }
 
+    // Añadido: Registrar métrica de éxito si no se ha lanzado un error antes
+    if(success) {
+      recordMetric({ provider: providerUsed, model, durationMs: Date.now() - startedAt, success, fallback, promptHash });
+    }
+
     // 4) Guardar en cache
     try {
       const payload = result;
       if (redisClient) {
         await redisClient.set(cacheKey, JSON.stringify(payload), 'PX', cacheTTL);
-        console.log(`[AI-ORCH] Guardado en Redis cache ${cacheKey} ttl=${cacheTTL}ms`);
       } else {
         setMemoryCache(cacheKey, payload, cacheTTL);
       }
