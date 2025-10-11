@@ -260,25 +260,49 @@ export async function getOrchestratedResponse({
     let result = null;
     let success = false;
     let fallback = false;
+    let lastError; // ✅ ÚNICA LÍNEA AÑADIDA PARA CORREGIR EL CRASH
+
 
     // *********************************************************
-    // 💡 AQUÍ ES DONDE SE ITERA POR LAS CLAVES DE API
-    // *********************************************************
-    const keys = (model.startsWith('gemini') ? [process.env.GEMINI_API_KEY, process.env.GEMINI_API_KEY_2] : (model.startsWith('gpt') ? [process.env.OPENAI_API_KEY, process.env.OPENAI_API_KEY_2] : [null])) || [null]; // Usa las claves del provider
-    for (const key of keys) {
-       try {
-            console.log(`[AI-ORCH] 🔍 Intentando con ${model} con key...`);
-            result = await generateStrategicAnalysis(prompt, expectedType, model, key || null);
-            providerUsed = model;
-            success = true;
-            console.log('[AI-ORCH] Resultado recibido OK.');
-            break;
-        } catch (err) {
-          console.warn(`[AI-ORCH] ⚠️  ${model} falló: ${err.message}`);
-          lastError = err;
-        }
-    }
-    // *********************************************************
+// 💡 LÓGICA DE CLAVES Y LLAMADA A STRATEGIST CORREGIDA
+// *********************************************************
+try {
+console.log([AI-ORCH] 🔍 Delegando al strategist con el modelo preferido: ${model}...);
+code
+Code
+// Preparamos los arrays de claves para enviarlos al strategist
+    const geminiKeys = [process.env.GEMINI_API_KEY, process.env.GEMINI_API_KEY_2].filter(Boolean);
+    const openAIKeys = [process.env.OPENAI_API_KEY, process.env.OPENAI_API_KEY_2].filter(Boolean);
+
+    // Llamamos al strategist una sola vez, pasándole todos los recursos que necesita.
+    const strategicResult = await generateStrategicAnalysis(
+        prompt, 
+        expectedType, 
+        model, 
+        geminiKeys, 
+        openAIKeys
+    );
+    
+    // Procesamos el resultado que devuelve el strategist
+    result = strategicResult.data;
+    providerUsed = strategicResult.providerUsed;
+    fallback = strategicResult.fallbackUsed;
+    success = true; // Si estamos aquí, es porque el strategist tuvo éxito
+    
+    console.log(`[AI-ORCH] Resultado recibido OK del strategist. Proveedor usado: ${providerUsed}.`);
+
+} catch (err) {
+    console.warn(`[AI-ORCH] ⚠️ Strategist falló después de todos los intentos: ${err.message}`);
+    lastError = err; // Guardamos el error final que nos devuelve el strategist
+}
+
+// Si no hubo éxito, lanzamos el error para que sea capturado y registrado
+if (!success && lastError) {
+    recordMetric({ provider: providerUsed, model, durationMs: Date.now() - startedAt, success: false, fallback: true, promptHash });
+    throw lastError;
+}
+// *********************************************************
+
 
     // NORMALIZAR: asegurar fullText plano si es necesario
     try {

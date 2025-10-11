@@ -7,7 +7,7 @@
 // - Totalmente compatible con aiOrchestrator.js
 // ============================================================
 
-import { GEMINI_API_KEY, OPENAI_API_KEY } from '@/services/apiConfig'; // No usamos estas claves directamente
+import { GEMINI_API_KEY, GEMINI_API_KEY_2, OPENAI_API_KEY, OPENAI_API_KEY_2 } from '@/services/apiConfig';
 // ---------------------------
 // Config
 // ---------------------------
@@ -121,7 +121,8 @@ export const generateStrategicAnalysis = async (
   prompt,
   expectedType = 'object',
   modelName = 'gemini-2.0-flash',
-  key
+  geminiKeys = [], // Acepta un array de claves de Gemini
+  openAIKeys = []  // Acepta un array de claves de OpenAI
 ) => {
   if (!prompt || typeof prompt !== 'string' || !prompt.trim()) {
     throw new Error('Prompt vacío o inválido.');
