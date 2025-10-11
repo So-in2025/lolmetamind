@@ -261,29 +261,24 @@ export async function getOrchestratedResponse({
     let success = false;
     let fallback = false;
 
-    try {
-      console.log(`[AI-ORCH] Llamando generateStrategicAnalysis (model=${model}, kind=${kind})`);
-      result = await generateStrategicAnalysis(prompt, expectedType, model);
-      providerUsed = model;
-      success = true;
-      console.log('[AI-ORCH] Resultado recibido OK.');
-    } catch (err) {
-      console.warn('[AI-ORCH] Error al generar (primer intento):', err.message);
-      fallback = true;
-      try {
-        const fallbackModel = model === MODEL_MAP.realtime ? MODEL_MAP.analysis : MODEL_MAP.realtime;
-        console.log(`[AI-ORCH] Intentando fallback model=${fallbackModel}`);
-        result = await generateStrategicAnalysis(prompt, expectedType, fallbackModel);
-        providerUsed = fallbackModel;
-        success = true;
-      } catch (err2) {
-        console.error('[AI-ORCH] Fallback falló:', err2.message);
-        throw err2;
-      }
-    } finally {
-      const durationMs = Date.now() - startedAt;
-      recordMetric({ provider: providerUsed, model, durationMs, success, fallback, promptHash }).catch(() => {});
+    // *********************************************************
+    // 💡 AQUÍ ES DONDE SE ITERA POR LAS CLAVES DE API
+    // *********************************************************
+    const keys = (model.startsWith('gemini') ? [process.env.GEMINI_API_KEY, process.env.GEMINI_API_KEY_2] : (model.startsWith('gpt') ? [process.env.OPENAI_API_KEY, process.env.OPENAI_API_KEY_2] : [null])) || [null]; // Usa las claves del provider
+    for (const key of keys) {
+       try {
+            console.log(`[AI-ORCH] 🔍 Intentando con ${model} con key...`);
+            result = await generateStrategicAnalysis(prompt, expectedType, model, key || null);
+            providerUsed = model;
+            success = true;
+            console.log('[AI-ORCH] Resultado recibido OK.');
+            break;
+        } catch (err) {
+          console.warn(`[AI-ORCH] ⚠️  ${model} falló: ${err.message}`);
+          lastError = err;
+        }
     }
+    // *********************************************************
 
     // NORMALIZAR: asegurar fullText plano si es necesario
     try {
