@@ -1,34 +1,69 @@
 // src/lib/ai/prompts.js - VERSIÓN FINAL Y CORREGIDA (ASTRO-TÉCNICA INTERNA)
 
-// --- PROMPT PARA COACHING EN SELECCIÓN DE CAMPEÓN (DRAFT MIND-MAP) ---
-export const createChampSelectPrompt = (draftData, summonerData) => {
-  const gameData = draftData?.gameData || {};
-  const myTeamPicks = (gameData.teamOne || []).map(p => p.championName || p.name).filter(Boolean);
-  const theirTeamPicks = (gameData.teamTwo || []).map(p => p.championName || p.name).filter(Boolean);
-  const bans = (gameData.bannedChampions || []).map(b => b.championName || b.name).filter(Boolean);
+// ====================================================================================
+// ✅ PROMPT PARA COACHING EN SELECCIÓN DE CAMPEÓN (v2.0 ELITE - CONTEXTUAL)
+// ====================================================================================
+// - Es 'async' para traducir el ID del campeón pre-seleccionado.
+// - Prioriza el análisis sobre el campeón que el jugador pretende usar.
+// - Genera la estructura de datos { tips, fullText, runes } que el frontend espera.
+// ====================================================================================
+export const createChampSelectPrompt = async (draftData, summonerData) => {
+  // Extracción segura de los datos del draft que necesitamos.
+  const myTeamPicks = draftData?.myTeam?.map(p => p.champion.name).filter(Boolean) ?? [];
+  const theirTeamPicks = draftData?.theirTeam?.map(p => p.champion.name).filter(Boolean) ?? [];
+  const bans = draftData?.bans?.map(b => b.champion.name).filter(Boolean) ?? [];
   const { zodiacSign, favRole1 } = summonerData;
 
+  // Lógica para traducir el ID del campeón pre-seleccionado a un nombre legible.
+  let preselectedChampionName = null;
+  if (draftData.preselectedChampionId && draftData.preselectedChampionId > 0) {
+    try {
+      preselectedChampionName = await getChampionNameById(draftData.preselectedChampionId);
+    } catch (error) {
+      console.error(`[Prompts] Error al traducir Champion ID: ${draftData.preselectedChampionId}`, error);
+    }
+  }
+
+  // Se construye dinámicamente el contexto más importante para la IA.
+  const playerIntentContext = preselectedChampionName
+    ? `El jugador está PRE-SELECCIONANDO a '${preselectedChampionName}'. Tu análisis debe centrarse en la viabilidad, sinergias, y estrategia de '${preselectedChampionName}' en el draft actual.`
+    : `El jugador aún no ha pre-seleccionado un campeón. Basa tus recomendaciones en su rol principal (${favRole1}) y en las necesidades de la composición.`;
+
   return `
-Eres "MetaMind", un coach de élite de League of Legends.
-Tu objetivo es proporcionar una Matriz de Prioridad de Draft inmediata y actionable.
+Eres "MetaMind", un coach estratégico de élite para League of Legends. Tu tono es preciso, analítico y da confianza.
 
-PERFIL PSICOLÓGICO: Arquetipo Zodiacal: ${zodiacSign}. Rol principal: ${favRole1}.
-DRAFT ACTUAL: Mi Equipo: [${myTeamPicks.join(', ')}], Equipo Enemigo: [${theirTeamPicks.join(', ')}], Baneos: [${bans.join(', ')}].
+MISIÓN: Proporcionar un análisis táctico inmediato y accionable para la Selección de Campeones, centrado en la intención actual del jugador.
 
-MISIÓN: Analiza el draft y genera 4 métricas concisas para el jugador.
-INSTRUCCIÓN CRÍTICA: Responde SOLO con el objeto JSON. No incluyas texto adicional. Tu respuesta debe comenzar INMEDIATAMENTE con '{'.
+CONTEXTO DEL JUGADOR:
+- Rol Principal: ${favRole1}
+- Perfil Psicológico: ${zodiacSign}
+
+ESTADO DEL DRAFT:
+- Aliados: [${myTeamPicks.join(', ') || 'Aún sin picks'}]
+- Enemigos: [${theirTeamPicks.join(', ') || 'Aún sin picks'}]
+- Baneos: [${bans.join(', ') || 'Ninguno'}]
+
+INTENCIÓN DEL JUGADOR (PRIORIDAD MÁXIMA): ${playerIntentContext}
+
+INSTRUCCIONES DE SALIDA:
+1.  Responde ÚNICAMENTE con un objeto JSON válido. No incluyas explicaciones fuera del JSON.
+2.  Genera un array de 'tips' con 3 puntos clave y concisos: Sinergia con aliados, Enfrentamiento contra enemigos, y la Condición de Victoria principal.
+3.  Genera un 'fullText' que sea un párrafo fluido y natural, resumiendo los tips para ser leído en voz alta por un narrador.
+4.  Proporciona una página de runas optimizada para la situación.
 
 FORMATO DE SALIDA (JSON ESTRICTO):
 {
-  "draftScore": 78,
-  "metaAdvantage": "La composición de poke enemiga es débil contra tu iniciación sorpresa. Aprovecha la prioridad en Mid para asegurar la visión en Dragón.",
-  "phaseFocus": "MID-GAME",
-  "playerRoleAction": "STALL & CONTROL",
+  "tips": [
+    "Sinergia: [Explica cómo el campeón encaja con los aliados seleccionados, ej: 'Tu Ashe proporciona el control de masas que Yasuo necesita para su definitiva.'].",
+    "Enfrentamiento: [Analiza las fortalezas/debilidades contra los enemigos visibles, ej: 'Ten cuidado con el pokeo de Xerath en la fase de líneas, busca intercambios cortos.'].",
+    "Condición de Victoria: [Describe la estrategia principal a seguir, ej: 'Tu objetivo es escalar hasta el juego tardío y ganar las peleas en equipo con tu daño en área.']"
+  ],
+  "fullText": "[Párrafo único que resume los tres tips. Ejemplo: 'Análisis para Ashe: Tu elección ofrece una excelente sinergia con Yasuo. En línea, ten cuidado con el pokeo de Xerath. Tu condición de victoria es clara: escalar hasta el juego tardío para dominar las peleas en equipo con tu daño y control.'].",
   "runes": {
-    "name": "MetaMind: Runas",
-    "primaryStyleId": 8200,
+    "name": "MetaMind: [Nombre Campeón]",
+    "primaryStyleId": 8000,
     "subStyleId": 8100,
-    "selectedPerkIds": [8214, 8226, 8210, 8237, 8126, 8135, 5008, 5002, 5003],
+    "selectedPerkIds": [8005, 9111, 9104, 8014, 8126, 8135, 5008, 5008, 5002],
     "current": true
   }
 }
