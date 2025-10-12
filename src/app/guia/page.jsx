@@ -155,15 +155,25 @@ export default function GuidePage() {
   const sectionsRef = useRef([]);
   const { startTour, stopTour, togglePause, isSpeaking, isPaused, currentWordIndex, wordsRef } = useGuidedTour(sectionsRef);
 
+  // Este es el efecto clave. Se ejecuta una vez cuando el componente se monta EN EL CLIENTE.
   useEffect(() => {
-    // Espera un segundo para que las voces se carguen y luego inicia el tour.
+    setIsClient(true); // Marcamos que ya estamos en el lado del cliente y la hidratación ha ocurrido.
+  }, []);
+
+  // Este segundo efecto se ejecutará DESPUÉS del primero, solo cuando 'isClient' sea true.
+  useEffect(() => {
+    // Si no estamos en el cliente, no hacemos nada.
+    if (!isClient) return;
+
+    // Ahora que estamos seguros de que la hidratación terminó, podemos iniciar la lógica del TTS.
     const startTimeout = setTimeout(startTour, 1000);
-    // Limpieza: si el usuario sale de la página, detenemos la narración.
+
+    // La función de limpieza se mantiene igual.
     return () => {
       clearTimeout(startTimeout);
       stopTour();
     };
-  }, []); // El array vacío asegura que se ejecute solo una vez.
+  }, [isClient, startTour, stopTour]); // Dependencias correctas
 
   const sectionsContent = [
     { icon: <FaPlayCircle />, title: 'Paso 1: Arranque Automático', 

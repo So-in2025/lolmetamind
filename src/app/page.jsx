@@ -2,13 +2,14 @@
 
 import React, { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { FaBrain, FaCrosshairs, FaPalette, FaMicrophoneAlt, FaFilm, FaTrophy, FaFacebook, FaGlobe, FaCheckCircle, FaStar, FaVolumeUp, FaVolumeMute } from 'react-icons/fa';
+import { FaBrain, FaCrosshairs, FaPalette, FaMicrophoneAlt, FaFilm, FaTrophy, FaFacebook, FaGlobe, FaCheckCircle, FaStar, FaVolumeUp, FaVolumeMute, FaBookOpen } from 'react-icons/fa';
 import EpicButton from '@/components/landing/EpicButton';
 import VideoPlayer from '@/components/landing/VideoPlayer';
 import Link from 'next/link';
 
 // ====================================================================================
 // 🔹 SUB-COMPONENTE: Header (Menú de Navegación)
+// Tu componente original, sin cambios.
 // ====================================================================================
 const Header = () => {
   const navLinks = [
@@ -51,6 +52,7 @@ const Header = () => {
 
 // ====================================================================================
 // 🚀 COMPONENTE PRINCIPAL: LandingPage
+// Tu componente original, sin cambios en la lógica.
 // ====================================================================================
 export default function LandingPage() {
   const [siteEntered, setSiteEntered] = useState(false);
@@ -58,7 +60,7 @@ export default function LandingPage() {
   const [isMuted, setIsMuted] = useState(true);
   const videoRef = useRef(null);
 
-  // Textos actualizados para reflejar la funcionalidad "Elite"
+  // Tus textos originales para las características.
   const features = [
     { title: 'Coach de Draft Híbrido', desc: 'Recibe un análisis automático al inicio del draft. Luego, con un clic, obtén un plan de juego y runas optimizadas para el campeón que pre-selecciones.', icon: <FaBrain /> },
     { title: 'Coach Táctico en Vivo', desc: 'Tu copiloto en la Grieta. Recibe consejos de audio periódicos y contextuales sobre macrojuego, compra de ítems y objetivos sin quitar la vista de la acción.', icon: <FaCrosshairs /> },
@@ -248,6 +250,34 @@ export default function LandingPage() {
               </motion.div>
             </div>
         </section>
+
+        {/* ================================================================== */}
+        {/* ✅ INICIO DE LA NUEVA SECCIÓN PARA LA GUÍA                        */}
+        {/* ================================================================== */}
+        <section id="guide-section" className="py-20 px-4 bg-lol-blue-dark">
+            <motion.div 
+              initial={{ opacity: 0, scale: 0.9 }}
+              whileInView={{ opacity: 1, scale: 1 }}
+              viewport={{ once: true }}
+              transition={{ duration: 0.8 }}
+              className="text-center max-w-3xl mx-auto"
+            >
+              <FaBookOpen className="text-6xl text-lol-blue-accent mx-auto mb-6" />
+              <h2 className="text-4xl md:text-5xl font-display font-bold text-lol-gold mb-6 text-shadow-md">
+                ¿Nuevo en MetaMind?
+              </h2>
+              <p className="text-lol-gold-light/80 text-lg mb-8">
+                Preparamos una guía guiada por voz que te explicará paso a paso cómo desatar todo el poder de tu nuevo coach de IA. ¡Conviértete en un maestro estratega desde tu primera partida!
+              </p>
+              <Link href="/guia" passHref>
+                {/* Envolvemos el botón en una etiqueta <a> para que el enrutamiento de Next.js funcione correctamente */}
+                <a><EpicButton>Abrir Guía Interactiva</EpicButton></a>
+              </Link>
+            </motion.div>
+          </section>
+        {/* ================================================================== */}
+        {/* 🏁 FIN DE LA NUEVA SECCIÓN                                        */}
+        {/* ================================================================== */}
 
         <footer className="py-8 bg-lol-blue-dark text-center text-lol-gold-light/70 border-t-2 border-lol-gold-dark/30">
             <div className="max-w-7xl mx-auto px-4">
