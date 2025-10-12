@@ -11,9 +11,11 @@ import { getChampionNameById } from '@/services/dataDragonService';
 // ====================================================================================
 export const createChampSelectPrompt = async (draftData, summonerData) => {
   // Extracción segura de los datos del draft.
-  const myTeamPicks = draftData?.myTeam?.map(p => p.champion.name).filter(Boolean) ?? [];
-  const theirTeamPicks = draftData?.theirTeam?.map(p => p.champion.name).filter(Boolean) ?? [];
-  const bans = draftData?.bans?.map(b => b.champion.name).filter(Boolean) ?? [];
+// Leemos de la estructura original de la LCU y extraemos solo los nombres.
+  const myTeamPicks = (draftData?.gameData?.teamOne || []).map(p => p.championName).filter(Boolean);
+  const theirTeamPicks = (draftData?.gameData?.teamTwo || []).map(p => p.championName).filter(Boolean);
+  const bans = (draftData?.gameData?.bannedChampions || []).map(b => b.championName).filter(Boolean);
+
   const { zodiacSign, favRole1 } = summonerData;
 
   let playerIntentContext; // Esta variable contendrá la instrucción principal para la IA.
