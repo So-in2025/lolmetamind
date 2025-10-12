@@ -154,12 +154,12 @@ const eventHandlers = {
     }
   },
 
-  'CHAMP_SELECT_UPDATE': async ({ data, userData }, ws) => {
+   'CHAMP_SELECT_UPDATE': async ({ data, userData }, ws) => {
     console.log('[DEBUG][CHAMP_SELECT_UPDATE] Evento recibido');
     if (!ensureAuthenticated(ws, 'CHAMP_SELECT_UPDATE')) return;
     try {
       validate('userData', userData);
-      const prompt = prompts.createChampSelectPrompt(data, userData);
+      const prompt = await prompts.createChampSelectPrompt(data, userData); // ✅ <-- AÑADE 'await' AQUÍ
       const res = await aiOrchestrator.getOrchestratedResponse({ prompt, expectedType:'object', kind:'realtime', cacheTTL:5*60*1000 });
       safeSend(ws, { eventType:'CHAMP_SELECT_ADVICE', data:res });
       console.log('[DEBUG][CHAMP_SELECT_UPDATE] Advice enviado al cliente');

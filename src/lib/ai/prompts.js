@@ -1,38 +1,44 @@
 // src/lib/ai/prompts.js - VERSIÓN FINAL Y CORREGIDA (ASTRO-TÉCNICA INTERNA)
+// [IMPORTANTE] Asegúrate de tener esta importación al principio de tu archivo prompts.js
+import { getChampionNameById } from '@/services/dataDragonService';
 
 // ====================================================================================
-// ✅ PROMPT PARA COACHING EN SELECCIÓN DE CAMPEÓN (v2.0 ELITE - CONTEXTUAL)
+// ✅ PROMPT PARA COACHING EN SELECCIÓN DE CAMPEÓN (v3.0 HÍBRIDO)
 // ====================================================================================
-// - Es 'async' para traducir el ID del campeón pre-seleccionado.
-// - Prioriza el análisis sobre el campeón que el jugador pretende usar.
-// - Genera la estructura de datos { tips, fullText, runes } que el frontend espera.
+// - Es 'async' para poder traducir el ID del campeón pre-seleccionado.
+// - Construye un prompt DIFERENTE si se trata de un análisis general o uno específico.
+// - Genera la estructura de datos { tips, fullText, runes } que el frontend "Elite" espera.
 // ====================================================================================
 export const createChampSelectPrompt = async (draftData, summonerData) => {
-  // Extracción segura de los datos del draft que necesitamos.
+  // Extracción segura de los datos del draft.
   const myTeamPicks = draftData?.myTeam?.map(p => p.champion.name).filter(Boolean) ?? [];
   const theirTeamPicks = draftData?.theirTeam?.map(p => p.champion.name).filter(Boolean) ?? [];
   const bans = draftData?.bans?.map(b => b.champion.name).filter(Boolean) ?? [];
   const { zodiacSign, favRole1 } = summonerData;
 
-  // Lógica para traducir el ID del campeón pre-seleccionado a un nombre legible.
-  let preselectedChampionName = null;
+  let playerIntentContext; // Esta variable contendrá la instrucción principal para la IA.
+
+  // Condición clave: ¿Estamos haciendo un análisis específico para un campeón?
   if (draftData.preselectedChampionId && draftData.preselectedChampionId > 0) {
+    // ---- CASO 1: ANÁLISIS MANUAL PARA UN CAMPEÓN PRE-SELECCIONADO ----
+    let preselectedChampionName = 'un campeón desconocido';
     try {
       preselectedChampionName = await getChampionNameById(draftData.preselectedChampionId);
     } catch (error) {
       console.error(`[Prompts] Error al traducir Champion ID: ${draftData.preselectedChampionId}`, error);
     }
-  }
+    
+    playerIntentContext = `El jugador ha solicitado un análisis específico porque está PRE-SELECCIONANDO a '${preselectedChampionName}'. Tu análisis debe centrarse exclusivamente en la viabilidad, sinergias, enfrentamientos y estrategia para '${preselectedChampionName}' en el draft actual.`;
 
-  // Se construye dinámicamente el contexto más importante para la IA.
-  const playerIntentContext = preselectedChampionName
-    ? `El jugador está PRE-SELECCIONANDO a '${preselectedChampionName}'. Tu análisis debe centrarse en la viabilidad, sinergias, y estrategia de '${preselectedChampionName}' en el draft actual.`
-    : `El jugador aún no ha pre-seleccionado un campeón. Basa tus recomendaciones en su rol principal (${favRole1}) y en las necesidades de la composición.`;
+  } else {
+    // ---- CASO 2: ANÁLISIS AUTOMÁTICO INICIAL (GENERAL) ----
+    playerIntentContext = `Esta es la primera revisión del draft y el jugador aún no ha mostrado su intención de pick. Proporciona un análisis general de la situación: identifica las necesidades de la composición aliada (ej. 'falta daño AP', 'se necesita un tanque') y sugiere dos campeones meta y seguros para su rol principal (${favRole1}).`;
+  }
 
   return `
 Eres "MetaMind", un coach estratégico de élite para League of Legends. Tu tono es preciso, analítico y da confianza.
 
-MISIÓN: Proporcionar un análisis táctico inmediato y accionable para la Selección de Campeones, centrado en la intención actual del jugador.
+MISIÓN: Proporcionar un análisis táctico inmediato y accionable para la Selección de Campeones.
 
 CONTEXTO DEL JUGADOR:
 - Rol Principal: ${favRole1}
@@ -43,27 +49,27 @@ ESTADO DEL DRAFT:
 - Enemigos: [${theirTeamPicks.join(', ') || 'Aún sin picks'}]
 - Baneos: [${bans.join(', ') || 'Ninguno'}]
 
-INTENCIÓN DEL JUGADOR (PRIORIDAD MÁXIMA): ${playerIntentContext}
+INSTRUCCIÓN PRINCIPAL (MÁXIMA PRIORIDAD): ${playerIntentContext}
 
 INSTRUCCIONES DE SALIDA:
-1.  Responde ÚNICAMENTE con un objeto JSON válido. No incluyas explicaciones fuera del JSON.
-2.  Genera un array de 'tips' con 3 puntos clave y concisos: Sinergia con aliados, Enfrentamiento contra enemigos, y la Condición de Victoria principal.
-3.  Genera un 'fullText' que sea un párrafo fluido y natural, resumiendo los tips para ser leído en voz alta por un narrador.
-4.  Proporciona una página de runas optimizada para la situación.
+1. Responde ÚNICAMENTE con un objeto JSON válido. No incluyas explicaciones fuera del JSON.
+2. Genera un array de 'tips' con 3 puntos clave y concisos.
+3. Genera un 'fullText' que sea un párrafo fluido y natural para ser leído en voz alta.
+4. Si estás analizando un campeón específico, proporciona una página de runas optimizada. Si es un análisis general, el campo 'runes' debe ser null.
 
 FORMATO DE SALIDA (JSON ESTRICTO):
 {
   "tips": [
-    "Sinergia: [Explica cómo el campeón encaja con los aliados seleccionados, ej: 'Tu Ashe proporciona el control de masas que Yasuo necesita para su definitiva.'].",
-    "Enfrentamiento: [Analiza las fortalezas/debilidades contra los enemigos visibles, ej: 'Ten cuidado con el pokeo de Xerath en la fase de líneas, busca intercambios cortos.'].",
-    "Condición de Victoria: [Describe la estrategia principal a seguir, ej: 'Tu objetivo es escalar hasta el juego tardío y ganar las peleas en equipo con tu daño en área.']"
+    "[Tip 1 sobre Sinergia/Necesidad de Composición]",
+    "[Tip 2 sobre Enfrentamiento/Picks enemigos a considerar]",
+    "[Tip 3 sobre Condición de Victoria general o específica del campeón]"
   ],
-  "fullText": "[Párrafo único que resume los tres tips. Ejemplo: 'Análisis para Ashe: Tu elección ofrece una excelente sinergia con Yasuo. En línea, ten cuidado con el pokeo de Xerath. Tu condición de victoria es clara: escalar hasta el juego tardío para dominar las peleas en equipo con tu daño y control.'].",
+  "fullText": "[Párrafo único y coherente que resume los tres tips de forma natural para audio. Ejemplo: 'Análisis inicial: Tu equipo necesita daño mágico para equilibrar la composición. Considera jugar campeones como Lux o Xerath. La condición de victoria será desgastar al equipo enemigo antes de las peleas por objetivos.'].",
   "runes": {
     "name": "MetaMind: [Nombre Campeón]",
-    "primaryStyleId": 8000,
+    "primaryStyleId": 8200,
     "subStyleId": 8100,
-    "selectedPerkIds": [8005, 9111, 9104, 8014, 8126, 8135, 5008, 5008, 5002],
+    "selectedPerkIds": [8214, 8226, 8210, 8237, 8126, 8135, 5008, 5002, 5003],
     "current": true
   }
 }
