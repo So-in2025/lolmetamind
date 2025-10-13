@@ -60,14 +60,40 @@ export default function LandingPage() {
   const [isMuted, setIsMuted] = useState(true);
   const videoRef = useRef(null);
 
-  // Tus textos originales para las características.
+  // ==============================================================================
+  // ✅ LISTA DE CARACTERÍSTICAS DEFINITIVA Y COMPLETA
+  // ==============================================================================
   const features = [
-    { title: 'Coach de Draft Híbrido', desc: 'Recibe un análisis automático al inicio del draft. Luego, con un clic, obtén un plan de juego y runas optimizadas para el campeón que pre-selecciones.', icon: <FaBrain /> },
-    { title: 'Coach Táctico en Vivo', desc: 'Tu copiloto en la Grieta. Recibe consejos de audio periódicos y contextuales sobre macrojuego, compra de ítems y objetivos sin quitar la vista de la acción.', icon: <FaCrosshairs /> },
-    { title: 'Overlay Inteligente', desc: 'Una interfaz limpia y profesional que te muestra la información que necesitas, cuando la necesitas, desde el draft hasta la pantalla de victoria.', icon: <FaPalette /> },
-    { title: 'Narrador Táctico (TTS)', desc: 'Nuestra tecnología de voz local te narra cada consejo estratégico con claridad y sin retrasos, permitiéndote mantener la concentración total en el juego.', icon: <FaMicrophoneAlt /> },
-    { title: 'Inyector de Runas', desc: 'Con un solo clic, importa la página de runas recomendada por la IA directamente en tu cliente de LoL, ahorrándote tiempo y errores cruciales.', icon: <FaStar /> },
-    { title: 'Análisis Post-Partida', desc: 'Al finalizar cada partida, la IA actualiza tu perfil de rendimiento en segundo plano, aprendiendo de tus jugadas para darte consejos cada vez más personalizados.', icon: <FaTrophy /> }
+    { 
+      title: 'Coach de Draft Híbrido', 
+      desc: 'Recibe un análisis general automático al inicio del draft. Luego, con un clic, obtén un plan de juego específico y runas optimizadas para el campeón que pre-selecciones.', 
+      icon: <FaBrain /> 
+    },
+    { 
+      title: 'Coach Táctico en Vivo', 
+      desc: 'Tu copiloto en la Grieta. Recibe consejos de audio periódicos y contextuales sobre macrojuego, compra de ítems y objetivos sin quitar la vista de la acción.', 
+      icon: <FaCrosshairs /> 
+    },
+    { 
+      title: 'Inyector de Runas 1-Clic', 
+      desc: 'Ahorra tiempo y evita errores cruciales. Importa la página de runas completa y optimizada por la IA directamente en tu cliente de LoL con un solo clic.', 
+      icon: <FaStar /> 
+    },
+    { 
+      title: 'Narrador Táctico (TTS)', 
+      desc: 'Nuestra tecnología de voz local te narra cada consejo estratégico con claridad y sin retrasos, permitiéndote mantener la concentración total en el juego.', 
+      icon: <FaMicrophoneAlt /> 
+    },
+    { 
+      title: 'Análisis Post-Partida', 
+      desc: 'Al finalizar cada partida, la IA actualiza tu perfil de rendimiento en segundo plano, aprendiendo de tus jugadas para darte consejos cada vez más personalizados.', 
+      icon: <FaTrophy /> 
+    },
+    { 
+      title: 'Guía Interactiva por Voz', 
+      desc: '¿Nuevo en MetaMind? Lanza nuestra guía interactiva y deja que nuestro narrador te explique paso a paso cómo desatar todo el poder de tu nuevo coach de IA.', 
+      icon: <FaBookOpen /> // Icono para la guía
+    }
   ];
 
   const handleSiteEnter = () => {
@@ -215,43 +241,79 @@ export default function LandingPage() {
           </section>
 
           {/* ================================================================== */}
-          {/* ✅ SECCIÓN DE PLANES ACTUALIZADA (ARSENAL)                        */}
+          {/* ✅ SECCIÓN DE PLANES DEFINITIVA Y DETALLADA (CON PRECIO)           */}
           {/* ================================================================== */}
           <section id="arsenal-section" className="py-20 px-4 bg-lol-blue-dark/90">
             <motion.h2 initial={{ y: 50, opacity: 0 }} whileInView={{ y: 0, opacity: 1 }} viewport={{ once: true }} transition={{ duration: 1 }} className="text-4xl md:text-6xl font-display font-bold text-center text-lol-gold mb-16 text-shadow-md">
                 Elegí Tu Arsenal
             </motion.h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-12 max-w-5xl mx-auto">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-12 max-w-6xl mx-auto">
               
               {/* PLAN GRATUITO */}
               <motion.div initial={{ opacity: 0, x: -50 }} whileInView={{ opacity: 1, x: 0 }} viewport={{ once: true }} transition={{ duration: 1 }} className="bg-lol-blue-medium p-8 border-2 border-lol-gold-dark/40 rounded-lg flex flex-col">
-                  <h3 className="text-3xl font-display font-bold text-lol-gold-light mb-4">Plan Invocador (Gratis)</h3>
-                  <p className="text-lol-gold-light/70 mb-8 flex-grow">Todas las herramientas para empezar a dominar, con un límite de uso diario.</p>
-                  <ul className="space-y-4 text-lg mb-8">
-                    <li className="flex items-center gap-3"><FaCheckCircle className="text-green-400" /> Acceso a <strong className="text-white">TODAS</strong> las funciones de coaching</li>
-                    <li className="flex items-center gap-3"><FaCheckCircle className="text-green-400" /> Coach Pre-Partida, de Draft y en Vivo</li>
-                    <li className="flex items-center gap-3"><FaCheckCircle className="text-green-400" /> Inyector de Runas 1-Clic</li>
-                    <li className="flex items-center gap-3 text-yellow-400"><FaExclamationTriangle className="flex-shrink-0"/> Límite de <strong className="text-white">3 Partidas Analizadas</strong> por día</li>
+                  <div className="text-center mb-6">
+                    <h3 className="text-3xl font-display font-bold text-lol-gold-light">Plan Invocador</h3>
+                    <p className="text-4xl font-bold text-white mt-2">Gratis</p>
+                    <p className="text-sm text-lol-gold-light/70">Para siempre</p>
+                  </div>
+                  <p className="text-lol-gold-light/70 mb-8 text-center flex-grow">Prueba todo el poder de MetaMind con un límite de uso diario.</p>
+                  <ul className="space-y-4 text-base mb-8">
+                    <li className="flex items-start gap-3">
+                        <FaCheckCircle className="text-green-400 mt-1 flex-shrink-0" /> 
+                        <div><strong className="text-white">Coach Pre-Partida:</strong> Briefing mental y táctico antes de cada juego.</div>
+                    </li>
+                    <li className="flex items-start gap-3">
+                        <FaCheckCircle className="text-green-400 mt-1 flex-shrink-0" /> 
+                        <div><strong className="text-white">Coach de Draft:</strong> Análisis automático y a demanda para tu pre-selección.</div>
+                    </li>
+                    <li className="flex items-start gap-3">
+                        <FaCheckCircle className="text-green-400 mt-1 flex-shrink-0" /> 
+                        <div><strong className="text-white">Coach en Vivo:</strong> Consejos de macrojuego durante la partida.</div>
+                    </li>
+                    <li className="flex items-start gap-3">
+                        <FaCheckCircle className="text-green-400 mt-1 flex-shrink-0" /> 
+                        <div><strong className="text-white">Inyector de Runas:</strong> Importa las runas de la IA con un solo clic.</div>
+                    </li>
+                    <li className="flex items-start gap-3 text-yellow-400">
+                        <FaExclamationTriangle className="mt-1 flex-shrink-0"/> 
+                        <div>Límite de <strong className="text-white">3 Partidas Analizadas</strong> por día.</div>
+                    </li>
                   </ul>
-                  {/* Este botón puede llevar al enlace de descarga de la app */}
                   <Link href="#download-app-link" passHref>
                     <a><EpicButton className="w-full mt-auto">Descargar Gratis</EpicButton></a>
                   </Link>
               </motion.div>
 
-              {/* PLAN PREMIUM */}
-              <motion.div initial={{ opacity: 0, x: 50 }} whileInView={{ opacity: 1, x: 0 }} viewport={{ once: true }} transition={{ duration: 1, delay: 0.2 }} className="bg-lol-blue-medium p-8 border-2 border-lol-blue-accent rounded-lg relative flex flex-col" style={{ boxShadow: '0 0 25px rgba(11, 198, 227, 0.5)' }}>
+              {/* PLAN PREMIUM - CON PRECIO Y OFERTA */}
+              <motion.div initial={{ opacity: 0, x: 50 }} whileInView={{ opacity: 1, x: 0 }} viewport={{ once: true }} transition={{ duration: 1, delay: 0.2 }} className="bg-lol-blue-medium p-8 border-2 border-lol-blue-accent rounded-lg relative flex flex-col" style={{ boxShadow: '0 0 35px rgba(11, 198, 227, 0.5)' }}>
                   <div className="absolute top-0 -translate-y-1/2 left-1/2 -translate-x-1/2 bg-lol-blue-accent text-lol-blue-dark font-bold font-display px-4 py-1 text-sm uppercase tracking-widest rounded">
                     <FaStar className="inline-block mr-2" />
                     Plan Aspirante
                   </div>
-                  <h3 className="text-3xl font-display font-bold text-lol-blue-accent mb-4">Premium</h3>
-                  <p className="text-lol-gold-light/70 mb-8 flex-grow">Desata todo el poder de MetaMind. Coaching ilimitado para tu ascenso a la cima.</p>
-                  <ul className="space-y-4 text-lg mb-8">
-                      <li className="flex items-center gap-3"><FaCheckCircle className="text-green-400" /> Acceso a <strong className="text-white">TODAS</strong> las funciones de coaching</li>
-                      <li className="flex items-center gap-3"><FaCheckCircle className="text-lol-blue-accent" /> <strong className="text-white">Partidas Analizadas ILIMITADAS</strong></li>
-                      <li className="flex items-center gap-3"><FaCheckCircle className="text-lol-blue-accent" /> Soporte Prioritario</li>
-                      <li className="flex items-center gap-3"><FaCheckCircle className="text-lol-blue-accent" /> Acceso a futuras funciones beta</li>
+                   <div className="text-center mb-6">
+                    <h3 className="text-3xl font-display font-bold text-lol-blue-accent">Premium</h3>
+                    {/* ✅ PRECIO Y OFERTA AÑADIDOS AQUÍ */}
+                    <p className="text-4xl font-bold text-white mt-2">$3.50 USD <span className="text-lg font-normal text-lol-gold-light/70">/ mes</span></p>
+                    <p className="text-sm font-semibold text-green-400 animate-pulse">(Oferta de Lanzamiento)</p>
+                  </div>
+                  <p className="text-lol-gold-light/70 mb-8 text-center flex-grow">Coaching ilimitado para tu ascenso a la cima. Sin interrupciones.</p>
+                  <ul className="space-y-4 text-base mb-8">
+                      <li className="flex items-start gap-3">
+                        <FaCheckCircle className="text-lol-blue-accent mt-1 flex-shrink-0" /> 
+                        <div><strong className="text-white">TODO lo del Plan Invocador, y además:</strong></div>
+                      </li>
+                      <li className="flex items-start gap-3">
+                        <FaCheckCircle className="text-green-500 mt-1 flex-shrink-0" /> 
+                        <div><strong className="text-white">Partidas Analizadas ILIMITADAS.</strong></div>
+                      </li>
+                       <li className="flex items-start gap-3">
+                        <FaCheckCircle className="text-green-500 mt-1 flex-shrink-0" /> 
+                        <div><strong className="text-white">Análisis Post-Partida:</strong> La IA aprende y actualiza tu perfil después de cada juego.</div>
+                      </li>
+                      <li className="flex items-start gap-3">
+                        <FaCheckCircle className="text-green-500 mt-1 flex-shrink-0" /> 
+                        <div><strong className="text-white">Soporte Prioritario</strong> y acceso a futuras funciones beta.</div>
+                      </li>
                   </ul>
                   {/* IMPORTANTE: Reemplaza este 'href' con tu enlace de pago real de Hotmart */}
                   <a href="https://tu-enlace-de-pago.hotmart.com" target="_blank" rel="noopener noreferrer">
