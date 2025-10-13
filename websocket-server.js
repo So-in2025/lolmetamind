@@ -169,19 +169,23 @@ const eventHandlers = {
   },
 
   'LIVE_COACHING_UPDATE': async ({ data, userData }, ws) => {
-    console.log('[DEBUG][LIVE_COACHING_UPDATE] Evento recibido');
+    console.log('[DEBUG][LIVE_COACHING_UPDATE] Evento recibido, datos crudos:', data);
     if (!ensureAuthenticated(ws, 'LIVE_COACHING_UPDATE')) return;
     try {
       validate('userData', userData);
-      if (!data || !data.liveGameData) throw new Error('liveGameData missing');
-      const prompt = prompts.createLiveCoachingPrompt(data.liveGameData, userData.zodiacSign);
+      // ✅ CORRECCIÓN: Los datos del InGameCoach vienen anidados dentro de 'data'.
+      if (!data || !data.liveData) throw new Error('liveGameData missing in payload');
+      
+      const eventContext = data.trigger || 'Situación de partida en tiempo real.';
+      const prompt = await prompts.createLiveCoachingPrompt(data.liveData, userData.zodiacSign, eventContext);
+      
       const res = await aiOrchestrator.getOrchestratedResponse({ prompt, expectedType:'object', kind:'realtime', cacheTTL:60*1000 });
       safeSend(ws, { eventType:'IN_GAME_ADVICE', data:res });
       console.log('[DEBUG][LIVE_COACHING_UPDATE] Advice en vivo enviado');
     } catch (err) {
       handleError(err, ws, 'LIVE_COACHING_UPDATE');
     }
-  }
+  },
 };
 
 // ========================
