@@ -6,7 +6,7 @@ import { FaPlayCircle, FaUserCheck, FaKeyboard, FaBrain, FaHeadphones, FaPauseCi
 import Link from 'next/link';
 
 // ====================================================================================
-// ✅ HOOK useGuidedTour CORREGIDO
+// ✅ HOOK useGuidedTour CORREGIDO (ROMPE EL BUCLE INFINITO)
 // ====================================================================================
 const useGuidedTour = (sectionsRef) => {
   const [isSpeaking, setIsSpeaking] = useState(false);
@@ -14,6 +14,12 @@ const useGuidedTour = (sectionsRef) => {
   const [currentWordIndex, setCurrentWordIndex] = useState(-1);
   const [currentSectionIndex, setCurrentSectionIndex] = useState(-1);
   const utteranceRef = useRef(null);
+  
+  // ✅ 1. Usamos un Ref para rastrear el índice de la sección sin causar re-renders.
+  const sectionIndexRef = useRef(currentSectionIndex);
+  useEffect(() => {
+    sectionIndexRef.current = currentSectionIndex;
+  }, [currentSectionIndex]);
 
   const stopTour = useCallback(() => {
     if (typeof window !== 'undefined' && window.speechSynthesis) {
@@ -65,7 +71,8 @@ const useGuidedTour = (sectionsRef) => {
               const end = sectionBoundaries[j + 1] || Infinity;
               return i >= start && i < end;
             });
-            if (newSectionIndex !== -1 && newSectionIndex !== currentSectionIndex) {
+            // ✅ 2. Leemos desde el Ref en lugar del estado para evitar la dependencia.
+            if (newSectionIndex !== -1 && newSectionIndex !== sectionIndexRef.current) {
               setCurrentSectionIndex(newSectionIndex);
               sectionsRef.current[newSectionIndex]?.scrollIntoView({ behavior: 'smooth', block: 'center' });
             }
@@ -81,7 +88,8 @@ const useGuidedTour = (sectionsRef) => {
     
     utteranceRef.current = utterance;
     window.speechSynthesis.speak(utterance);
-  }, [sectionsRef, stopTour, currentSectionIndex]);
+  // ✅ 3. Eliminamos 'currentSectionIndex' de las dependencias para romper el bucle.
+  }, [sectionsRef, stopTour]);
   
   const togglePause = useCallback(() => {
       if(window.speechSynthesis.paused) {
@@ -97,7 +105,7 @@ const useGuidedTour = (sectionsRef) => {
 };
 
 // ====================================================================================
-// 🔹 SUB-COMPONENTES DE RENDERIZADO
+// RESTO DEL CÓDIGO (SIN CAMBIOS)
 // ====================================================================================
 
 const GuideSection = forwardRef(({ icon, title, children }, ref) => {
@@ -122,6 +130,7 @@ const GuideSection = forwardRef(({ icon, title, children }, ref) => {
 });
 GuideSection.displayName = "GuideSection";
 
+
 const NarratedText = ({ text, wordOffset, currentWordIndex }) => {
     const words = text.split(/\s+/).filter(Boolean);
     return (
@@ -139,9 +148,7 @@ const NarratedText = ({ text, wordOffset, currentWordIndex }) => {
     );
 };
 
-// ====================================================================================
-// 🚀 COMPONENTE PRINCIPAL: GuidePage
-// ====================================================================================
+
 export default function GuidePage() {
   const sectionsRef = useRef([]);
   const { startTour, stopTour, togglePause, isSpeaking, isPaused, currentWordIndex } = useGuidedTour(sectionsRef);
