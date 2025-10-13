@@ -10,20 +10,23 @@ import { getChampionNameById } from '@/services/dataDragonService';
 // - Genera la estructura de datos { tips, fullText, runes } que el frontend "Elite" espera.
 // ====================================================================================
 export const createChampSelectPrompt = async (draftData, summonerData) => {
-  // ✅ CORRECCIÓN: Leemos de las propiedades correctas ('myTeamPicks', 'theirTeamPicks')
-  // que son creadas por lol-client-api.js y extraemos el championId para traducirlo.
-  // Esta lógica es más robusta y funciona en conjunto con el resto de la app.
-  const championMap = {}; // Un mapa temporal para evitar llamadas repetidas
+  const championMap = {};
   const getName = async (id) => {
+    if (!id || id === 0) return null; // Filtra campeones no válidos
     if (championMap[id]) return championMap[id];
-    const name = await getChampionNameById(id);
-    championMap[id] = name;
-    return name;
+    try {
+      const name = await getChampionNameById(id);
+      championMap[id] = name;
+      return name;
+    } catch {
+      return null; // Si la traducción falla, no incluirlo
+    }
   };
 
-  const myTeamPicks = await Promise.all((draftData?.myTeamPicks || []).map(p => getName(p.championId)));
-  const theirTeamPicks = await Promise.all((draftData?.theirTeamPicks || []).map(p => getName(p.championId)));
-  const bans = await Promise.all((draftData?.bans || []).map(b => getName(b.championId)));
+  // ✅ CORRECCIÓN: Usamos Promise.all para TODOS y luego filtramos los nulos.
+  const myTeamPicks = (await Promise.all((draftData?.myTeamPicks || []).map(p => getName(p.championId)))).filter(Boolean);
+  const theirTeamPicks = (await Promise.all((draftData?.theirTeamPicks || []).map(p => getName(p.championId)))).filter(Boolean);
+  const bans = (await Promise.all((draftData?.bans || []).map(b => getName(b.championId)))).filter(Boolean);
   
   const { zodiacSign, favRole1 } = summonerData;
   let playerIntentContext;
