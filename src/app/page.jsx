@@ -2,7 +2,7 @@
 
 import React, { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { FaBrain, FaCrosshairs, FaPalette, FaMicrophoneAlt, FaFilm, FaTrophy, FaFacebook, FaGlobe, FaCheckCircle, FaStar, FaVolumeUp, FaVolumeMute, FaBookOpen } from 'react-icons/fa';
+import { FaBrain, FaCrosshairs, FaPalette, FaMicrophoneAlt, FaFilm, FaTrophy, FaFacebook, FaGlobe, FaCheckCircle, FaStar, FaVolumeUp, FaVolumeMute, FaBookOpen, FaExclamationTriangle } from 'react-icons/fa'; 
 import EpicButton from '@/components/landing/EpicButton';
 import VideoPlayer from '@/components/landing/VideoPlayer';
 import Link from 'next/link';

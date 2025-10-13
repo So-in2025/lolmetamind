@@ -154,13 +154,33 @@ export default function GuidePage() {
     };
   }, [isClient, startTour, stopTour]);
 
+  // ✅ VERSIÓN FINAL Y FIEL A LA GUÍA ORIGINAL
   const sectionsContent = [
-    // ... (Tu contenido original, sin cambios)
-    { icon: <FaPlayCircle />, title: 'Paso 1: Arranque Automático', text: "Simplemente mantén MetaMind abierto mientras juegas. Nuestra aplicación detectará automáticamente en qué fase del juego te encuentras. ¡No necesitas hacer nada más para empezar!" },
-    { icon: <FaUserCheck />, title: 'Paso 2: Coach Pre-Partida', text: "Al entrar en la sala de espera, tu Overlay cobrará vida. En este momento, la IA analiza tu perfil para prepararte mental y tácticamente. Escucharás tu \"briefing de misión\": un mantra para tu estado mental y un objetivo claro para los primeros minutos." },
-    { icon: <FaKeyboard />, title: 'Paso 3: El Coach de Draft', text: "Al entrar en Selección de Campeones, recibirás un análisis general automático. Luego, pre-selecciona un campeón para activar el botón 'Analizar'. Al hacer clic, recibirás un plan de juego actualizado y el botón para inyectar las runas. Consejo Pro: ¿Dudas entre dos campeones? ¡Analiza ambos!" },
-    { icon: <FaHeadphones />, title: 'Paso 4: Coach en Vivo', text: "Una vez en partida, el Overlay cambiará al modo \"Coach en Vivo\". Periódicamente, la IA analizará el estado del juego y te dará consejos de audio cortos y directos sobre macrojuego y objetivos." },
-    { icon: <FaBrain />, title: 'Paso 5: Aprendizaje Continuo', text: "Al terminar la partida, MetaMind analiza el resultado en segundo plano. Tu perfil de rendimiento se actualiza, permitiendo que la IA aprenda de tus jugadas para darte consejos cada vez más precisos." }
+    { 
+      icon: <FaPlayCircle />, 
+      title: 'Paso 1: Arranque Automático', 
+      text: "Simplemente mantén MetaMind abierto mientras juegas a League of Legends. ¡Eso es todo! Nuestra aplicación detectará automáticamente en qué fase del juego te encuentras. No necesitas activar ni configurar nada para empezar." 
+    },
+    { 
+      icon: <FaUserCheck />, 
+      title: 'Paso 2: El Coach Pre-Partida', 
+      text: "En cuanto entres en una sala de espera, verás que el Overlay cobra vida. En este momento, nuestra IA analiza tu perfil para prepararte mental y tácticamente. Recibirás un consejo de audio inicial. Este es tu \"briefing de misión\": un mantra para tu estado mental y un objetivo claro para los primeros minutos. ¡Escúchalo con atención!" 
+    },
+    { 
+      icon: <FaKeyboard />, 
+      title: 'Paso 3: El Coach de Draft', 
+      text: "Al entrar en Selección de Campeones, recibirás un análisis general automático sobre las necesidades de tu equipo. Luego, es tu momento de brillar. Pre-selecciona el campeón que tienes en mente para activar el botón 'Analizar'. Al hacer clic, recibirás una estrategia completa y específica sobre sinergias, enfrentamientos y tu condición de victoria. Si la IA lo recomienda, también aparecerá el botón para inyectar las runas con un solo clic. Consejo Profesional: ¿No estás seguro entre dos campeones? ¡Analiza ambos y compara los planes de juego!" 
+    },
+    { 
+      icon: <FaHeadphones />, 
+      title: 'Paso 4: El Coach en Vivo', 
+      text: "Una vez en partida, MetaMind no te abandona. Periódicamente, nuestra IA tomará una 'foto' de la situación: tu nivel, ítems y objetivos. Recibirás consejos de audio cortos y relevantes como: 'Acabas de volver a base con 1500 de oro. Prioriza la compra del Brillo', o 'El Dragón aparecerá en un minuto. Comienza a establecer visión en la zona'." 
+    },
+    { 
+      icon: <FaBrain />, 
+      title: 'Paso 5: El Análisis Post-Partida', 
+      text: "Al terminar la partida, en segundo plano, nuestra IA analiza el resultado y actualiza tu perfil de rendimiento, aprendiendo de tus fortalezas y debilidades. Este análisis se usará para darte consejos aún más personalizados en tu próxima partida." 
+    }
   ];
   
   let globalWordCount = 0;
