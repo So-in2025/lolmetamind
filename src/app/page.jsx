@@ -214,39 +214,49 @@ export default function LandingPage() {
             </div>
           </section>
 
+          {/* ================================================================== */}
+          {/* ✅ SECCIÓN DE PLANES ACTUALIZADA (ARSENAL)                        */}
+          {/* ================================================================== */}
           <section id="arsenal-section" className="py-20 px-4 bg-lol-blue-dark/90">
             <motion.h2 initial={{ y: 50, opacity: 0 }} whileInView={{ y: 0, opacity: 1 }} viewport={{ once: true }} transition={{ duration: 1 }} className="text-4xl md:text-6xl font-display font-bold text-center text-lol-gold mb-16 text-shadow-md">
                 Elegí Tu Arsenal
             </motion.h2>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-12 max-w-5xl mx-auto">
+              
+              {/* PLAN GRATUITO */}
               <motion.div initial={{ opacity: 0, x: -50 }} whileInView={{ opacity: 1, x: 0 }} viewport={{ once: true }} transition={{ duration: 1 }} className="bg-lol-blue-medium p-8 border-2 border-lol-gold-dark/40 rounded-lg flex flex-col">
-                  <h3 className="text-3xl font-display font-bold text-lol-gold-light mb-4">Plan Gratuito</h3>
-                  <p className="text-lol-gold-light/70 mb-8 flex-grow">Perfecto para empezar a sentir el poder de la estrategia personalizada.</p>
+                  <h3 className="text-3xl font-display font-bold text-lol-gold-light mb-4">Plan Invocador (Gratis)</h3>
+                  <p className="text-lol-gold-light/70 mb-8 flex-grow">Todas las herramientas para empezar a dominar, con un límite de uso diario.</p>
                   <ul className="space-y-4 text-lg mb-8">
-                    <li className="flex items-center gap-3"><FaCheckCircle className="text-lol-blue-accent" /> Coach Pre-Partida</li>
-                    <li className="flex items-center gap-3"><FaCheckCircle className="text-lol-blue-accent" /> Análisis Automático de Draft</li>
+                    <li className="flex items-center gap-3"><FaCheckCircle className="text-green-400" /> Acceso a <strong className="text-white">TODAS</strong> las funciones de coaching</li>
+                    <li className="flex items-center gap-3"><FaCheckCircle className="text-green-400" /> Coach Pre-Partida, de Draft y en Vivo</li>
+                    <li className="flex items-center gap-3"><FaCheckCircle className="text-green-400" /> Inyector de Runas 1-Clic</li>
+                    <li className="flex items-center gap-3 text-yellow-400"><FaExclamationTriangle className="flex-shrink-0"/> Límite de <strong className="text-white">3 Partidas Analizadas</strong> por día</li>
                   </ul>
+                  {/* Este botón puede llevar al enlace de descarga de la app */}
                   <Link href="#download-app-link" passHref>
-                    <EpicButton className="w-full mt-auto">Descargar Gratis</EpicButton>
+                    <a><EpicButton className="w-full mt-auto">Descargar Gratis</EpicButton></a>
                   </Link>
               </motion.div>
+
+              {/* PLAN PREMIUM */}
               <motion.div initial={{ opacity: 0, x: 50 }} whileInView={{ opacity: 1, x: 0 }} viewport={{ once: true }} transition={{ duration: 1, delay: 0.2 }} className="bg-lol-blue-medium p-8 border-2 border-lol-blue-accent rounded-lg relative flex flex-col" style={{ boxShadow: '0 0 25px rgba(11, 198, 227, 0.5)' }}>
                   <div className="absolute top-0 -translate-y-1/2 left-1/2 -translate-x-1/2 bg-lol-blue-accent text-lol-blue-dark font-bold font-display px-4 py-1 text-sm uppercase tracking-widest rounded">
                     <FaStar className="inline-block mr-2" />
-                    Recomendado
+                    Plan Aspirante
                   </div>
-                  <h3 className="text-3xl font-display font-bold text-lol-blue-accent mb-4">Plan Premium</h3>
-                  <p className="text-lol-gold-light/70 mb-8 flex-grow">Desata todo el poder de MetaMind y domina la grieta con el arsenal completo.</p>
+                  <h3 className="text-3xl font-display font-bold text-lol-blue-accent mb-4">Premium</h3>
+                  <p className="text-lol-gold-light/70 mb-8 flex-grow">Desata todo el poder de MetaMind. Coaching ilimitado para tu ascenso a la cima.</p>
                   <ul className="space-y-4 text-lg mb-8">
-                      <li className="flex items-start gap-3"><FaCheckCircle className="text-lol-blue-accent mt-1 flex-shrink-0" /> <div><strong className="text-lol-gold-light">Todo lo del Plan Gratuito,</strong> y además:</div></li>
-                      <li className="flex items-center gap-3"><FaCheckCircle className="text-lol-blue-accent" /> <strong className="text-lol-gold-light">Análisis a Demanda de Pre-selección</strong></li>
-                      <li className="flex items-center gap-3"><FaCheckCircle className="text-lol-blue-accent" /> <strong className="text-lol-gold-light">Inyector de Runas con 1-Clic</strong></li>
-                      <li className="flex items-center gap-3"><FaCheckCircle className="text-lol-blue-accent" /> <strong className="text-lol-gold-light">Coach Táctico en Vivo</strong></li>
-                      <li className="flex items-center gap-3"><FaCheckCircle className="text-lol-blue-accent" /> <strong className="text-lol-gold-light">Análisis Post-Partida Avanzado</strong></li>
+                      <li className="flex items-center gap-3"><FaCheckCircle className="text-green-400" /> Acceso a <strong className="text-white">TODAS</strong> las funciones de coaching</li>
+                      <li className="flex items-center gap-3"><FaCheckCircle className="text-lol-blue-accent" /> <strong className="text-white">Partidas Analizadas ILIMITADAS</strong></li>
+                      <li className="flex items-center gap-3"><FaCheckCircle className="text-lol-blue-accent" /> Soporte Prioritario</li>
+                      <li className="flex items-center gap-3"><FaCheckCircle className="text-lol-blue-accent" /> Acceso a futuras funciones beta</li>
                   </ul>
-                  <Link href="#download-app-link" passHref>
-                    <EpicButton className="w-full mt-auto">Obtener Premium</EpicButton>
-                  </Link>
+                  {/* IMPORTANTE: Reemplaza este 'href' con tu enlace de pago real de Hotmart */}
+                  <a href="https://tu-enlace-de-pago.hotmart.com" target="_blank" rel="noopener noreferrer">
+                    <EpicButton className="w-full mt-auto">¡Obtener Coaching Ilimitado!</EpicButton>
+                  </a>
               </motion.div>
             </div>
         </section>
