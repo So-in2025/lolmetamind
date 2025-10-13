@@ -1,21 +1,24 @@
 'use client';
 
-import React, { useState, useEffect, useRef, forwardRef, useCallback } from 'react'; // Importa 'forwardRef' y 'useCallback'
+import React, { useState, useEffect, useRef, forwardRef, useCallback } from 'react';
 import { motion } from 'framer-motion';
 import { FaPlayCircle, FaUserCheck, FaKeyboard, FaBrain, FaHeadphones, FaPauseCircle, FaStopCircle } from 'react-icons/fa';
 import Link from 'next/link';
 
-// Hook personalizado para manejar la lógica del TTS y el resaltado
+// ====================================================================================
+// ✅ HOOK useGuidedTour CORREGIDO
+// ====================================================================================
 const useGuidedTour = (sectionsRef) => {
   const [isSpeaking, setIsSpeaking] = useState(false);
   const [isPaused, setIsPaused] = useState(false);
   const [currentWordIndex, setCurrentWordIndex] = useState(-1);
   const [currentSectionIndex, setCurrentSectionIndex] = useState(-1);
   const utteranceRef = useRef(null);
-  
-  // ✅ CORRECCIÓN: Envolvemos las funciones en useCallback para optimización y evitar re-creaciones innecesarias.
+
   const stopTour = useCallback(() => {
-    window.speechSynthesis.cancel();
+    if (typeof window !== 'undefined' && window.speechSynthesis) {
+        window.speechSynthesis.cancel();
+    }
     setIsSpeaking(false);
     setIsPaused(false);
     setCurrentWordIndex(-1);
@@ -25,7 +28,7 @@ const useGuidedTour = (sectionsRef) => {
   const startTour = useCallback(() => {
     if (typeof window === 'undefined' || !window.speechSynthesis) return;
     
-    stopTour(); // Llama a la función de reseteo
+    stopTour();
     
     let fullText = '';
     let sectionBoundaries = [];
@@ -35,7 +38,6 @@ const useGuidedTour = (sectionsRef) => {
       if (sectionEl) {
         const textNodes = Array.from(sectionEl.querySelectorAll('.narrate'));
         const sectionText = textNodes.map(node => node.textContent).join(' \n ');
-        
         sectionBoundaries.push(words.length);
         const sectionWords = sectionText.split(/\s+/).filter(Boolean);
         words.push(...sectionWords);
@@ -44,29 +46,31 @@ const useGuidedTour = (sectionsRef) => {
     });
 
     const utterance = new SpeechSynthesisUtterance(fullText.trim());
-    utterance.lang = 'es-AR';
-    utterance.rate = 0.9;
-    utterance.pitch = 1.1;
+    utterance.lang = 'es-ES';
+    utterance.rate = 0.95;
+    utterance.pitch = 1;
 
     utterance.onstart = () => {
       setIsSpeaking(true);
-      setCurrentWordIndex(0);
-      setCurrentSectionIndex(0);
     };
 
     utterance.onboundary = (event) => {
       if (event.name === 'word') {
-        const spokenText = fullText.substring(0, event.charIndex + event.charLength);
-        const wordIndex = spokenText.split(/\s+/).filter(Boolean).length - 1;
-        setCurrentWordIndex(wordIndex);
-
-        const newSectionIndex = sectionBoundaries.findIndex((start, i) => {
-            const end = sectionBoundaries[i + 1] || Infinity;
-            return wordIndex >= start && wordIndex < end;
-        });
-        if (newSectionIndex !== -1 && newSectionIndex !== currentSectionIndex) {
-            setCurrentSectionIndex(newSectionIndex);
-            sectionsRef.current[newSectionIndex]?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        let charCounter = 0;
+        for (let i = 0; i < words.length; i++) {
+          charCounter += words[i].length + 1;
+          if (charCounter > event.charIndex) {
+            setCurrentWordIndex(i);
+            const newSectionIndex = sectionBoundaries.findIndex((start, j) => {
+              const end = sectionBoundaries[j + 1] || Infinity;
+              return i >= start && i < end;
+            });
+            if (newSectionIndex !== -1 && newSectionIndex !== currentSectionIndex) {
+              setCurrentSectionIndex(newSectionIndex);
+              sectionsRef.current[newSectionIndex]?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            }
+            return;
+          }
         }
       }
     };
@@ -92,6 +96,9 @@ const useGuidedTour = (sectionsRef) => {
   return { startTour, stopTour, togglePause, isSpeaking, isPaused, currentWordIndex };
 };
 
+// ====================================================================================
+// 🔹 SUB-COMPONENTES DE RENDERIZADO
+// ====================================================================================
 
 const GuideSection = forwardRef(({ icon, title, children }, ref) => {
   return (
@@ -115,7 +122,6 @@ const GuideSection = forwardRef(({ icon, title, children }, ref) => {
 });
 GuideSection.displayName = "GuideSection";
 
-
 const NarratedText = ({ text, wordOffset, currentWordIndex }) => {
     const words = text.split(/\s+/).filter(Boolean);
     return (
@@ -133,18 +139,18 @@ const NarratedText = ({ text, wordOffset, currentWordIndex }) => {
     );
 };
 
-
+// ====================================================================================
+// 🚀 COMPONENTE PRINCIPAL: GuidePage
+// ====================================================================================
 export default function GuidePage() {
   const sectionsRef = useRef([]);
   const { startTour, stopTour, togglePause, isSpeaking, isPaused, currentWordIndex } = useGuidedTour(sectionsRef);
-  const [isClient, setIsClient] = useState(false); // ✅ CORRECCIÓN: Esta línea faltaba en tu código original.
+  const [isClient, setIsClient] = useState(false);
 
-  // Efecto para marcar que estamos en el cliente y la hidratación ha ocurrido.
   useEffect(() => {
     setIsClient(true);
   }, []);
 
-  // Efecto para iniciar el tour automáticamente una vez que estamos en el cliente.
   useEffect(() => {
     if (!isClient) return;
     const startTimeout = setTimeout(startTour, 1000);
@@ -154,7 +160,6 @@ export default function GuidePage() {
     };
   }, [isClient, startTour, stopTour]);
 
-  // ✅ VERSIÓN FINAL Y FIEL A LA GUÍA ORIGINAL
   const sectionsContent = [
     { 
       icon: <FaPlayCircle />, 
